@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Blind Spin — DIY music timeline game</title>
+<title>Vinyl'le — music timeline game</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -204,6 +204,12 @@
     font-weight:400;
   }
   .plist-tracks{list-style:none;margin:.6rem 0 1.1rem;padding:0 0 0 1.4rem;}
+  .footer-link{color:var(--muted);text-decoration:none;}
+  .footer-link:hover{color:var(--gold);text-decoration:underline;}
+  .plist-close-row-inline{cursor:pointer;}
+  .plist-close-row-inline:hover .close-arrow{color:var(--gold);}
+  .close-arrow{display:flex;justify-content:center;align-items:center;color:var(--muted);opacity:.6;}
+  .plist-close-row-inline:hover .close-arrow{opacity:1;}
   .plist-tracks li{
     display:flex;align-items:center;gap:.8rem;
     padding:.6rem 0;
@@ -448,6 +454,11 @@
     font-size:.88rem;
   }
   .history-entry:last-child{border-bottom:none;}
+  #historyList{
+    max-height:55vh;
+    overflow-y:auto;
+    padding-right:.5rem;
+  }
   .history-year{
     font-family:'IBM Plex Mono',monospace;
     color:var(--gold);
@@ -770,6 +781,10 @@
 
     <div id="sbPodiumView" style="display:none;">
       <div id="podiumCapture">
+        <div style="text-align:center; margin-bottom:1.8rem;">
+          <div style="font-family:'Fraunces',serif; font-weight:700; font-size:1.7rem; letter-spacing:-0.01em; color:var(--paper);">Vinyl'le</div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:.72rem; text-transform:uppercase; letter-spacing:.18em; color:var(--gold); margin-top:.2rem;">Leaderboard</div>
+        </div>
         <div id="podiumStage"></div>
         <div id="podiumRest"></div>
       </div>
@@ -789,6 +804,7 @@
       <button class="menu-dropdown-item" data-view="settings">Settings</button>
       <button class="menu-dropdown-item" data-view="history">History</button>
       <button class="menu-dropdown-item" data-view="stats">Stats</button>
+      <button class="menu-dropdown-item" data-view="support">Support</button>
     </div>
   </div>
 </div>
@@ -853,6 +869,10 @@
         <span class="menu-setting-value" id="statsListenValue">0:00</span>
       </div>
     </div>
+
+    <div id="supportView" style="display:none;">
+      <p class="hint">If you're enjoying Vinyl'le, there'll be a way to chip in here soon — this tab is just the placeholder for now, nothing's wired up yet.</p>
+    </div>
   </div>
 </div>
 
@@ -860,8 +880,12 @@
 <div id="ad-slot-left" class="ad-slot ad-slot-side"><span class="ad-slot-label">Ad</span></div>
 <div class="wrap">
 
-  <h1>Blind Spin</h1>
-  <p class="tagline">A DIY music year-guessing party game. Load a whole Spotify playlist, spin the mystery record, guess the year.</p>
+  <div id="iosWarningBanner" style="display:none; background:#3A1F1F; border:1px solid var(--red); border-radius:8px; padding:.9rem 1.1rem; margin-bottom:1.5rem; font-size:.85rem; color:#f0c4c4; line-height:1.5;">
+    <strong>Heads up:</strong> audio playback doesn't work reliably on iOS Safari (a platform limitation with how Spotify's embed handles logins, not something this app can fix). The scoreboard, settings, and everything else here still work fine on your phone — but for actually playing songs, use a laptop or desktop browser.
+  </div>
+
+  <h1>Vinyl'le</h1>
+  <p class="tagline">A music year-guessing party game. Load a whole Spotify playlist, spin the mystery record, guess the year.</p>
 
   <div class="card">
     <details>
@@ -871,7 +895,7 @@
         <input type="text" id="clientId" placeholder="paste your client id">
         <span class="field-label">Redirect URI — paste this exact value into your Spotify app settings</span>
         <input type="text" id="redirectUri" readonly>
-        <p class="hint" id="redirectHint">Spotify requires <code>127.0.0.1</code> here, not <code>localhost</code> — open this page as <code>http://127.0.0.1:PORT/blind-spin.html</code> in your browser (same port as your Terminal command) so the field above shows the right value.</p>
+        <p class="hint" id="redirectHint">Copy this exact value into your Spotify app's <strong>Redirect URIs</strong> setting in the developer dashboard.</p>
         <div class="row" style="margin-top:.3rem; align-items:center;">
           <button class="primary" id="connectBtn">Connect Spotify account</button>
           <button id="disconnectBtn" style="display:none;">Disconnect</button>
@@ -882,6 +906,7 @@
           <ol>
             <li>Go to <a href="https://developer.spotify.com/dashboard" target="_blank">developer.spotify.com/dashboard</a> and log in.</li>
             <li>Create an app (any name). When it asks for a Redirect URI, paste the exact value shown above in this app.</li>
+            <li>When it asks "Which API/SDKs are you planning to use," check <strong>Web API</strong> (this app doesn't need the Web Playback SDK — it plays clips via Spotify's embed player).</li>
             <li>Open the app → Settings → copy the Client ID into the box above.</li>
             <li>Click "Connect Spotify account" below — it'll send you to Spotify to approve, then bring you back here.</li>
           </ol>
@@ -895,7 +920,7 @@ https://open.spotify.com/playlist/yyyyyyyy"></textarea>
           <p class="hint">Add as many playlists as you like. When you draw a card, the app first picks a random playlist, then a random song from it — so a small playlist isn't drowned out by a huge one.</p>
           <div class="row" style="margin-top:.6rem;">
             <button class="primary" id="loadPlaylistBtn" disabled>Load playlists</button>
-            <button id="shuffleBtn" disabled>Shuffle</button>
+            <button id="reloadBtn" disabled>Reload playlists</button>
             <button id="resetBtn" disabled>Reset deck</button>
           </div>
           <div class="status-line" id="playlistStatus"></div>
@@ -976,8 +1001,11 @@ https://open.spotify.com/playlist/yyyyyyyy"></textarea>
     </details>
   </div>
 
-  <p style="text-align:center; color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:.72rem; margin-top:2rem;">Blind Spin — v8.9</p>
+  <p style="text-align:center; color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:.72rem; margin-top:2rem;">Vinyl'le — v10.6.1</p>
   <p style="text-align:center; color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:.65rem; margin-top:.3rem; opacity:.7;">Vibe coded by MB</p>
+  <p style="text-align:center; font-family:'IBM Plex Mono',monospace; font-size:.7rem; margin-top:.6rem; opacity:.7;">
+    <a href="#" class="footer-link">Feedback</a> · <a href="#" class="footer-link">Reach out</a> · <a href="#" class="footer-link">What's new</a>
+  </p>
 </div>
 <div id="ad-slot-right" class="ad-slot ad-slot-side"><span class="ad-slot-label">Ad</span></div>
 </div>
@@ -1015,6 +1043,57 @@ let playlists = [];
 let revealAllNames = false;
 let loadedPlaylistIds = new Set();
 let players = [];
+
+function saveSession(){
+  try{
+    const state = {
+      playlists: playlists.map(p => ({name: p.name, tracks: p.tracks, enabled: p.enabled, id: p.id, expanded: p.expanded})),
+      loadedPlaylistIds: Array.from(loadedPlaylistIds),
+      players: players.map(pl => ({name: pl.name, timeline: pl.timeline})),
+      sessionHistory: sessionHistory,
+      statsDrawn: statsDrawn,
+      statsRevealed: statsRevealed,
+      statsListenSeconds: statsListenSeconds,
+      clipSeconds: CLIP_SECONDS,
+      winLength: WIN_LENGTH
+    };
+    localStorage.setItem('bs_session', JSON.stringify(state));
+  }catch(e){ console.error('saveSession failed:', e); }
+}
+
+function loadSession(){
+  try{
+    const raw = localStorage.getItem('bs_session');
+    if(!raw) return;
+    const state = JSON.parse(raw);
+    if(state.playlists) playlists = state.playlists;
+    if(state.loadedPlaylistIds) loadedPlaylistIds = new Set(state.loadedPlaylistIds);
+    if(state.players) players = state.players.map(pl => ({name: pl.name, timeline: pl.timeline || [], lastAdded: null}));
+    if(state.sessionHistory) sessionHistory = state.sessionHistory;
+    if(typeof state.statsDrawn === 'number') statsDrawn = state.statsDrawn;
+    if(typeof state.statsRevealed === 'number') statsRevealed = state.statsRevealed;
+    if(typeof state.statsListenSeconds === 'number') statsListenSeconds = state.statsListenSeconds;
+    if(typeof state.clipSeconds === 'number'){
+      CLIP_SECONDS = state.clipSeconds;
+      clipLengthInput.value = CLIP_SECONDS;
+      clipLengthValue.textContent = CLIP_SECONDS + 's';
+    }
+    if(typeof state.winLength === 'number'){
+      WIN_LENGTH = state.winLength;
+      winLengthInput.value = WIN_LENGTH;
+      winLengthValue.textContent = WIN_LENGTH;
+    }
+    if(playlists.length > 0){
+      reloadBtn.disabled = false;
+      resetBtn.disabled = false;
+      drawBtn.disabled = false;
+    }
+    refreshStatus();
+    renderTracklist();
+    renderScoreboard();
+    renderHistory();
+  }catch(e){ console.error('loadSession failed:', e); }
+}
 let currentCard = null;
 let currentPlaylistName = '';
 let revealed = false;
@@ -1108,7 +1187,7 @@ const disconnectBtn = document.getElementById('disconnectBtn');
 const connectStatus = document.getElementById('connectStatus');
 const connectPill = document.getElementById('connectPill');
 const redirectUriField = document.getElementById('redirectUri');
-const shuffleBtn = document.getElementById('shuffleBtn');
+const reloadBtn = document.getElementById('reloadBtn');
 const resetBtn = document.getElementById('resetBtn');
 const drawBtn = document.getElementById('drawBtn');
 const replayBtn = document.getElementById('replayBtn');
@@ -1154,10 +1233,6 @@ const REDIRECT_URI = window.location.origin + window.location.pathname;
 redirectUriField.value = REDIRECT_URI;
 
 const redirectHintEl = document.getElementById('redirectHint');
-const isLoopback = ['127.0.0.1', 'localhost', '::1'].includes(window.location.hostname);
-if(!isLoopback){
-  redirectHintEl.innerHTML = 'Copy this exact value into your Spotify app\'s <strong>Redirect URIs</strong> setting in the developer dashboard.';
-}
 
 function randomString(len){
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -1299,6 +1374,14 @@ async function tryRestoreSession(){
     setConnState('', 'not connected');
   }
 }
+function isIOS(){
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+if(isIOS()){
+  document.getElementById('iosWarningBanner').style.display = 'block';
+}
+
 tryRestoreSession();
 
 setInterval(async () => {
@@ -1339,6 +1422,7 @@ function renderTracklist(){
   tracklistEl.innerHTML = '';
   if(playlists.length === 0){
     tracklistEl.innerHTML = '<div class="empty">Build a deck above to see your tracks here.</div>';
+    saveSession();
     return;
   }
   playlists.forEach((p, pIndex) => {
@@ -1350,9 +1434,10 @@ function renderTracklist(){
     const summary = document.createElement('summary');
     summary.className = 'plist-summary';
 
+    const revealedCount = p.tracks.filter(t => t.revealedOnce).length;
     const label = document.createElement('span');
     label.className = 'plist-name';
-    label.innerHTML = escapeHtml(p.name) + '<span class="plist-meta">' + p.tracks.length + ' tracks' + (p.enabled ? '' : ' · off') + '</span>';
+    label.innerHTML = escapeHtml(p.name) + '<span class="plist-meta">' + revealedCount + ' / ' + p.tracks.length + ' tracks revealed' + (p.enabled ? '' : ' · off') + '</span>';
     summary.appendChild(label);
 
     const controls = document.createElement('span');
@@ -1381,7 +1466,7 @@ function renderTracklist(){
       refreshStatus();
       renderTracklist();
       if(playlists.length === 0){
-        shuffleBtn.disabled = true;
+        reloadBtn.disabled = true;
         resetBtn.disabled = true;
         drawBtn.disabled = true;
       }
@@ -1407,9 +1492,18 @@ function renderTracklist(){
       `;
       trackList.appendChild(li);
     });
+    const closeLi = document.createElement('li');
+    closeLi.className = 'plist-close-row-inline';
+    closeLi.innerHTML = `<span class="num close-arrow" title="Collapse playlist"><svg width="10" height="8" viewBox="0 0 10 8" xmlns="http://www.w3.org/2000/svg"><polygon points="5,0 10,8 0,8" fill="currentColor"/></svg></span>`;
+    closeLi.addEventListener('click', () => {
+      group.open = false;
+      group.scrollIntoView({ block: 'nearest' });
+    });
+    trackList.appendChild(closeLi);
     group.appendChild(trackList);
     tracklistEl.appendChild(group);
   });
+  saveSession();
 }
 
 revealAllBtn.addEventListener('click', () => {
@@ -1465,6 +1559,7 @@ function renderScoreboard(){
   scoreboardEl.innerHTML = '';
   if(players.length === 0){
     scoreboardEl.innerHTML = '<p class="empty">No players yet — add someone above. When they guess a card\'s spot right, tap the add-card tile to drop it into their timeline.</p>';
+    saveSession();
     return;
   }
   const sorted = players.slice().sort(comparePlayers);
@@ -1584,7 +1679,7 @@ function renderScoreboard(){
       timelineRow.appendChild(card);
     });
 
-    const claimedBy = canAdd ? players.find(p => p.timeline.some(e => e.id === currentCard.id)) : null;
+    const claimedBy = canAdd ? players.find(p => p.timeline.some(e => e.id === currentCard.id && !e.locked)) : null;
     const claimedByThisPlayer = claimedBy === player;
     const canAddForPlayer = canAdd && !claimedBy;
 
@@ -1627,6 +1722,7 @@ function renderScoreboard(){
     block.appendChild(timelineRow);
     scoreboardEl.appendChild(block);
   });
+  saveSession();
 }
 
 const scoreboardTab = document.getElementById('scoreboardTab');
@@ -1682,8 +1778,8 @@ let statsDrawn = 0;
 let statsRevealed = 0;
 let statsListenSeconds = 0;
 
-const MENU_VIEWS = ['settings', 'history', 'stats'];
-const MENU_TITLES = {settings: 'Settings', history: 'History', stats: 'Stats'};
+const MENU_VIEWS = ['settings', 'history', 'stats', 'support'];
+const MENU_TITLES = {settings: 'Settings', history: 'History', stats: 'Stats', support: 'Support'};
 
 function openMenu(view){
   menuOverlay.classList.add('open');
@@ -1778,7 +1874,7 @@ document.getElementById('savePodiumBtn').addEventListener('click', () => {
   const target = document.getElementById('podiumCapture');
   html2canvas(target, {backgroundColor: '#251A2B', scale: 2}).then(canvas => {
     const link = document.createElement('a');
-    link.download = 'blind-spin-podium.png';
+    link.download = 'vinylle-podium.png';
     link.href = canvas.toDataURL('image/png');
     link.click();
   });
@@ -1787,6 +1883,7 @@ document.getElementById('savePodiumBtn').addEventListener('click', () => {
 clipLengthInput.addEventListener('input', () => {
   CLIP_SECONDS = parseInt(clipLengthInput.value, 10);
   clipLengthValue.textContent = CLIP_SECONDS + 's';
+  saveSession();
 });
 winLengthInput.addEventListener('input', () => {
   WIN_LENGTH = parseInt(winLengthInput.value, 10);
@@ -1818,6 +1915,7 @@ function renderHistory(){
     `;
     historyList.appendChild(row);
   });
+  saveSession();
 }
 
 clearHistoryBtn.addEventListener('click', async () => {
@@ -1843,16 +1941,46 @@ playerNameInput.addEventListener('keydown', (e) => {
   if(e.key === 'Enter') addPlayerBtn.click();
 });
 
+function resetDeckProgress(){
+  playlists.forEach(p => p.tracks.forEach(t => { t.drawn = false; t.revealedOnce = false; }));
+  currentCard = null;
+  currentPlaylistName = null;
+  revealed = false;
+  statsDrawn = 0;
+  statsRevealed = 0;
+  clearTimeout(snippetTimer);
+  clearInterval(countdownInterval);
+  clearTimeout(countdownStartFallback);
+  clearTimeout(timerSyncTimeout);
+  pendingCountdownStart = false;
+  freezeClipBar();
+  if(controller) controller.pause();
+  setPlayingVisual(false);
+  vinylLabel.textContent = '?';
+  nowTitle.textContent = '—';
+  nowArtist.textContent = '';
+  nowYear.textContent = '';
+  replayBtn.disabled = true;
+  newPointBtn.disabled = true;
+  revealBtn.disabled = true;
+  stopBtn.disabled = true;
+  refreshStatus();
+  renderTracklist();
+  renderStats();
+}
+
 resetScoresBtn.addEventListener('click', async () => {
   const hasProgress = players.some(p => p.timeline.length > 0);
-  if(hasProgress && !(await showConfirm('Reset every player\'s timeline back to zero? This can\'t be undone.'))) return;
+  if(hasProgress && !(await showConfirm('Reset every player\'s timeline and start a fresh deck? All songs become drawable again — this can\'t be undone.'))) return;
   players.forEach(p => { p.timeline = []; p.lastAdded = null; });
+  resetDeckProgress();
   renderScoreboard();
 });
 
 clearPlayersBtn.addEventListener('click', async () => {
-  if(players.length > 0 && !(await showConfirm('Clear all players and their timelines? This can\'t be undone.'))) return;
+  if(players.length > 0 && !(await showConfirm('Clear all players and start a fresh deck? All songs become drawable again — this can\'t be undone.'))) return;
   players = [];
+  resetDeckProgress();
   renderScoreboard();
 });
 
@@ -1874,7 +2002,7 @@ function addPlaylist(name, tracks, id){
   nowArtist.textContent = '';
   nowYear.textContent = '';
   vinylLabel.textContent = '?';
-  shuffleBtn.disabled = false;
+  reloadBtn.disabled = false;
   resetBtn.disabled = false;
   drawBtn.disabled = false;
   refreshStatus();
@@ -1982,10 +2110,47 @@ loadPlaylistBtn.addEventListener('click', async () => {
   loadPlaylistBtn.disabled = false;
 });
 
-shuffleBtn.addEventListener('click', () => {
-  playlists.forEach(p => p.tracks.forEach(t => t.drawn = false));
-  refreshStatus();
-  renderTracklist();
+reloadBtn.addEventListener('click', async () => {
+  if(!accessToken){
+    playlistStatus.textContent = 'connect your Spotify account first';
+    return;
+  }
+  reloadBtn.disabled = true;
+  const originalLabel = reloadBtn.textContent;
+  try{
+    for(let i = 0; i < playlists.length; i++){
+      const p = playlists[i];
+      reloadBtn.textContent = 'Reloading ' + (i + 1) + ' of ' + playlists.length + '…';
+      if(!p.id) continue;
+      const [name, tracks] = await Promise.all([
+        fetchPlaylistName(p.id),
+        fetchPlaylistTracks(p.id)
+      ]);
+      const prevStateById = new Map(p.tracks.map(t => [t.id, { drawn: t.drawn, revealedOnce: t.revealedOnce }]));
+      tracks.forEach(t => {
+        const prev = prevStateById.get(t.id);
+        if(prev){
+          t.drawn = prev.drawn;
+          t.revealedOnce = prev.revealedOnce;
+        }
+      });
+      p.name = name;
+      p.tracks = tracks;
+    }
+    currentCard = null;
+    revealed = false;
+    nowTitle.textContent = '—';
+    nowArtist.textContent = '';
+    nowYear.textContent = '';
+    vinylLabel.textContent = '?';
+    refreshStatus();
+    renderTracklist();
+    playlistStatus.textContent = 'playlists reloaded';
+  }catch(err){
+    playlistStatus.textContent = err.message || 'something went wrong reloading the playlists';
+  }
+  reloadBtn.textContent = originalLabel;
+  reloadBtn.disabled = false;
 });
 
 resetBtn.addEventListener('click', async () => {
@@ -2002,7 +2167,7 @@ resetBtn.addEventListener('click', async () => {
   nowArtist.textContent = '';
   nowYear.textContent = '';
   vinylLabel.textContent = '?';
-  shuffleBtn.disabled = true;
+  reloadBtn.disabled = true;
   resetBtn.disabled = true;
   drawBtn.disabled = true;
   replayBtn.disabled = true;
@@ -2206,6 +2371,11 @@ stopBtn.addEventListener('click', () => {
   setPlayingVisual(false);
 });
 
+document.querySelectorAll('.footer-link').forEach(link => {
+  link.addEventListener('click', (e) => e.preventDefault());
+});
+
+loadSession();
 </script>
 </body>
 </html>
