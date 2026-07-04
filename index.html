@@ -1,0 +1,2211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Blind Spin — DIY music timeline game</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#1B1420;
+    --surface:#251A2B;
+    --surface-2:#2E2033;
+    --line:#3C2C42;
+    --gold:#D4A24E;
+    --gold-dim:#8C6F3B;
+    --red:#B33A3A;
+    --green:#5C9163;
+    --paper:#F3EADD;
+    --muted:#9C8FA3;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--paper);
+    font-family:'Work Sans',sans-serif;
+    padding:2.5rem 1.5rem 4rem;
+  }
+  .wrap{max-width:720px;margin:0 auto;}
+  .page-layout{
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+    gap:1.5rem;
+    max-width:1400px;
+    margin:0 auto;
+    padding:0 90px;
+  }
+  .ad-slot{
+    display:none;
+    align-items:center;
+    justify-content:center;
+    color:var(--muted);
+    background:var(--surface);
+    border:1px dashed var(--line);
+    border-radius:8px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.7rem;
+    text-transform:uppercase;
+    letter-spacing:.1em;
+    overflow:hidden;
+  }
+  .ad-slot-side{
+    width:160px;
+    height:600px;
+    flex-shrink:0;
+    position:sticky;
+    top:2.5rem;
+  }
+  @media (min-width:1300px){
+    .ad-slot-side{display:flex;}
+  }
+  .ad-slot-bottom{
+    width:100%;
+    max-width:728px;
+    height:90px;
+    margin:2.5rem auto 2rem;
+  }
+  .ad-slot-bottom{display:flex;}
+  @media (max-width:480px){
+    .ad-slot-bottom{height:50px;max-width:320px;}
+  }
+  h1{
+    font-family:'Fraunces',serif;
+    font-weight:700;
+    font-size:clamp(2rem,5vw,2.8rem);
+    margin:0 0 .2rem;
+    letter-spacing:-0.01em;
+  }
+  .tagline{color:var(--muted);font-size:.95rem;margin:0 0 2.2rem;}
+  .card{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:1.5rem;
+    margin-bottom:1.5rem;
+  }
+  .card h2{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.75rem;
+    text-transform:uppercase;
+    letter-spacing:.12em;
+    color:var(--gold);
+    margin:0 0 1rem;
+  }
+  textarea{
+    width:100%;
+    min-height:120px;
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    border-radius:8px;
+    color:var(--paper);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.85rem;
+    padding:.8rem;
+    resize:vertical;
+  }
+  textarea::placeholder{color:var(--muted);}
+  .hint{font-size:.78rem;color:var(--muted);margin-top:.5rem;line-height:1.5;}
+  button{
+    font-family:'Work Sans',sans-serif;
+    font-weight:500;
+    font-size:.85rem;
+    padding:.65rem 1.1rem;
+    border-radius:8px;
+    border:1px solid var(--gold-dim);
+    background:transparent;
+    color:var(--gold);
+    cursor:pointer;
+    transition:background .15s, transform .1s;
+  }
+  button:hover{background:rgba(212,162,78,.1);}
+  button:active{transform:scale(.97);}
+  button.primary{background:var(--gold);color:#241A0B;border-color:var(--gold);}
+  button.primary:hover{background:#e0b568;}
+  button:disabled{opacity:.35;cursor:not-allowed;}
+  button.danger{border-color:var(--red);color:#f0a3a3;}
+  .row{display:flex;gap:.6rem;flex-wrap:wrap;}
+  .turntable{
+    display:flex;
+    gap:1.8rem;
+    align-items:center;
+    flex-wrap:wrap;
+  }
+  .vinyl-box{position:relative;width:160px;height:160px;flex-shrink:0;}
+  .vinyl{
+    width:160px;height:160px;
+    transform-origin:80px 80px;
+  }
+  .vinyl.spinning{animation:spin 1.6s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .tonearm{
+    position:absolute;
+    top:-14px;right:-18px;
+    width:80px;height:80px;
+    transform-origin:70px 10px;
+    transform:rotate(-38deg);
+    transition:transform .5s cubic-bezier(.4,0,.2,1);
+  }
+  .tonearm.down{transform:rotate(-6deg);}
+  .status{flex:1;min-width:200px;}
+  .status .label{font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;}
+  .status .title{
+    font-family:'Fraunces',serif;
+    font-size:1.35rem;
+    margin:.3rem 0 .1rem;
+    min-height:1.7rem;
+  }
+  .status .sub{color:var(--muted);font-size:.9rem;min-height:1.3rem;}
+  .status .year{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:1.6rem;
+    color:var(--gold);
+    margin-top:.4rem;
+    min-height:2rem;
+  }
+  .tracklist{margin:0;padding:0;}
+  .tracklist .empty{color:var(--muted);font-size:.85rem;font-style:italic;}
+  .plist-group{margin-bottom:0;}
+  .plist-summary{
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:.6rem;
+    padding:.7rem .9rem;
+    background:var(--surface-2);
+    border-radius:8px;
+    border:1px solid var(--line);
+    list-style:none;
+    margin-bottom:.5rem;
+  }
+  .plist-summary::-webkit-details-marker{display:none;}
+  .plist-summary::before{content:'▸';color:var(--gold);margin-right:.5rem;font-size:.75rem;transition:transform .15s;flex-shrink:0;}
+  details[open] > .plist-summary::before{transform:rotate(90deg);}
+  .plist-name{
+    font-family:'Fraunces',serif;
+    font-size:1.05rem;
+    font-weight:600;
+    color:var(--paper);
+    flex:1;
+    min-width:0;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .plist-meta{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.68rem;
+    color:var(--muted);
+    margin-left:.6rem;
+    font-weight:400;
+  }
+  .plist-tracks{list-style:none;margin:.6rem 0 1.1rem;padding:0 0 0 1.4rem;}
+  .plist-tracks li{
+    display:flex;align-items:center;gap:.8rem;
+    padding:.6rem 0;
+    border-bottom:1px solid var(--line);
+    font-size:.88rem;
+  }
+  .plist-tracks li:last-child{border-bottom:none;}
+  #scoreboardTab{
+    position:fixed;
+    left:0;
+    top:50%;
+    transform:translateY(-50%);
+    writing-mode:vertical-rl;
+    text-orientation:mixed;
+    background:var(--gold);
+    color:#241A0B;
+    border:none;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.72rem;
+    font-weight:500;
+    letter-spacing:.15em;
+    text-transform:uppercase;
+    padding:1.1rem .55rem;
+    border-radius:0 10px 10px 0;
+    cursor:pointer;
+    z-index:999;
+  }
+  #scoreboardTab:hover{background:#e0b568;}
+  #scoreboardCloseTab{
+    position:fixed;
+    top:0;
+    bottom:0;
+    right:0;
+    width:60px;
+    background:transparent;
+    border:none;
+    cursor:pointer;
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:5px;
+    padding:0;
+    transition:background .15s;
+    z-index:1001;
+  }
+  #scoreboardCloseTab.visible{display:flex;}
+  #scoreboardCloseTab:hover{background:rgba(212,162,78,.1);}
+  #scoreboardCloseTab .grip-line{
+    width:16px;
+    height:2.5px;
+    background:var(--gold);
+    border-radius:2px;
+  }
+  .scoreboard-overlay{
+    position:fixed;
+    inset:0;
+    background:var(--bg);
+    z-index:1000;
+    transform:translateX(-100%);
+    transition:transform .32s cubic-bezier(.4,0,.2,1);
+    overflow-y:auto;
+  }
+  .scoreboard-overlay.open{transform:translateX(0);}
+  .scoreboard-panel{max-width:1100px;margin:0 auto;padding:2.5rem 1.5rem 4rem;}
+  .scoreboard-panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;gap:1rem;position:relative;}
+  .sb-view-toggle{
+    display:flex;
+    gap:.4rem;
+    background:var(--surface-2);
+    border-radius:8px;
+    padding:.25rem;
+    flex-shrink:0;
+    position:absolute;
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%);
+  }
+  .sb-view-btn{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.78rem;
+    padding:.4rem .9rem;
+    border-radius:6px;
+    border:none;
+    background:transparent;
+    color:var(--muted);
+    cursor:pointer;
+  }
+  .sb-view-btn.active{background:var(--gold);color:#241A0B;}
+  .scoreboard-panel-header h2{
+    font-family:'Fraunces',serif;
+    font-weight:700;
+    font-size:clamp(1.8rem,5vw,2.6rem);
+    margin:0;
+    color:var(--paper);
+  }
+  #closeScoreboardBtn{
+    background:transparent;
+    border:1px solid var(--line);
+    color:var(--muted);
+    border-radius:8px;
+    width:42px;height:42px;
+    padding:0;
+    line-height:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:1.1rem;
+    cursor:pointer;
+    flex-shrink:0;
+  }
+  #closeScoreboardBtn:hover{background:var(--surface-2);}
+  .scoreboard-add-row{display:flex;gap:.6rem;margin-bottom:2rem;}
+  .scoreboard-add-row input{flex:1;margin-bottom:0;}
+  .menu-trigger{
+    position:fixed;
+    top:1.4rem;
+    right:1.6rem;
+    z-index:1002;
+  }
+  .menu-hamburger{
+    width:40px;height:40px;
+    border-radius:8px;
+    border:1px solid var(--line);
+    background:var(--surface);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:4px;
+    cursor:pointer;
+  }
+  .menu-hamburger:hover{background:var(--surface-2);}
+  .menu-hamburger .grip-line-h{
+    width:18px;height:2px;
+    background:var(--gold);
+    border-radius:2px;
+  }
+  .menu-dropdown{
+    position:absolute;
+    top:100%;
+    right:0;
+    padding-top:8px;
+    display:none;
+  }
+  .menu-trigger.open .menu-dropdown,
+  .menu-trigger:hover .menu-dropdown{display:block;}
+  .menu-trigger.suppress .menu-dropdown{display:none !important;}
+  .menu-trigger.hidden{display:none;}
+  .menu-dropdown-inner{
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    border-radius:10px;
+    min-width:150px;
+    padding:.4rem;
+    display:flex;
+    flex-direction:column;
+    gap:.15rem;
+    box-shadow:0 10px 28px rgba(0,0,0,.45);
+  }
+  .menu-dropdown-item{
+    font-family:'Work Sans',sans-serif;
+    font-size:.85rem;
+    text-align:left;
+    padding:.6rem .75rem;
+    border-radius:6px;
+    border:none;
+    background:transparent;
+    color:var(--paper);
+    cursor:pointer;
+  }
+  .menu-dropdown-item:hover{background:var(--surface);color:var(--gold);}
+  .confirm-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(10,7,15,.7);
+    z-index:2000;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:1.5rem;
+  }
+  .confirm-overlay.open{display:flex;}
+  .confirm-box{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:1.8rem;
+    max-width:380px;
+    width:100%;
+    text-align:center;
+  }
+  .confirm-box p{
+    font-size:.95rem;
+    color:var(--paper);
+    margin:0 0 1.5rem;
+    line-height:1.5;
+  }
+  .confirm-actions{display:flex;gap:.7rem;justify-content:center;}
+  .confirm-btn{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.85rem;
+    padding:.6rem 1.2rem;
+    border-radius:8px;
+    cursor:pointer;
+  }
+  .confirm-btn.cancel{background:transparent;border:1px solid var(--line);color:var(--muted);}
+  .confirm-btn.cancel:hover{background:var(--surface-2);}
+  .confirm-btn.danger{background:var(--red);border:1px solid var(--red);color:#fff;}
+  .confirm-btn.danger:hover{background:#c94848;}
+  .menu-section-title{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.75rem;
+    text-transform:uppercase;
+    letter-spacing:.12em;
+    color:var(--gold);
+    margin:2rem 0 1rem;
+  }
+  .menu-section-title:first-of-type{margin-top:0;}
+  .menu-setting-row{
+    display:flex;
+    align-items:center;
+    gap:1rem;
+    margin-bottom:1rem;
+  }
+  .menu-setting-row .field-label{min-width:110px;flex-shrink:0;}
+  .menu-setting-row input[type="range"]{flex:1;margin-bottom:0;}
+  .menu-setting-value{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.9rem;
+    color:var(--gold);
+    min-width:3.5ch;
+    text-align:right;
+    flex-shrink:0;
+  }
+  .history-entry{
+    display:flex;
+    align-items:center;
+    gap:.8rem;
+    padding:.6rem 0;
+    border-bottom:1px solid var(--line);
+    font-size:.88rem;
+  }
+  .history-entry:last-child{border-bottom:none;}
+  .history-year{
+    font-family:'IBM Plex Mono',monospace;
+    color:var(--gold);
+    min-width:4ch;
+  }
+  .history-title{flex:1;color:var(--paper);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .history-meta{font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--muted);flex-shrink:0;}
+  #podiumCapture{background:var(--surface);padding:2.5rem 2rem;border-radius:12px;max-width:760px;margin:0 auto;}
+  #podiumStage{display:flex;align-items:flex-end;justify-content:center;gap:1.6rem;margin-bottom:2.2rem;}
+  .podium-column{display:flex;flex-direction:column;align-items:center;gap:.9rem;width:170px;}
+  .podium-info{display:flex;flex-direction:column;align-items:center;gap:.35rem;}
+  .podium-name{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:1.5rem;
+    color:var(--paper);
+    max-width:170px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .podium-score-row{display:flex;align-items:center;gap:.9rem;}
+  .podium-score-item{display:flex;align-items:center;gap:.4rem;font-family:'IBM Plex Mono',monospace;color:var(--gold);font-size:1.35rem;}
+  .podium-score-item svg{width:16px;height:16px;}
+  .podium-block{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:170px;
+    border-radius:8px 8px 0 0;
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    border-bottom:none;
+  }
+  .podium-column.first{order:2;}
+  .podium-column.second{order:1;}
+  .podium-column.third{order:3;}
+  .podium-block.first{height:190px;border-color:var(--gold);}
+  .podium-block.second{height:135px;}
+  .podium-block.third{height:95px;}
+  .podium-medal svg{width:52px;height:52px;display:block;}
+  .podium-rest-row{
+    display:flex;
+    align-items:center;
+    gap:.9rem;
+    padding:.7rem 0;
+    border-bottom:1px solid var(--line);
+    font-size:1.05rem;
+  }
+  .podium-rest-row:last-child{border-bottom:none;}
+  .podium-rest-rank{font-family:'IBM Plex Mono',monospace;color:var(--muted);min-width:2.4ch;}
+  .podium-rest-name{flex:1;font-family:'Fraunces',serif;font-weight:600;color:var(--paper);}
+  .podium-rest-count{display:flex;align-items:center;gap:.4rem;font-family:'IBM Plex Mono',monospace;color:var(--gold);}
+  .podium-rest-count svg{width:15px;height:15px;}
+  .player-block{margin-bottom:2.4rem;}
+  .player-block:last-child{margin-bottom:0;}
+  .player-header{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;margin-bottom:1rem;}
+  .player-rank{font-family:'IBM Plex Mono',monospace;font-size:1.2rem;color:var(--muted);min-width:2ch;flex-shrink:0;}
+  .player-block.leader .player-rank{color:var(--gold);}
+  .player-name{font-family:'Fraunces',serif;font-weight:600;font-size:clamp(1.3rem,3vw,1.8rem);color:var(--paper);}
+  .player-block.leader .player-name{color:var(--gold);}
+  .player-win-badge{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.62rem;
+    color:var(--gold);
+    border:1px solid var(--gold);
+    border-radius:20px;
+    padding:.15rem .55rem;
+    flex-shrink:0;
+  }
+  .player-bonus{
+    display:flex;align-items:center;gap:.35rem;
+    font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--muted);
+    flex-shrink:0;
+  }
+  .icon-btn-sm{
+    width:24px;height:24px;
+    border-radius:6px;
+    border:1px solid var(--line);
+    background:transparent;
+    color:var(--muted);
+    cursor:pointer;
+    font-size:.78rem;
+    line-height:1;
+    padding:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .icon-btn-sm:hover{background:var(--surface-2);color:var(--gold);}
+  .player-count{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:1.3rem;
+    color:var(--gold);
+    margin-left:auto;
+    flex-shrink:0;
+  }
+  .player-actions{display:flex;gap:.4rem;flex-shrink:0;}
+  .icon-btn{
+    width:34px;height:34px;
+    border-radius:8px;
+    border:1px solid var(--line);
+    background:transparent;
+    color:var(--muted);
+    cursor:pointer;
+    font-size:.9rem;
+    padding:0;
+    line-height:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .icon-btn:hover{background:var(--surface-2);color:var(--gold);}
+  .icon-btn:disabled{opacity:.3;cursor:not-allowed;}
+  .player-timeline{display:flex;flex-wrap:wrap;gap:.9rem;}
+  .vinyl-card{
+    position:relative;
+    width:clamp(96px,11vw,136px);
+    min-height:clamp(120px,13vw,168px);
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    border-radius:10px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding:.7rem .5rem;
+    text-align:center;
+    gap:.3rem;
+  }
+  .card-remove-btn{
+    position:absolute;
+    bottom:6px;
+    right:6px;
+    width:20px;height:20px;
+    border-radius:50%;
+    border:1px solid var(--red);
+    background:var(--surface);
+    color:var(--red);
+    font-size:.7rem;
+    line-height:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    opacity:0;
+    transition:opacity .15s;
+  }
+  .vinyl-card:hover .card-remove-btn{opacity:1;}
+  .vinyl-card.has-bonus{border-color:var(--gold-dim);}
+  .card-bonus-badge{
+    position:absolute;
+    top:6px;
+    left:6px;
+  }
+  .card-bonus-toggle{
+    position:absolute;
+    top:6px;
+    right:6px;
+    width:20px;height:20px;
+    border-radius:50%;
+    border:1px solid var(--line);
+    background:var(--surface);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    opacity:0;
+    transition:opacity .15s;
+    padding:0;
+  }
+  .vinyl-card:hover .card-bonus-toggle{opacity:1;}
+  .vinyl-card-year{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:clamp(1.15rem,2.2vw,1.5rem);
+    color:var(--gold);
+    font-weight:500;
+  }
+  .vinyl-card-title{
+    font-family:'Fraunces',serif;
+    font-size:.8rem;
+    color:var(--paper);
+    line-height:1.25;
+    overflow:hidden;
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+  }
+  .vinyl-card-artist{
+    font-family:'Work Sans',sans-serif;
+    font-size:.68rem;
+    color:var(--muted);
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    max-width:100%;
+  }
+  .vinyl-card.add-slot{
+    border-style:dashed;
+    border-color:var(--gold-dim);
+    cursor:pointer;
+    background:transparent;
+    color:var(--gold);
+  }
+  .vinyl-card.add-slot:hover{background:rgba(212,162,78,.08);}
+  .vinyl-card.add-slot:disabled{opacity:.35;cursor:not-allowed;border-color:var(--line);color:var(--muted);background:transparent;}
+  .vinyl-card.add-slot .plus-icon{font-size:1.7rem;line-height:1;}
+  .vinyl-card.add-slot .add-slot-label{font-family:'IBM Plex Mono',monospace;font-size:.65rem;}
+  .num{
+    font-family:'IBM Plex Mono',monospace;
+    color:var(--muted);
+    width:1.6rem;
+    text-align:right;
+    flex-shrink:0;
+  }
+  .tname{flex:1;color:var(--paper);}
+  .tname.pending{color:var(--muted);font-style:italic;}
+  .tyear{font-family:'IBM Plex Mono',monospace;color:var(--gold);font-size:.82rem;}
+  .badge{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.68rem;
+    padding:.15rem .5rem;
+    border-radius:20px;
+    border:1px solid var(--line);
+    color:var(--muted);
+  }
+  .badge.drawn{border-color:var(--gold-dim);color:var(--gold);}
+  .empty{color:var(--muted);font-size:.85rem;font-style:italic;}
+  #sp-frame-holder{position:absolute;left:-9999px;top:0;width:300px;height:80px;overflow:hidden;}
+  input[type="text"],input[type="password"]{
+    width:100%;
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    border-radius:8px;
+    color:var(--paper);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.82rem;
+    padding:.6rem .7rem;
+    margin-bottom:.6rem;
+  }
+  .field-label{font-size:.78rem;color:var(--muted);display:block;margin-bottom:.25rem;}
+  details{margin-top:.3rem;}
+  summary{cursor:pointer;color:var(--gold);font-size:.82rem;margin-bottom:.6rem;}
+  details p, details ol{font-size:.8rem;color:var(--muted);line-height:1.6;}
+  details a{color:var(--gold);}
+  .divider{text-align:center;color:var(--muted);font-size:.75rem;margin:1.4rem 0;position:relative;}
+  .status-line{font-size:.82rem;color:var(--muted);margin-top:.4rem;min-height:1.2rem;}
+  .plist-controls{display:flex;gap:.4rem;flex-shrink:0;}
+  .plist-btn{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.65rem;
+    padding:.2rem .5rem;
+    border-radius:6px;
+    border:1px solid var(--line);
+    background:transparent;
+    color:var(--muted);
+    cursor:pointer;
+    text-transform:none;
+    letter-spacing:normal;
+  }
+  .plist-btn:hover{background:var(--surface);}
+  .plist-btn.off{color:var(--red);border-color:var(--red);}
+  .audio-engine{position:relative;width:26px;height:26px;margin:0 auto;border-radius:50%;overflow:hidden;border:1px solid var(--line);background:var(--surface-2);flex-shrink:0;}
+  #sp-frame-holder{position:absolute;top:0;left:0;width:260px;height:80px;}
+  .audio-engine-cover{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:2;pointer-events:none;}
+  .audio-engine-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);}
+  .audio-engine.playing .audio-engine-dot{background:var(--gold);animation:enginepulse 1s ease-in-out infinite;}
+  @keyframes enginepulse{0%,100%{opacity:1;}50%{opacity:.25;}}
+  .clip-timer{display:flex;flex-direction:column;align-items:center;gap:.5rem;margin-top:1.4rem;}
+  .clip-timer-num{font-family:'IBM Plex Mono',monospace;font-size:1.3rem;color:var(--gold);min-width:3ch;text-align:center;}
+  .clip-timer-track{width:180px;height:3px;background:var(--line);border-radius:2px;overflow:hidden;}
+  .clip-timer-bar{height:100%;width:100%;background:var(--gold);}
+  .conn-pill{
+    display:inline-flex;
+    align-items:center;
+    gap:.4rem;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.78rem;
+    padding:.3rem .7rem;
+    border-radius:20px;
+    border:1px solid var(--line);
+    color:var(--muted);
+  }
+  .conn-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0;}
+  .conn-pill.connected{border-color:var(--green);color:var(--green);}
+  .conn-pill.connected .conn-dot{background:var(--green);}
+  .conn-pill.pending .conn-dot{background:var(--gold);}
+  .conn-pill.pending{border-color:var(--gold-dim);color:var(--gold);}
+  .conn-pill.error{border-color:var(--red);color:#f0a3a3;}
+  .conn-pill.error .conn-dot{background:var(--red);}
+</style>
+</head>
+<body>
+<button id="scoreboardTab">Scoreboard</button>
+<button id="scoreboardCloseTab" aria-label="Close scoreboard"><span class="grip-line"></span><span class="grip-line"></span><span class="grip-line"></span></button>
+<div class="scoreboard-overlay" id="scoreboardOverlay">
+  <div class="scoreboard-panel">
+    <div class="scoreboard-panel-header">
+      <h2>Scoreboard</h2>
+      <div class="sb-view-toggle">
+        <button class="sb-view-btn active" data-sbview="list">List</button>
+        <button class="sb-view-btn" data-sbview="podium">Podium</button>
+      </div>
+      <button id="closeScoreboardBtn" aria-label="Close scoreboard">✕</button>
+    </div>
+
+    <div id="sbListView">
+      <div class="scoreboard-add-row">
+        <input type="text" id="playerNameInput" placeholder="player name">
+        <button class="primary" id="addPlayerBtn">Add player</button>
+      </div>
+      <div id="scoreboard">
+        <p class="empty">No players yet — add someone above. When they guess a card's spot right, tap the add-card tile to drop it into their timeline.</p>
+      </div>
+      <div class="row" style="margin-top:1.5rem;">
+        <button id="resetScoresBtn">Reset scores</button>
+        <button id="clearPlayersBtn">Clear players</button>
+      </div>
+    </div>
+
+    <div id="sbPodiumView" style="display:none;">
+      <div id="podiumCapture">
+        <div id="podiumStage"></div>
+        <div id="podiumRest"></div>
+      </div>
+      <div class="row" style="margin-top:1.2rem;">
+        <button class="primary" id="savePodiumBtn" title="Saves as .png">Save results</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="menu-trigger" id="menuTrigger">
+  <button class="menu-hamburger" aria-label="Menu">
+    <span class="grip-line-h"></span><span class="grip-line-h"></span><span class="grip-line-h"></span>
+  </button>
+  <div class="menu-dropdown">
+    <div class="menu-dropdown-inner">
+      <button class="menu-dropdown-item" data-view="settings">Settings</button>
+      <button class="menu-dropdown-item" data-view="history">History</button>
+      <button class="menu-dropdown-item" data-view="stats">Stats</button>
+    </div>
+  </div>
+</div>
+
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <p id="confirmMessage"></p>
+    <div class="confirm-actions">
+      <button class="confirm-btn cancel" id="confirmCancelBtn">Cancel</button>
+      <button class="confirm-btn danger" id="confirmYesBtn">Yes, do it</button>
+    </div>
+  </div>
+</div>
+
+<div class="scoreboard-overlay" id="menuOverlay">
+  <div class="scoreboard-panel">
+    <div class="scoreboard-panel-header">
+      <h2 id="menuTitle">Settings</h2>
+      <button id="closeMenuBtn" aria-label="Close menu">✕</button>
+    </div>
+
+    <div id="settingsView">
+      <div class="menu-setting-row">
+        <span class="field-label" style="margin:0;">Clip length</span>
+        <input type="range" id="clipLengthInput" min="1" max="60" value="30">
+        <span class="menu-setting-value" id="clipLengthValue">30s</span>
+      </div>
+      <div class="menu-setting-row">
+        <span class="field-label" style="margin:0;">Cards to win</span>
+        <input type="range" id="winLengthInput" min="1" max="30" value="10">
+        <span class="menu-setting-value" id="winLengthValue">10</span>
+      </div>
+      <div class="menu-setting-row">
+        <span class="field-label" style="margin:0;">UI scale</span>
+        <input type="range" id="uiScaleInput" min="80" max="160" value="100">
+        <span class="menu-setting-value" id="uiScaleValue">100%</span>
+      </div>
+      <p class="hint">Bumps the size of most text and buttons across the whole app — useful if you're viewing this on a TV from across the room. It won't fix everything perfectly (a few elements are fixed-size), but it covers most of it.</p>
+    </div>
+
+    <div id="historyView" style="display:none;">
+      <p class="hint">Every song revealed this session, most recent first — regardless of which player claimed it.</p>
+      <div id="historyList">
+        <p class="empty">Nothing revealed yet this session.</p>
+      </div>
+      <div class="row" style="margin-top:1rem;">
+        <button id="clearHistoryBtn">Clear history</button>
+      </div>
+    </div>
+
+    <div id="statsView" style="display:none;">
+      <div class="menu-setting-row" style="justify-content:space-between;">
+        <span class="field-label" style="margin:0;">Songs drawn</span>
+        <span class="menu-setting-value" id="statsDrawnValue">0</span>
+      </div>
+      <div class="menu-setting-row" style="justify-content:space-between;">
+        <span class="field-label" style="margin:0;">Songs revealed</span>
+        <span class="menu-setting-value" id="statsRevealedValue">0</span>
+      </div>
+      <div class="menu-setting-row" style="justify-content:space-between;">
+        <span class="field-label" style="margin:0;">Listening time</span>
+        <span class="menu-setting-value" id="statsListenValue">0:00</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page-layout">
+<div id="ad-slot-left" class="ad-slot ad-slot-side"><span class="ad-slot-label">Ad</span></div>
+<div class="wrap">
+
+  <h1>Blind Spin</h1>
+  <p class="tagline">A DIY music year-guessing party game. Load a whole Spotify playlist, spin the mystery record, guess the year.</p>
+
+  <div class="card">
+    <details>
+      <summary style="font-family:'IBM Plex Mono',monospace;font-size:.75rem;text-transform:uppercase;letter-spacing:.12em;color:var(--gold);cursor:pointer;list-style:revert;">01 — Load playlists</summary>
+      <div style="margin-top:1rem;">
+        <span class="field-label">Spotify client ID</span>
+        <input type="text" id="clientId" placeholder="paste your client id">
+        <span class="field-label">Redirect URI — paste this exact value into your Spotify app settings</span>
+        <input type="text" id="redirectUri" readonly>
+        <p class="hint" id="redirectHint">Spotify requires <code>127.0.0.1</code> here, not <code>localhost</code> — open this page as <code>http://127.0.0.1:PORT/blind-spin.html</code> in your browser (same port as your Terminal command) so the field above shows the right value.</p>
+        <div class="row" style="margin-top:.3rem; align-items:center;">
+          <button class="primary" id="connectBtn">Connect Spotify account</button>
+          <button id="disconnectBtn" style="display:none;">Disconnect</button>
+          <span class="conn-pill" id="connectPill"><span class="conn-dot"></span><span id="connectStatus">not connected</span></span>
+        </div>
+        <details style="margin-top:.8rem;">
+          <summary>Setup steps</summary>
+          <ol>
+            <li>Go to <a href="https://developer.spotify.com/dashboard" target="_blank">developer.spotify.com/dashboard</a> and log in.</li>
+            <li>Create an app (any name). When it asks for a Redirect URI, paste the exact value shown above in this app.</li>
+            <li>Open the app → Settings → copy the Client ID into the box above.</li>
+            <li>Click "Connect Spotify account" below — it'll send you to Spotify to approve, then bring you back here.</li>
+          </ol>
+          <p>This logs in as you, so the app can read playlists you own (including ones you just made). No client secret needed, and nothing is sent anywhere except Spotify directly.</p>
+        </details>
+
+        <div style="margin-top:1.2rem; border-top:1px solid var(--line); padding-top:1rem;">
+          <span class="field-label">Playlist links (one per line)</span>
+          <textarea id="playlistUrls" style="min-height:80px;" placeholder="https://open.spotify.com/playlist/xxxxxxxx
+https://open.spotify.com/playlist/yyyyyyyy"></textarea>
+          <p class="hint">Add as many playlists as you like. When you draw a card, the app first picks a random playlist, then a random song from it — so a small playlist isn't drowned out by a huge one.</p>
+          <div class="row" style="margin-top:.6rem;">
+            <button class="primary" id="loadPlaylistBtn" disabled>Load playlists</button>
+            <button id="shuffleBtn" disabled>Shuffle</button>
+            <button id="resetBtn" disabled>Reset deck</button>
+          </div>
+          <div class="status-line" id="playlistStatus"></div>
+        </div>
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <h2>02 — Spin</h2>
+    <div class="turntable">
+      <div class="vinyl-box">
+        <svg class="vinyl" id="vinylSvg" viewBox="0 0 160 160">
+          <circle cx="80" cy="80" r="78" fill="#0E0A11" stroke="#000" stroke-width="1"/>
+          <circle cx="80" cy="80" r="66" fill="none" stroke="#1E151F" stroke-width="1"/>
+          <circle cx="80" cy="80" r="55" fill="none" stroke="#1E151F" stroke-width="1"/>
+          <circle cx="80" cy="80" r="44" fill="none" stroke="#1E151F" stroke-width="1"/>
+          <circle cx="80" cy="80" r="34" fill="var(--gold)"/>
+          <text id="vinylLabel" x="80" y="86" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="22" font-weight="600" fill="#241A0B">?</text>
+          <circle cx="80" cy="80" r="4" fill="#0E0A11"/>
+        </svg>
+        <svg class="tonearm" id="tonearm" viewBox="0 0 80 80">
+          <circle cx="70" cy="10" r="6" fill="#3C2C42"/>
+          <line x1="70" y1="10" x2="18" y2="62" stroke="#8C6F3B" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="18" cy="62" r="4" fill="#D4A24E"/>
+        </svg>
+      </div>
+      <div class="status">
+        <div class="label" id="deckStatus">no deck yet</div>
+        <div class="label" id="offStatus" style="color:var(--muted); opacity:.75; margin-top:.15rem;"></div>
+        <div class="title" id="nowTitle">—</div>
+        <div class="sub" id="nowArtist"></div>
+        <div class="year" id="nowYear"></div>
+      </div>
+    </div>
+    <div class="clip-timer">
+      <div class="clip-timer-track"><div class="clip-timer-bar" id="clipBar"></div></div>
+      <div style="display:flex; align-items:center; gap:.6rem;">
+        <div class="audio-engine" id="audioEngine" title="audio engine" aria-hidden="true">
+          <div id="sp-frame-holder"></div>
+          <div class="audio-engine-cover"><span class="audio-engine-dot"></span></div>
+        </div>
+        <span class="clip-timer-num" id="timerLine">30s</span>
+      </div>
+    </div>
+    <div class="row" style="margin-top:1rem; justify-content:center;">
+      <button class="primary" id="drawBtn" disabled>Draw &amp; play</button>
+      <button id="revealBtn" disabled>Reveal</button>
+      <button id="stopBtn" disabled>Stop</button>
+      <button id="replayBtn" disabled>Replay clip</button>
+      <button id="newPointBtn" disabled>New point</button>
+    </div>
+    <details id="debugDetails" style="margin-top:1.4rem;">
+      <summary style="font-family:'IBM Plex Mono',monospace;font-size:.75rem;text-transform:uppercase;letter-spacing:.12em;color:var(--gold);cursor:pointer;list-style:revert;">Debug / DJ controls</summary>
+      <div style="margin-top:1rem;">
+        <div class="status-line" id="debugInfo">no track loaded</div>
+        <input type="range" id="scrubSlider" min="0" max="100" value="0" step="1" style="width:100%; margin:.7rem 0;">
+        <div class="row">
+          <button id="scrubPlayBtn">Play / pause</button>
+          <button id="scrubSeekBtn">Seek here</button>
+          <button id="continueBtn">Vibe mode: off</button>
+        </div>
+        <p class="hint">Live position from Spotify, for scouting exactly where a track's hook or chorus lands. Dragging the slider and hitting "Seek here" jumps playback there directly. "Vibe mode" stays on until you turn it off again — while it's on, the 30s countdown and auto-stop are disabled entirely, even across New point, Replay, or Seek here — handy if everyone's vibing to a song and you don't want it cut off.</p>
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary style="font-family:'IBM Plex Mono',monospace;font-size:.75rem;text-transform:uppercase;letter-spacing:.12em;color:var(--gold);cursor:pointer;list-style:revert;">03 — Tracklist</summary>
+      <div class="row" style="margin-top:1rem;">
+        <button id="revealAllBtn">Reveal all names</button>
+      </div>
+      <p class="hint">Shows every track's real title and artist for review — separate from actual game progress, so it doesn't mark anything as drawn.</p>
+      <div class="tracklist" id="tracklist" style="margin-top:.5rem;">
+        <div class="empty">Build a deck above to see your tracks here.</div>
+      </div>
+    </details>
+  </div>
+
+  <p style="text-align:center; color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:.72rem; margin-top:2rem;">Blind Spin — v8.9</p>
+  <p style="text-align:center; color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:.65rem; margin-top:.3rem; opacity:.7;">Vibe coded by MB</p>
+</div>
+<div id="ad-slot-right" class="ad-slot ad-slot-side"><span class="ad-slot-label">Ad</span></div>
+</div>
+<div id="ad-slot-bottom" class="ad-slot ad-slot-bottom"><span class="ad-slot-label">Ad</span></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
+<script>
+const confirmOverlay = document.getElementById('confirmOverlay');
+const confirmMessage = document.getElementById('confirmMessage');
+const confirmYesBtn = document.getElementById('confirmYesBtn');
+const confirmCancelBtn = document.getElementById('confirmCancelBtn');
+
+function showConfirm(message){
+  return new Promise((resolve) => {
+    confirmMessage.textContent = message;
+    confirmOverlay.classList.add('open');
+    function onYes(){ cleanup(true); }
+    function onNo(){ cleanup(false); }
+    function onBackdrop(e){ if(e.target === confirmOverlay) onNo(); }
+    function cleanup(result){
+      confirmOverlay.classList.remove('open');
+      confirmYesBtn.removeEventListener('click', onYes);
+      confirmCancelBtn.removeEventListener('click', onNo);
+      confirmOverlay.removeEventListener('click', onBackdrop);
+      resolve(result);
+    }
+    confirmYesBtn.addEventListener('click', onYes);
+    confirmCancelBtn.addEventListener('click', onNo);
+    confirmOverlay.addEventListener('click', onBackdrop);
+  });
+}
+
+let playlists = [];
+let revealAllNames = false;
+let loadedPlaylistIds = new Set();
+let players = [];
+let currentCard = null;
+let currentPlaylistName = '';
+let revealed = false;
+let controller = null;
+let apiReady = false;
+let snippetTimer = null;
+let countdownInterval = null;
+let remainingSeconds = 0;
+
+function freezeClipBar(){
+  const computed = getComputedStyle(clipBar).width;
+  clipBar.style.transition = 'none';
+  clipBar.style.width = computed;
+}
+
+function animateClipBar(seconds){
+  clipBar.style.transition = 'none';
+  clipBar.style.width = '100%';
+  void clipBar.offsetWidth;
+  clipBar.style.transition = 'width ' + seconds + 's linear';
+  clipBar.style.width = '0%';
+}
+
+function tickCountdown(){
+  countdownInterval = setInterval(() => {
+    remainingSeconds -= 1;
+    if(remainingSeconds <= 0){
+      remainingSeconds = 0;
+      timerLine.textContent = '0s';
+      clearInterval(countdownInterval);
+    }else{
+      timerLine.textContent = remainingSeconds + 's';
+    }
+  }, 1000);
+}
+
+function armAutoStop(seconds){
+  clearTimeout(snippetTimer);
+  snippetTimer = setTimeout(() => {
+    if(controller) controller.pause();
+    setPlayingVisual(false);
+  }, seconds * 1000);
+}
+
+function startCountdown(seconds){
+  clearInterval(countdownInterval);
+  remainingSeconds = seconds;
+  timerLine.textContent = remainingSeconds + 's';
+  animateClipBar(seconds);
+  tickCountdown();
+  armAutoStop(seconds);
+  statsListenSeconds += seconds;
+}
+
+function pauseCountdown(){
+  clearInterval(countdownInterval);
+  clearTimeout(snippetTimer);
+  freezeClipBar();
+}
+
+function resumeCountdown(){
+  if(remainingSeconds <= 0) return;
+  clipBar.style.transition = 'none';
+  void clipBar.offsetWidth;
+  clipBar.style.transition = 'width ' + remainingSeconds + 's linear';
+  clipBar.style.width = '0%';
+  tickCountdown();
+  armAutoStop(remainingSeconds);
+}
+
+const vinyl = document.getElementById('vinylSvg');
+const tonearm = document.getElementById('tonearm');
+const vinylLabel = document.getElementById('vinylLabel');
+const deckStatus = document.getElementById('deckStatus');
+const offStatus = document.getElementById('offStatus');
+const nowTitle = document.getElementById('nowTitle');
+const nowArtist = document.getElementById('nowArtist');
+const nowYear = document.getElementById('nowYear');
+const tracklistEl = document.getElementById('tracklist');
+const revealAllBtn = document.getElementById('revealAllBtn');
+const scoreboardEl = document.getElementById('scoreboard');
+const playerNameInput = document.getElementById('playerNameInput');
+const addPlayerBtn = document.getElementById('addPlayerBtn');
+const resetScoresBtn = document.getElementById('resetScoresBtn');
+const clearPlayersBtn = document.getElementById('clearPlayersBtn');
+
+const loadPlaylistBtn = document.getElementById('loadPlaylistBtn');
+const playlistStatus = document.getElementById('playlistStatus');
+const connectBtn = document.getElementById('connectBtn');
+const disconnectBtn = document.getElementById('disconnectBtn');
+const connectStatus = document.getElementById('connectStatus');
+const connectPill = document.getElementById('connectPill');
+const redirectUriField = document.getElementById('redirectUri');
+const shuffleBtn = document.getElementById('shuffleBtn');
+const resetBtn = document.getElementById('resetBtn');
+const drawBtn = document.getElementById('drawBtn');
+const replayBtn = document.getElementById('replayBtn');
+const newPointBtn = document.getElementById('newPointBtn');
+const debugInfo = document.getElementById('debugInfo');
+const scrubSlider = document.getElementById('scrubSlider');
+const scrubPlayBtn = document.getElementById('scrubPlayBtn');
+const scrubSeekBtn = document.getElementById('scrubSeekBtn');
+const continueBtn = document.getElementById('continueBtn');
+const revealBtn = document.getElementById('revealBtn');
+const stopBtn = document.getElementById('stopBtn');
+const timerLine = document.getElementById('timerLine');
+const clipBar = document.getElementById('clipBar');
+const audioEngine = document.getElementById('audioEngine');
+
+let accessToken = null;
+let isScrubbing = false;
+let lastKnownPaused = true;
+let lastKnownPosition = 0;
+let lastKnownDuration = 0;
+let pausedAtMs = 0;
+let pendingCountdownStart = false;
+let countdownStartFallback = null;
+let timerSyncTimeout = null;
+let untimedMode = false;
+let CLIP_SECONDS = 30;
+const TIMER_SYNC_DELAY = 800;
+
+function fmtMs(ms){
+  const totalSec = Math.floor(ms/1000);
+  const m = Math.floor(totalSec/60);
+  const s = totalSec % 60;
+  return m + ':' + String(s).padStart(2,'0');
+}
+
+function setConnState(state, text){
+  connectPill.classList.remove('connected','pending','error');
+  if(state) connectPill.classList.add(state);
+  connectStatus.textContent = text;
+}
+
+const REDIRECT_URI = window.location.origin + window.location.pathname;
+redirectUriField.value = REDIRECT_URI;
+
+const redirectHintEl = document.getElementById('redirectHint');
+const isLoopback = ['127.0.0.1', 'localhost', '::1'].includes(window.location.hostname);
+if(!isLoopback){
+  redirectHintEl.innerHTML = 'Copy this exact value into your Spotify app\'s <strong>Redirect URIs</strong> setting in the developer dashboard.';
+}
+
+function randomString(len){
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let s = '';
+  for(let i=0;i<len;i++) s += chars[Math.floor(Math.random()*chars.length)];
+  return s;
+}
+
+function base64urlFromBuffer(buf){
+  let str = '';
+  const bytes = new Uint8Array(buf);
+  for(let i=0;i<bytes.length;i++) str += String.fromCharCode(bytes[i]);
+  return btoa(str).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+
+async function codeChallengeFromVerifier(verifier){
+  const data = new TextEncoder().encode(verifier);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  return base64urlFromBuffer(digest);
+}
+
+connectBtn.addEventListener('click', async () => {
+  const clientId = document.getElementById('clientId').value.trim();
+  if(!clientId){
+    setConnState('error', 'enter your client id first');
+    return;
+  }
+  const verifier = randomString(64);
+  localStorage.setItem('bs_verifier', verifier);
+  localStorage.setItem('bs_client_id', clientId);
+  const challenge = await codeChallengeFromVerifier(verifier);
+  const params = new URLSearchParams({
+    client_id: clientId,
+    response_type: 'code',
+    redirect_uri: REDIRECT_URI,
+    scope: 'playlist-read-private playlist-read-collaborative',
+    code_challenge_method: 'S256',
+    code_challenge: challenge
+  });
+  window.location.href = 'https://accounts.spotify.com/authorize?' + params.toString();
+});
+
+async function exchangeCodeForToken(code){
+  const verifier = localStorage.getItem('bs_verifier');
+  const clientId = localStorage.getItem('bs_client_id');
+  const body = new URLSearchParams({
+    grant_type: 'authorization_code',
+    code,
+    redirect_uri: REDIRECT_URI,
+    client_id: clientId,
+    code_verifier: verifier
+  });
+  const res = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    headers: {'Content-Type':'application/x-www-form-urlencoded'},
+    body: body.toString()
+  });
+  if(!res.ok){
+    const errText = await res.text();
+    throw new Error('token exchange failed: ' + errText);
+  }
+  const data = await res.json();
+  if(data.refresh_token) localStorage.setItem('bs_refresh_token', data.refresh_token);
+  return data.access_token;
+}
+
+async function refreshAccessToken(){
+  const clientId = localStorage.getItem('bs_client_id');
+  const refreshToken = localStorage.getItem('bs_refresh_token');
+  if(!clientId || !refreshToken) return null;
+  const body = new URLSearchParams({
+    grant_type: 'refresh_token',
+    refresh_token: refreshToken,
+    client_id: clientId
+  });
+  const res = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    headers: {'Content-Type':'application/x-www-form-urlencoded'},
+    body: body.toString()
+  });
+  if(!res.ok) return null;
+  const data = await res.json();
+  if(data.refresh_token) localStorage.setItem('bs_refresh_token', data.refresh_token);
+  return data.access_token;
+}
+
+disconnectBtn.addEventListener('click', () => {
+  localStorage.removeItem('bs_refresh_token');
+  localStorage.removeItem('bs_verifier');
+  accessToken = null;
+  loadPlaylistBtn.disabled = true;
+  disconnectBtn.style.display = 'none';
+  setConnState('', 'not connected');
+});
+
+async function fetchMe(){
+  try{
+    const res = await fetch('https://api.spotify.com/v1/me', {headers:{'Authorization':'Bearer ' + accessToken}});
+    if(!res.ok) throw new Error();
+    const data = await res.json();
+    return data.display_name || data.id || null;
+  }catch(e){
+    return null;
+  }
+}
+
+async function tryRestoreSession(){
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  if(code){
+    const clientId = localStorage.getItem('bs_client_id');
+    if(clientId) document.getElementById('clientId').value = clientId;
+    setConnState('pending', 'connecting…');
+    try{
+      accessToken = await exchangeCodeForToken(code);
+      window.history.replaceState({}, document.title, REDIRECT_URI);
+      const name = await fetchMe();
+      setConnState('connected', name ? 'connected as ' + name : 'connected');
+      loadPlaylistBtn.disabled = false;
+      disconnectBtn.style.display = '';
+    }catch(err){
+      setConnState('error', err.message || 'connection failed');
+    }
+    return;
+  }
+  const storedClientId = localStorage.getItem('bs_client_id');
+  const storedRefresh = localStorage.getItem('bs_refresh_token');
+  if(storedClientId) document.getElementById('clientId').value = storedClientId;
+  if(!storedRefresh) return;
+  setConnState('pending', 'reconnecting…');
+  const token = await refreshAccessToken();
+  if(token){
+    accessToken = token;
+    const name = await fetchMe();
+    setConnState('connected', name ? 'connected as ' + name : 'connected');
+    loadPlaylistBtn.disabled = false;
+    disconnectBtn.style.display = '';
+  }else{
+    setConnState('', 'not connected');
+  }
+}
+tryRestoreSession();
+
+setInterval(async () => {
+  if(!localStorage.getItem('bs_refresh_token')) return;
+  const token = await refreshAccessToken();
+  if(token){
+    accessToken = token;
+    const name = await fetchMe();
+    setConnState('connected', name ? 'connected as ' + name : 'connected');
+  }
+}, 50 * 60 * 1000);
+
+function totalTracks(){
+  return playlists.reduce((sum,p) => sum + p.tracks.length, 0);
+}
+function drawnTracks(){
+  return playlists.reduce((sum,p) => sum + p.tracks.filter(t=>t.drawn).length, 0);
+}
+
+function refreshStatus(){
+  const total = totalTracks();
+  if(total === 0){
+    deckStatus.textContent = 'no deck yet';
+    offStatus.textContent = '';
+    return;
+  }
+  const enabledPlaylists = playlists.filter(p => p.enabled);
+  const offPlaylists = playlists.filter(p => !p.enabled);
+  const activeTotal = enabledPlaylists.reduce((sum,p) => sum + p.tracks.length, 0);
+  const offTotal = offPlaylists.reduce((sum,p) => sum + p.tracks.length, 0);
+  deckStatus.textContent = activeTotal + ' tracks across ' + enabledPlaylists.length + ' playlist' + (enabledPlaylists.length===1?'':'s') + ' — ' + drawnTracks() + ' drawn';
+  offStatus.textContent = offPlaylists.length
+    ? offPlaylists.length + ' playlist' + (offPlaylists.length===1?'':'s') + ' off (' + offTotal + ' tracks)'
+    : '';
+}
+
+function renderTracklist(){
+  tracklistEl.innerHTML = '';
+  if(playlists.length === 0){
+    tracklistEl.innerHTML = '<div class="empty">Build a deck above to see your tracks here.</div>';
+    return;
+  }
+  playlists.forEach((p, pIndex) => {
+    const group = document.createElement('details');
+    group.className = 'plist-group';
+    group.open = p.expanded !== false;
+    group.addEventListener('toggle', () => { p.expanded = group.open; });
+
+    const summary = document.createElement('summary');
+    summary.className = 'plist-summary';
+
+    const label = document.createElement('span');
+    label.className = 'plist-name';
+    label.innerHTML = escapeHtml(p.name) + '<span class="plist-meta">' + p.tracks.length + ' tracks' + (p.enabled ? '' : ' · off') + '</span>';
+    summary.appendChild(label);
+
+    const controls = document.createElement('span');
+    controls.className = 'plist-controls';
+
+    const toggleBtn = document.createElement('button');
+    toggleBtn.className = 'plist-btn' + (p.enabled ? '' : ' off');
+    toggleBtn.textContent = p.enabled ? 'On' : 'Off';
+    toggleBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      p.enabled = !p.enabled;
+      refreshStatus();
+      renderTracklist();
+    });
+    controls.appendChild(toggleBtn);
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'plist-btn';
+    removeBtn.textContent = 'Remove';
+    removeBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const removed = playlists.splice(pIndex, 1)[0];
+      if(removed && removed.id) loadedPlaylistIds.delete(removed.id);
+      refreshStatus();
+      renderTracklist();
+      if(playlists.length === 0){
+        shuffleBtn.disabled = true;
+        resetBtn.disabled = true;
+        drawBtn.disabled = true;
+      }
+    });
+    controls.appendChild(removeBtn);
+
+    summary.appendChild(controls);
+    group.appendChild(summary);
+
+    const trackList = document.createElement('ul');
+    trackList.className = 'plist-tracks';
+    p.tracks.forEach((card, i) => {
+      const li = document.createElement('li');
+      const showName = card.revealedOnce || revealAllNames;
+      const nameText = showName
+        ? (card.title + (card.artist ? ' — ' + card.artist : ''))
+        : 'in the deck';
+      li.innerHTML = `
+        <span class="num">${String(i+1).padStart(2,'0')}</span>
+        <span class="tname ${showName ? '' : 'pending'}">${nameText}</span>
+        <span class="tyear">${showName ? card.year : ''}</span>
+        <span class="badge ${card.revealedOnce ? 'drawn' : ''}">${card.revealedOnce ? 'drawn' : 'deck'}</span>
+      `;
+      trackList.appendChild(li);
+    });
+    group.appendChild(trackList);
+    tracklistEl.appendChild(group);
+  });
+}
+
+revealAllBtn.addEventListener('click', () => {
+  revealAllNames = !revealAllNames;
+  revealAllBtn.textContent = revealAllNames ? 'Hide names again' : 'Reveal all names';
+  renderTracklist();
+});
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+let WIN_LENGTH = 10;
+
+const COIN_SVG = '<svg viewBox="0 0 20 20" width="13" height="13" style="display:block;"><circle cx="10" cy="10" r="9" fill="var(--gold)" stroke="#8C6F3B" stroke-width="1.5"/><circle cx="10" cy="10" r="5" fill="none" stroke="#241A0B" stroke-width="1.2"/></svg>';
+const CARD_ICON_SVG = '<svg viewBox="0 0 16 20" width="12" height="15" style="display:block;"><rect x="1" y="1" width="14" height="18" rx="2.5" fill="none" stroke="var(--gold)" stroke-width="1.5"/><circle cx="8" cy="10" r="2" fill="var(--gold)"/></svg>';
+
+function medalSVG(rank){
+  const fills = {1: 'var(--gold)', 2: '#C9C9C9', 3: '#C98A4B'};
+  const rings = {1: '#8C6F3B', 2: '#8A8A8A', 3: '#8C5A2E'};
+  return '<svg viewBox="0 0 44 44"><circle cx="22" cy="22" r="19" fill="' + fills[rank] + '" stroke="' + rings[rank] + '" stroke-width="2"/><circle cx="22" cy="22" r="11" fill="none" stroke="#241A0B" stroke-width="1.6"/></svg>';
+}
+
+function bonusCount(player){
+  return player.timeline.filter(e => e.bonus).length;
+}
+
+function playerGaps(player){
+  const years = player.timeline.map(e => e.year).slice().sort((a,b) => a - b);
+  const gaps = [];
+  for(let i = 0; i < years.length - 1; i++) gaps.push(years[i+1] - years[i]);
+  gaps.sort((a,b) => a - b);
+  return gaps;
+}
+
+function comparePlayers(a, b){
+  if(b.timeline.length !== a.timeline.length) return b.timeline.length - a.timeline.length;
+  const bonusDiff = bonusCount(b) - bonusCount(a);
+  if(bonusDiff !== 0) return bonusDiff;
+  const gapsA = playerGaps(a);
+  const gapsB = playerGaps(b);
+  const len = Math.min(gapsA.length, gapsB.length);
+  for(let i = 0; i < len; i++){
+    if(gapsA[i] !== gapsB[i]) return gapsA[i] - gapsB[i];
+  }
+  if(gapsA.length !== gapsB.length) return gapsA.length - gapsB.length;
+  return a.name.localeCompare(b.name);
+}
+
+function renderScoreboard(){
+  scoreboardEl.innerHTML = '';
+  if(players.length === 0){
+    scoreboardEl.innerHTML = '<p class="empty">No players yet — add someone above. When they guess a card\'s spot right, tap the add-card tile to drop it into their timeline.</p>';
+    return;
+  }
+  const sorted = players.slice().sort(comparePlayers);
+  const leader = sorted[0];
+  const leaderLen = leader.timeline.length;
+  const canAdd = revealed && currentCard && currentCard.year && !isNaN(parseInt(currentCard.year, 10));
+
+  players.forEach((player) => {
+    const isTrueLeader = comparePlayers(player, leader) === 0;
+    const block = document.createElement('div');
+    block.className = 'player-block' + (leaderLen > 0 && isTrueLeader ? ' leader' : '');
+
+    const header = document.createElement('div');
+    header.className = 'player-header';
+
+    const rankEl = document.createElement('span');
+    rankEl.className = 'player-rank';
+    rankEl.textContent = String(sorted.indexOf(player) + 1).padStart(2, '0');
+    header.appendChild(rankEl);
+
+    const name = document.createElement('span');
+    name.className = 'player-name';
+    name.textContent = player.name;
+    header.appendChild(name);
+
+    if(player.timeline.length >= WIN_LENGTH && isTrueLeader){
+      const win = document.createElement('span');
+      win.className = 'player-win-badge';
+      win.textContent = 'WINS';
+      header.appendChild(win);
+    }
+
+    const bonusWrap = document.createElement('span');
+    bonusWrap.className = 'player-bonus';
+    bonusWrap.innerHTML = COIN_SVG;
+    const bonusLabel = document.createElement('span');
+    bonusLabel.textContent = bonusCount(player);
+    bonusWrap.appendChild(bonusLabel);
+    header.appendChild(bonusWrap);
+
+    const count = document.createElement('span');
+    count.className = 'player-count';
+    count.textContent = player.timeline.length;
+    header.appendChild(count);
+
+    const actions = document.createElement('span');
+    actions.className = 'player-actions';
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'icon-btn';
+    removeBtn.textContent = '✕';
+    removeBtn.title = 'Remove player';
+    removeBtn.addEventListener('click', async () => {
+      const ok = await showConfirm('Remove ' + player.name + ' and their timeline? This can\'t be undone.');
+      if(!ok) return;
+      const idx = players.indexOf(player);
+      if(idx > -1) players.splice(idx, 1);
+      renderScoreboard();
+    });
+    actions.appendChild(removeBtn);
+
+    header.appendChild(actions);
+    block.appendChild(header);
+
+    const timelineRow = document.createElement('div');
+    timelineRow.className = 'player-timeline';
+
+    player.timeline.forEach(entry => {
+      const card = document.createElement('div');
+      card.className = 'vinyl-card' + (entry.bonus ? ' has-bonus' : '');
+      const yearEl = document.createElement('div');
+      yearEl.className = 'vinyl-card-year';
+      yearEl.textContent = entry.year;
+      card.appendChild(yearEl);
+      if(entry.title){
+        const titleEl = document.createElement('div');
+        titleEl.className = 'vinyl-card-title';
+        titleEl.textContent = entry.title;
+        card.appendChild(titleEl);
+      }
+      if(entry.artist){
+        const artistEl = document.createElement('div');
+        artistEl.className = 'vinyl-card-artist';
+        artistEl.textContent = entry.artist;
+        card.appendChild(artistEl);
+      }
+      if(entry.bonus){
+        const badge = document.createElement('div');
+        badge.className = 'card-bonus-badge';
+        badge.innerHTML = COIN_SVG;
+        card.appendChild(badge);
+      }
+      if(!entry.locked){
+        const bonusToggle = document.createElement('button');
+        bonusToggle.className = 'card-bonus-toggle';
+        bonusToggle.innerHTML = COIN_SVG;
+        bonusToggle.title = entry.bonus ? 'Remove title + artist bonus' : 'Mark title + artist guessed correctly (bonus point)';
+        bonusToggle.addEventListener('click', (e) => {
+          e.stopPropagation();
+          entry.bonus = !entry.bonus;
+          renderScoreboard();
+        });
+        card.appendChild(bonusToggle);
+        const removeCardBtn = document.createElement('button');
+        removeCardBtn.className = 'card-remove-btn';
+        removeCardBtn.textContent = '×';
+        removeCardBtn.title = 'Remove this card';
+        removeCardBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const idx = player.timeline.indexOf(entry);
+          if(idx > -1) player.timeline.splice(idx, 1);
+          if(player.lastAdded === entry) player.lastAdded = null;
+          renderScoreboard();
+        });
+        card.appendChild(removeCardBtn);
+      }
+      timelineRow.appendChild(card);
+    });
+
+    const claimedBy = canAdd ? players.find(p => p.timeline.some(e => e.id === currentCard.id)) : null;
+    const claimedByThisPlayer = claimedBy === player;
+    const canAddForPlayer = canAdd && !claimedBy;
+
+    const addSlot = document.createElement('button');
+    addSlot.className = 'vinyl-card add-slot';
+    addSlot.disabled = !canAddForPlayer;
+    addSlot.title = !canAdd
+      ? 'Reveal a card first'
+      : claimedByThisPlayer
+        ? 'Already added — remove it first to re-add'
+        : claimedBy
+          ? 'Already claimed by ' + claimedBy.name + ' this round'
+          : 'Add ' + currentCard.year + ' to this player\'s timeline';
+    const plusIcon = document.createElement('div');
+    plusIcon.className = 'plus-icon';
+    plusIcon.textContent = '+';
+    addSlot.appendChild(plusIcon);
+    const addLabel = document.createElement('div');
+    addLabel.className = 'add-slot-label';
+    addLabel.textContent = !canAdd ? 'no card' : claimedByThisPlayer ? 'added' : claimedBy ? 'taken' : currentCard.year;
+    addSlot.appendChild(addLabel);
+    addSlot.addEventListener('click', () => {
+      if(!canAddForPlayer) return;
+      const entry = {
+        id: currentCard.id,
+        year: parseInt(currentCard.year, 10),
+        title: currentCard.title || '',
+        artist: currentCard.artist || '',
+        bonus: false,
+        locked: false
+      };
+      player.timeline.push(entry);
+      player.timeline.sort((a,b) => a.year - b.year);
+      player.lastAdded = entry;
+      renderScoreboard();
+    });
+    timelineRow.appendChild(addSlot);
+
+
+    block.appendChild(timelineRow);
+    scoreboardEl.appendChild(block);
+  });
+}
+
+const scoreboardTab = document.getElementById('scoreboardTab');
+const scoreboardOverlay = document.getElementById('scoreboardOverlay');
+const closeScoreboardBtn = document.getElementById('closeScoreboardBtn');
+const scoreboardCloseTab = document.getElementById('scoreboardCloseTab');
+
+function openScoreboard(){
+  scoreboardOverlay.classList.add('open');
+  scoreboardCloseTab.classList.add('visible');
+  menuTrigger.classList.add('hidden');
+}
+function closeScoreboard(){
+  scoreboardOverlay.classList.remove('open');
+  scoreboardCloseTab.classList.remove('visible');
+  menuTrigger.classList.remove('hidden');
+}
+
+document.querySelectorAll('.sb-view-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.sb-view-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const view = btn.dataset.sbview;
+    document.getElementById('sbListView').style.display = (view === 'list') ? 'block' : 'none';
+    document.getElementById('sbPodiumView').style.display = (view === 'podium') ? 'block' : 'none';
+    if(view === 'podium') renderPodium();
+  });
+});
+
+scoreboardTab.addEventListener('click', openScoreboard);
+closeScoreboardBtn.addEventListener('click', closeScoreboard);
+scoreboardCloseTab.addEventListener('click', closeScoreboard);
+document.addEventListener('keydown', (e) => {
+  if(e.key === 'Escape'){
+    closeScoreboard();
+    closeMenu();
+  }
+});
+
+const menuTrigger = document.getElementById('menuTrigger');
+const menuHamburger = menuTrigger.querySelector('.menu-hamburger');
+const menuOverlay = document.getElementById('menuOverlay');
+const menuTitle = document.getElementById('menuTitle');
+const closeMenuBtn = document.getElementById('closeMenuBtn');
+const clipLengthInput = document.getElementById('clipLengthInput');
+const clipLengthValue = document.getElementById('clipLengthValue');
+const winLengthInput = document.getElementById('winLengthInput');
+const winLengthValue = document.getElementById('winLengthValue');
+const historyList = document.getElementById('historyList');
+const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+let sessionHistory = [];
+let statsDrawn = 0;
+let statsRevealed = 0;
+let statsListenSeconds = 0;
+
+const MENU_VIEWS = ['settings', 'history', 'stats'];
+const MENU_TITLES = {settings: 'Settings', history: 'History', stats: 'Stats'};
+
+function openMenu(view){
+  menuOverlay.classList.add('open');
+  MENU_VIEWS.forEach(v => {
+    document.getElementById(v + 'View').style.display = (v === view) ? 'block' : 'none';
+  });
+  menuTitle.textContent = MENU_TITLES[view];
+  if(view === 'stats') renderStats();
+}
+function closeMenu(){ menuOverlay.classList.remove('open'); }
+
+menuHamburger.addEventListener('click', (e) => {
+  e.stopPropagation();
+  menuTrigger.classList.toggle('open');
+});
+document.addEventListener('click', (e) => {
+  if(!menuTrigger.contains(e.target)) menuTrigger.classList.remove('open');
+});
+document.querySelectorAll('.menu-dropdown-item').forEach(btn => {
+  btn.addEventListener('click', () => {
+    menuTrigger.classList.remove('open');
+    menuTrigger.classList.add('suppress');
+    openMenu(btn.dataset.view);
+  });
+});
+menuTrigger.addEventListener('mouseleave', () => {
+  menuTrigger.classList.remove('suppress');
+});
+closeMenuBtn.addEventListener('click', closeMenu);
+
+function renderStats(){
+  document.getElementById('statsDrawnValue').textContent = statsDrawn;
+  document.getElementById('statsRevealedValue').textContent = statsRevealed;
+  const m = Math.floor(statsListenSeconds / 60);
+  const s = statsListenSeconds % 60;
+  document.getElementById('statsListenValue').textContent = m + ':' + String(s).padStart(2, '0');
+}
+
+function renderPodium(){
+  const stage = document.getElementById('podiumStage');
+  const rest = document.getElementById('podiumRest');
+  stage.innerHTML = '';
+  rest.innerHTML = '';
+  if(players.length === 0){
+    stage.innerHTML = '<p class="empty">No players yet.</p>';
+    return;
+  }
+  const sorted = players.slice().sort(comparePlayers);
+  const top3 = sorted.slice(0, 3);
+  const rankClasses = ['first', 'second', 'third'];
+  const rankLabels = ['1', '2', '3'];
+  const visualOrder = [1, 0, 2];
+  visualOrder.forEach(idx => {
+    if(idx >= top3.length) return;
+    const p = top3[idx];
+    const bonus = bonusCount(p);
+    const column = document.createElement('div');
+    column.className = 'podium-column ' + rankClasses[idx];
+    column.innerHTML = `
+      <div class="podium-info">
+        <div class="podium-name">${p.name}</div>
+        <div class="podium-score-row">
+          <span class="podium-score-item">${CARD_ICON_SVG}<span>${p.timeline.length}</span></span>
+          <span class="podium-score-item">${COIN_SVG}<span>${bonus}</span></span>
+        </div>
+      </div>
+      <div class="podium-block ${rankClasses[idx]}">
+        <span class="podium-medal">${medalSVG(idx + 1)}</span>
+      </div>
+    `;
+    stage.appendChild(column);
+  });
+  sorted.slice(3).forEach((p, i) => {
+    const row = document.createElement('div');
+    row.className = 'podium-rest-row';
+    const bonus = bonusCount(p);
+    row.innerHTML = `
+      <span class="podium-rest-rank">${String(i + 4).padStart(2, '0')}</span>
+      <span class="podium-rest-name">${p.name}</span>
+      <span class="podium-rest-count">${CARD_ICON_SVG}<span>${p.timeline.length}</span></span>
+      <span class="podium-rest-count">${COIN_SVG}<span>${bonus}</span></span>
+    `;
+    rest.appendChild(row);
+  });
+}
+
+document.getElementById('savePodiumBtn').addEventListener('click', () => {
+  if(typeof html2canvas === 'undefined'){
+    alert('Image export library failed to load — check your connection and try again.');
+    return;
+  }
+  const target = document.getElementById('podiumCapture');
+  html2canvas(target, {backgroundColor: '#251A2B', scale: 2}).then(canvas => {
+    const link = document.createElement('a');
+    link.download = 'blind-spin-podium.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  });
+});
+
+clipLengthInput.addEventListener('input', () => {
+  CLIP_SECONDS = parseInt(clipLengthInput.value, 10);
+  clipLengthValue.textContent = CLIP_SECONDS + 's';
+});
+winLengthInput.addEventListener('input', () => {
+  WIN_LENGTH = parseInt(winLengthInput.value, 10);
+  winLengthValue.textContent = WIN_LENGTH;
+  renderScoreboard();
+});
+
+const uiScaleInput = document.getElementById('uiScaleInput');
+const uiScaleValue = document.getElementById('uiScaleValue');
+uiScaleInput.addEventListener('input', () => {
+  const scale = parseInt(uiScaleInput.value, 10);
+  uiScaleValue.textContent = scale + '%';
+  document.documentElement.style.fontSize = (scale / 100 * 16) + 'px';
+});
+
+function renderHistory(){
+  historyList.innerHTML = '';
+  if(sessionHistory.length === 0){
+    historyList.innerHTML = '<p class="empty">Nothing revealed yet this session.</p>';
+    return;
+  }
+  sessionHistory.slice().reverse().forEach(entry => {
+    const row = document.createElement('div');
+    row.className = 'history-entry';
+    row.innerHTML = `
+      <span class="history-year">${entry.year || '—'}</span>
+      <span class="history-title">${entry.title ? entry.title + (entry.artist ? ' — ' + entry.artist : '') : 'Unknown track'}</span>
+      <span class="history-meta">${entry.playlist || ''}</span>
+    `;
+    historyList.appendChild(row);
+  });
+}
+
+clearHistoryBtn.addEventListener('click', async () => {
+  if(sessionHistory.length > 0 && !(await showConfirm('Clear the session history? This can\'t be undone.'))) return;
+  sessionHistory = [];
+  renderHistory();
+});
+
+function capitalizeFirst(str){
+  if(!str) return str;
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+addPlayerBtn.addEventListener('click', () => {
+  const name = capitalizeFirst(playerNameInput.value.trim());
+  if(!name) return;
+  players.push({name, timeline: [], lastAdded: null});
+  playerNameInput.value = '';
+  renderScoreboard();
+});
+
+playerNameInput.addEventListener('keydown', (e) => {
+  if(e.key === 'Enter') addPlayerBtn.click();
+});
+
+resetScoresBtn.addEventListener('click', async () => {
+  const hasProgress = players.some(p => p.timeline.length > 0);
+  if(hasProgress && !(await showConfirm('Reset every player\'s timeline back to zero? This can\'t be undone.'))) return;
+  players.forEach(p => { p.timeline = []; p.lastAdded = null; });
+  renderScoreboard();
+});
+
+clearPlayersBtn.addEventListener('click', async () => {
+  if(players.length > 0 && !(await showConfirm('Clear all players and their timelines? This can\'t be undone.'))) return;
+  players = [];
+  renderScoreboard();
+});
+
+function shuffleArray(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function addPlaylist(name, tracks, id){
+  playlists.push({name, tracks, enabled: true, id: id || null, expanded: false});
+  if(id) loadedPlaylistIds.add(id);
+  currentCard = null;
+  revealed = false;
+  nowTitle.textContent = '—';
+  nowArtist.textContent = '';
+  nowYear.textContent = '';
+  vinylLabel.textContent = '?';
+  shuffleBtn.disabled = false;
+  resetBtn.disabled = false;
+  drawBtn.disabled = false;
+  refreshStatus();
+  renderTracklist();
+}
+
+function extractPlaylistId(url){
+  const m = url.match(/playlist[\/:]([a-zA-Z0-9]{10,})/);
+  if(m) return m[1].split('?')[0];
+  if(/^[a-zA-Z0-9]{10,}$/.test(url.trim())) return url.trim();
+  return null;
+}
+
+async function fetchPlaylistName(playlistId){
+  try{
+    const res = await fetch('https://api.spotify.com/v1/playlists/' + playlistId + '?fields=name', {headers:{'Authorization':'Bearer ' + accessToken}});
+    if(!res.ok) throw new Error();
+    const data = await res.json();
+    return data.name || 'Playlist';
+  }catch(e){
+    return 'Playlist';
+  }
+}
+
+async function fetchPlaylistTracks(playlistId){
+  let items = [];
+  let url = 'https://api.spotify.com/v1/playlists/' + playlistId + '/items?limit=100';
+  while(url){
+    const res = await fetch(url, {headers:{'Authorization':'Bearer ' + accessToken}});
+    if(!res.ok){
+      let detail = '';
+      try{
+        const errData = await res.json();
+        detail = errData.error && errData.error.message ? errData.error.message : '';
+      }catch(e){}
+      throw new Error('playlist request failed (' + res.status + ')' + (detail ? ': ' + detail : ''));
+    }
+    const data = await res.json();
+    for(const entry of data.items){
+      const t = entry.item || entry.track;
+      if(!t || !t.id) continue;
+      items.push({
+        id: t.id,
+        uri: t.uri,
+        title: t.name,
+        artist: (t.artists || []).map(a => a.name).join(', '),
+        year: (t.album && t.album.release_date) ? t.album.release_date.slice(0,4) : '',
+        drawn:false
+      });
+    }
+    url = data.next;
+  }
+  return items;
+}
+
+loadPlaylistBtn.addEventListener('click', async () => {
+  if(!accessToken){
+    playlistStatus.textContent = 'connect your Spotify account first';
+    return;
+  }
+  const urls = document.getElementById('playlistUrls').value.split('\n').map(l=>l.trim()).filter(Boolean);
+  const allIds = urls.map(extractPlaylistId).filter(Boolean);
+  if(allIds.length === 0){
+    playlistStatus.textContent = 'no valid playlist links found';
+    return;
+  }
+  const seenThisBatch = new Set();
+  const ids = [];
+  let skippedCount = 0;
+  for(const id of allIds){
+    if(loadedPlaylistIds.has(id) || seenThisBatch.has(id)){
+      skippedCount++;
+      continue;
+    }
+    seenThisBatch.add(id);
+    ids.push(id);
+  }
+  if(ids.length === 0){
+    playlistStatus.textContent = 'already loaded — remove it first if you want to reload it';
+    return;
+  }
+  loadPlaylistBtn.disabled = true;
+  try{
+    let loadedCount = 0;
+    for(let i=0; i<ids.length; i++){
+      playlistStatus.textContent = 'loading playlist ' + (i+1) + ' of ' + ids.length + '…';
+      const [name, tracks] = await Promise.all([
+        fetchPlaylistName(ids[i]),
+        fetchPlaylistTracks(ids[i])
+      ]);
+      if(tracks.length > 0){
+        addPlaylist(name, tracks, ids[i]);
+        loadedCount++;
+      }
+    }
+    document.getElementById('playlistUrls').value = '';
+    let msg = loadedCount > 0
+      ? 'loaded ' + loadedCount + ' playlist' + (loadedCount===1?'':'s')
+      : 'no playable tracks found in those playlists';
+    if(skippedCount > 0) msg += ' — skipped ' + skippedCount + ' already loaded';
+    playlistStatus.textContent = msg;
+  }catch(err){
+    playlistStatus.textContent = err.message || 'something went wrong loading the playlists';
+  }
+  loadPlaylistBtn.disabled = false;
+});
+
+shuffleBtn.addEventListener('click', () => {
+  playlists.forEach(p => p.tracks.forEach(t => t.drawn = false));
+  refreshStatus();
+  renderTracklist();
+});
+
+resetBtn.addEventListener('click', async () => {
+  if(playlists.length > 0 && !(await showConfirm('Reset the whole deck? This removes all loaded playlists and clears progress.'))) return;
+  playlists = [];
+  loadedPlaylistIds.clear();
+  currentCard = null;
+  revealed = false;
+  document.getElementById('playlistUrls').value = '';
+  playlistStatus.textContent = '';
+  deckStatus.textContent = 'no deck yet';
+  offStatus.textContent = '';
+  nowTitle.textContent = '—';
+  nowArtist.textContent = '';
+  nowYear.textContent = '';
+  vinylLabel.textContent = '?';
+  shuffleBtn.disabled = true;
+  resetBtn.disabled = true;
+  drawBtn.disabled = true;
+  replayBtn.disabled = true;
+  newPointBtn.disabled = true;
+  revealBtn.disabled = true;
+  stopBtn.disabled = true;
+  renderTracklist();
+});
+
+window.onSpotifyIframeApiReady = (IFrameAPI) => {
+  const el = document.getElementById('sp-frame-holder');
+  IFrameAPI.createController(el, {uri:''}, (c) => {
+    controller = c;
+    apiReady = true;
+    controller.addListener('playback_update', e => {
+      lastKnownPaused = e.data.isPaused;
+      lastKnownPosition = e.data.position || 0;
+      lastKnownDuration = e.data.duration || 0;
+      if(pendingCountdownStart && !untimedMode && !e.data.isPaused && Math.abs(lastKnownPosition - lastStartMs) < 4000){
+        pendingCountdownStart = false;
+        clearTimeout(countdownStartFallback);
+        clearTimeout(timerSyncTimeout);
+        timerSyncTimeout = setTimeout(() => startCountdown(CLIP_SECONDS), TIMER_SYNC_DELAY);
+      }
+      if(!isScrubbing){
+        scrubSlider.max = lastKnownDuration || 100;
+        scrubSlider.value = lastKnownPosition;
+      }
+      debugInfo.textContent = fmtMs(lastKnownPosition) + ' / ' + (revealed ? fmtMs(lastKnownDuration) : '?:??') + (e.data.isPaused ? ' — paused' : ' — playing') + (lastStartMs ? ' — clip start used: ' + fmtMs(lastStartMs) : '');
+    });
+  });
+};
+
+document.getElementById('debugDetails').addEventListener('toggle', function(){
+  if(this.open){
+    scrubSlider.max = lastKnownDuration || 100;
+    scrubSlider.value = lastKnownPosition;
+  }
+});
+
+scrubSlider.addEventListener('mousedown', () => isScrubbing = true);
+scrubSlider.addEventListener('touchstart', () => isScrubbing = true);
+
+scrubPlayBtn.addEventListener('click', () => {
+  if(!controller || !currentCard) return;
+  if(lastKnownPaused){
+    const resumeAtSeconds = Math.floor(pausedAtMs / 1000);
+    controller.loadUri(currentCard.uri, false, resumeAtSeconds);
+    controller.play();
+    setPlayingVisual(true);
+    clearTimeout(timerSyncTimeout);
+    timerSyncTimeout = setTimeout(() => resumeCountdown(), TIMER_SYNC_DELAY);
+  }else{
+    pausedAtMs = lastKnownPosition;
+    controller.pause();
+    setPlayingVisual(false);
+    clearTimeout(timerSyncTimeout);
+    pauseCountdown();
+  }
+});
+
+scrubSeekBtn.addEventListener('click', () => {
+  if(!controller || !currentCard) return;
+  playSnippet(false, Number(scrubSlider.value));
+  isScrubbing = false;
+});
+
+continueBtn.addEventListener('click', () => {
+  untimedMode = !untimedMode;
+  continueBtn.textContent = untimedMode ? 'Vibe mode: on' : 'Vibe mode: off';
+  if(untimedMode){
+    clearTimeout(snippetTimer);
+    clearInterval(countdownInterval);
+    clearTimeout(countdownStartFallback);
+    clearTimeout(timerSyncTimeout);
+    pendingCountdownStart = false;
+    timerLine.textContent = '∞';
+    clipBar.style.transition = 'none';
+    clipBar.style.width = '100%';
+  }else{
+    timerLine.textContent = CLIP_SECONDS + 's';
+    clipBar.style.transition = 'none';
+    clipBar.style.width = '100%';
+  }
+});
+
+function setPlayingVisual(isPlaying){
+  vinyl.classList.toggle('spinning', isPlaying);
+  tonearm.classList.toggle('down', isPlaying);
+  audioEngine.classList.toggle('playing', isPlaying);
+}
+
+let lastStartMs = 0;
+
+function playSnippet(useNewPoint, overrideStartMs){
+  if(!controller || !currentCard) return;
+  clearTimeout(snippetTimer);
+  clearInterval(countdownInterval);
+  clearTimeout(countdownStartFallback);
+  clearTimeout(timerSyncTimeout);
+  if(overrideStartMs !== undefined){
+    lastStartMs = overrideStartMs;
+  }else if(useNewPoint || !lastStartMs){
+    lastStartMs = (15 + Math.random()*30) * 1000;
+  }
+  const startAtSeconds = Math.floor(lastStartMs / 1000);
+  controller.loadUri(currentCard.uri, false, startAtSeconds);
+  controller.play();
+  setPlayingVisual(true);
+  if(untimedMode){
+    timerLine.textContent = '∞';
+    clipBar.style.transition = 'none';
+    clipBar.style.width = '100%';
+    return;
+  }
+  timerLine.textContent = CLIP_SECONDS + 's';
+  freezeClipBar();
+  clipBar.style.width = '100%';
+  pendingCountdownStart = true;
+  countdownStartFallback = setTimeout(() => {
+    if(pendingCountdownStart && !untimedMode){
+      pendingCountdownStart = false;
+      clearTimeout(timerSyncTimeout);
+      timerSyncTimeout = setTimeout(() => startCountdown(CLIP_SECONDS), TIMER_SYNC_DELAY);
+    }
+  }, 4000);
+}
+
+drawBtn.addEventListener('click', () => {
+  if(!apiReady){
+    deckStatus.textContent = 'audio engine still loading, try again in a second';
+    return;
+  }
+  const availablePlaylists = playlists.filter(p => p.enabled && p.tracks.some(t => !t.drawn));
+  if(availablePlaylists.length === 0){
+    const anyEnabled = playlists.some(p => p.enabled);
+    deckStatus.textContent = anyEnabled ? 'deck is empty — shuffle to go again' : 'all playlists are off — toggle one on';
+    return;
+  }
+  const p = availablePlaylists[Math.floor(Math.random()*availablePlaylists.length)];
+  const availableTracks = p.tracks.filter(t => !t.drawn);
+  const t = availableTracks[Math.floor(Math.random()*availableTracks.length)];
+  t.drawn = true;
+  statsDrawn++;
+  players.forEach(pl => {
+    pl.timeline.forEach(entry => { entry.locked = true; });
+    pl.lastAdded = null;
+  });
+  currentCard = t;
+  currentPlaylistName = p.name;
+  revealed = false;
+  vinylLabel.textContent = '?';
+  nowTitle.textContent = 'mystery track';
+  nowArtist.textContent = '';
+  nowYear.textContent = '';
+  refreshStatus();
+  replayBtn.disabled = false;
+  newPointBtn.disabled = false;
+  revealBtn.disabled = false;
+  stopBtn.disabled = false;
+  renderTracklist();
+  renderScoreboard();
+  playSnippet(true);
+});
+
+replayBtn.addEventListener('click', () => playSnippet(false));
+newPointBtn.addEventListener('click', () => playSnippet(true));
+
+revealBtn.addEventListener('click', () => {
+  if(!currentCard) return;
+  revealed = true;
+  currentCard.revealedOnce = true;
+  vinylLabel.textContent = (currentCard.year || '').toString().slice(-2) || '★';
+  nowTitle.textContent = currentCard.title;
+  nowArtist.textContent = currentCard.artist;
+  nowYear.textContent = currentCard.year || 'year not set';
+  if(!currentCard.loggedToHistory){
+    currentCard.loggedToHistory = true;
+    statsRevealed++;
+    sessionHistory.push({
+      year: currentCard.year,
+      title: currentCard.title,
+      artist: currentCard.artist,
+      playlist: currentPlaylistName
+    });
+    renderHistory();
+  }
+  renderTracklist();
+  renderScoreboard();
+});
+
+stopBtn.addEventListener('click', () => {
+  clearTimeout(snippetTimer);
+  clearInterval(countdownInterval);
+  clearTimeout(countdownStartFallback);
+  clearTimeout(timerSyncTimeout);
+  pendingCountdownStart = false;
+  freezeClipBar();
+  pausedAtMs = lastKnownPosition;
+  if(controller) controller.pause();
+  setPlayingVisual(false);
+});
+
+</script>
+</body>
+</html>
