@@ -674,7 +674,13 @@
     text-align:right;
     flex-shrink:0;
   }
-  .tname{flex:1;color:var(--paper);}
+  .tname{
+    flex:1;color:var(--paper);min-width:0;
+    overflow-x:auto;white-space:nowrap;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  .tname::-webkit-scrollbar{display:none;}
   .tname.pending{color:var(--muted);font-style:italic;}
   .tyear{font-family:'IBM Plex Mono',monospace;color:var(--gold);font-size:.82rem;}
   .badge{
@@ -1001,10 +1007,10 @@ https://open.spotify.com/playlist/yyyyyyyy"></textarea>
     </details>
   </div>
 
-  <p style="text-align:center; color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:.72rem; margin-top:2rem;">Vinyl'le — v10.6.1</p>
+  <p style="text-align:center; color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:.72rem; margin-top:2rem;">Vinyl'le — v10.7.1</p>
   <p style="text-align:center; color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:.65rem; margin-top:.3rem; opacity:.7;">Vibe coded by MB</p>
   <p style="text-align:center; font-family:'IBM Plex Mono',monospace; font-size:.7rem; margin-top:.6rem; opacity:.7;">
-    <a href="#" class="footer-link">Feedback</a> · <a href="#" class="footer-link">Reach out</a> · <a href="#" class="footer-link">What's new</a>
+    <a href="#" class="footer-link">Feedback</a> · <a href="#" class="footer-link">Reach out</a> · <a href="#" class="footer-link">Buy me a coffee</a>
   </p>
 </div>
 <div id="ad-slot-right" class="ad-slot ad-slot-side"><span class="ad-slot-label">Ad</span></div>
@@ -1055,7 +1061,8 @@ function saveSession(){
       statsRevealed: statsRevealed,
       statsListenSeconds: statsListenSeconds,
       clipSeconds: CLIP_SECONDS,
-      winLength: WIN_LENGTH
+      winLength: WIN_LENGTH,
+      uiScale: parseInt(uiScaleInput.value, 10)
     };
     localStorage.setItem('bs_session', JSON.stringify(state));
   }catch(e){ console.error('saveSession failed:', e); }
@@ -1082,6 +1089,11 @@ function loadSession(){
       WIN_LENGTH = state.winLength;
       winLengthInput.value = WIN_LENGTH;
       winLengthValue.textContent = WIN_LENGTH;
+    }
+    if(typeof state.uiScale === 'number'){
+      uiScaleInput.value = state.uiScale;
+      uiScaleValue.textContent = state.uiScale + '%';
+      document.documentElement.style.fontSize = (state.uiScale / 100 * 16) + 'px';
     }
     if(playlists.length > 0){
       reloadBtn.disabled = false;
@@ -1486,7 +1498,7 @@ function renderTracklist(){
         : 'in the deck';
       li.innerHTML = `
         <span class="num">${String(i+1).padStart(2,'0')}</span>
-        <span class="tname ${showName ? '' : 'pending'}">${nameText}</span>
+        <span class="tname ${showName ? '' : 'pending'}" title="${showName ? escapeHtml(nameText) : ''}">${nameText}</span>
         <span class="tyear">${showName ? card.year : ''}</span>
         <span class="badge ${card.revealedOnce ? 'drawn' : ''}">${card.revealedOnce ? 'drawn' : 'deck'}</span>
       `;
@@ -1889,6 +1901,7 @@ winLengthInput.addEventListener('input', () => {
   WIN_LENGTH = parseInt(winLengthInput.value, 10);
   winLengthValue.textContent = WIN_LENGTH;
   renderScoreboard();
+  saveSession();
 });
 
 const uiScaleInput = document.getElementById('uiScaleInput');
@@ -1897,6 +1910,7 @@ uiScaleInput.addEventListener('input', () => {
   const scale = parseInt(uiScaleInput.value, 10);
   uiScaleValue.textContent = scale + '%';
   document.documentElement.style.fontSize = (scale / 100 * 16) + 'px';
+  saveSession();
 });
 
 function renderHistory(){
