@@ -166,7 +166,17 @@
     margin-top:.4rem;
     min-height:2rem;
   }
+  .status .year.with-month{
+    display:inline-flex;
+    gap:.15em;
+    align-items:baseline;
+    justify-content:center;
+  }
   .tracklist{margin:0;padding:0;}
+  .rules-h3{font-family:'Fraunces',serif;font-size:1.05rem;margin:1.2rem 0 .4rem;color:var(--paper);}
+  .rules-h3-sub{font-family:'Fraunces',serif;font-size:.95rem;margin:1rem 0 .4rem;color:var(--gold);}
+  .capture-title{font-family:'Fraunces',serif;font-weight:700;font-size:1.7rem;letter-spacing:-0.01em;color:var(--paper);}
+  .capture-subtitle{font-family:'IBM Plex Mono',monospace;font-size:.72rem;text-transform:uppercase;letter-spacing:.18em;color:var(--gold);margin-top:.2rem;}
   .tracklist .empty{color:var(--muted);font-size:.85rem;font-style:italic;}
   .plist-group{margin-bottom:0;}
   .plist-summary{
@@ -288,6 +298,23 @@
     top:50%;
     transform:translate(-50%,-50%);
   }
+  .filter-toggle{
+    display:inline-flex;
+    gap:.4rem;
+    background:var(--surface-2);
+    border-radius:8px;
+    padding:.25rem;
+    position:relative;
+  }
+  .toggle-slider{
+    position:absolute;
+    top:.25rem;
+    bottom:.25rem;
+    border-radius:6px;
+    background:var(--gold);
+    transition:left .25s cubic-bezier(.4,0,.2,1), width .25s cubic-bezier(.4,0,.2,1);
+    z-index:0;
+  }
   .sb-view-btn{
     font-family:'IBM Plex Mono',monospace;
     font-size:.78rem;
@@ -297,8 +324,11 @@
     background:transparent;
     color:var(--muted);
     cursor:pointer;
+    position:relative;
+    z-index:1;
+    transition:color .2s ease;
   }
-  .sb-view-btn.active{background:var(--gold);color:#241A0B;}
+  .sb-view-btn.active{color:#241A0B;}
   .scoreboard-panel-header h2{
     font-family:'Fraunces',serif;
     font-weight:700;
@@ -458,6 +488,13 @@
     max-height:55vh;
     overflow-y:auto;
     padding-right:.5rem;
+    border-top:1px solid var(--line);
+  }
+  .history-scroll-box{
+    max-height:70vh;
+    overflow-y:auto;
+    padding-right:.5rem;
+    border-top:1px solid var(--line);
   }
   .history-year{
     font-family:'IBM Plex Mono',monospace;
@@ -573,7 +610,8 @@
   }
   .icon-btn:hover{background:var(--surface-2);color:var(--gold);}
   .icon-btn:disabled{opacity:.3;cursor:not-allowed;}
-  .player-timeline{display:flex;flex-wrap:wrap;gap:.9rem;}
+  .player-timeline{display:flex;flex-wrap:wrap;gap:.9rem;min-height:calc(clamp(120px,13vw,168px) + .4rem);border-radius:10px;transition:background-color .15s;}
+  .player-timeline.drag-over{background-color:rgba(212,162,78,0.1);outline:2px dashed var(--gold-dim);outline-offset:4px;}
   .vinyl-card{
     position:relative;
     width:clamp(96px,11vw,136px);
@@ -588,7 +626,9 @@
     padding:.7rem .5rem;
     text-align:center;
     gap:.3rem;
+    cursor:grab;
   }
+  .vinyl-card.dragging{opacity:.4;cursor:grabbing;}
   .card-remove-btn{
     position:absolute;
     bottom:6px;
@@ -636,6 +676,20 @@
     font-size:clamp(1.15rem,2.2vw,1.5rem);
     color:var(--gold);
     font-weight:500;
+    position:relative;
+  }
+  .vinyl-card-month{
+    position:absolute;
+    bottom:100%;
+    left:50%;
+    transform:translateX(-50%);
+    margin-bottom:.1rem;
+    white-space:nowrap;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.68rem;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    color:var(--gold-dim);
   }
   .vinyl-card-title{
     font-family:'Fraunces',serif;
@@ -693,7 +747,7 @@
   }
   .badge.drawn{border-color:var(--gold-dim);color:var(--gold);}
   .empty{color:var(--muted);font-size:.85rem;font-style:italic;}
-  #sp-frame-holder{position:absolute;left:-9999px;top:0;width:300px;height:80px;overflow:hidden;}
+  #sp-frame-holder{position:absolute;top:0;left:0;width:260px;height:80px;overflow:hidden;}
   input[type="text"],input[type="password"]{
     width:100%;
     background:var(--surface-2);
@@ -710,7 +764,6 @@
   summary{cursor:pointer;color:var(--gold);font-size:.82rem;margin-bottom:.6rem;}
   details p, details ol{font-size:.8rem;color:var(--muted);line-height:1.6;}
   details a{color:var(--gold);}
-  .divider{text-align:center;color:var(--muted);font-size:.75rem;margin:1.4rem 0;position:relative;}
   .status-line{font-size:.82rem;color:var(--muted);margin-top:.4rem;min-height:1.2rem;}
   .plist-controls{display:flex;gap:.4rem;flex-shrink:0;}
   .plist-btn{
@@ -728,7 +781,6 @@
   .plist-btn:hover{background:var(--surface);}
   .plist-btn.off{color:var(--red);border-color:var(--red);}
   .audio-engine{position:relative;width:26px;height:26px;margin:0 auto;border-radius:50%;overflow:hidden;border:1px solid var(--line);background:var(--surface-2);flex-shrink:0;}
-  #sp-frame-holder{position:absolute;top:0;left:0;width:260px;height:80px;}
   .audio-engine-cover{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:2;pointer-events:none;}
   .audio-engine-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);}
   .audio-engine.playing .audio-engine-dot{background:var(--gold);animation:enginepulse 1s ease-in-out infinite;}
@@ -765,8 +817,10 @@
     <div class="scoreboard-panel-header">
       <h2>Scoreboard</h2>
       <div class="sb-view-toggle">
-        <button class="sb-view-btn active" data-sbview="list">List</button>
-        <button class="sb-view-btn" data-sbview="podium">Podium</button>
+        <span class="toggle-slider"></span>
+        <button class="sb-view-btn active" data-sbview="list">Timeline</button>
+        <button class="sb-view-btn" data-sbview="podium">Leaderboard</button>
+        <button class="sb-view-btn" data-sbview="recap">Recap</button>
       </div>
       <button id="closeScoreboardBtn" aria-label="Close scoreboard">✕</button>
     </div>
@@ -783,20 +837,38 @@
         <button id="resetScoresBtn">Reset scores</button>
         <button id="clearPlayersBtn">Clear players</button>
       </div>
+      <div id="ad-slot-bottom-timeline" class="ad-slot ad-slot-bottom"><span class="ad-slot-label">Ad</span></div>
     </div>
 
     <div id="sbPodiumView" style="display:none;">
       <div id="podiumCapture">
         <div style="text-align:center; margin-bottom:1.8rem;">
-          <div style="font-family:'Fraunces',serif; font-weight:700; font-size:1.7rem; letter-spacing:-0.01em; color:var(--paper);">Vinyl'le</div>
-          <div style="font-family:'IBM Plex Mono',monospace; font-size:.72rem; text-transform:uppercase; letter-spacing:.18em; color:var(--gold); margin-top:.2rem;">Leaderboard</div>
+          <div class="capture-title">Vinyl'le</div>
+          <div class="capture-subtitle">Leaderboard</div>
         </div>
         <div id="podiumStage"></div>
         <div id="podiumRest"></div>
       </div>
-      <div class="row" style="margin-top:1.2rem;">
+      <div class="row" style="margin-top:1.2rem; max-width:760px; margin-left:auto; margin-right:auto; justify-content:center;">
         <button class="primary" id="savePodiumBtn" title="Saves as .png">Save results</button>
       </div>
+      <div id="ad-slot-bottom-podium" class="ad-slot ad-slot-bottom"><span class="ad-slot-label">Ad</span></div>
+    </div>
+
+    <div id="sbRecapView" style="display:none;">
+      <p class="hint" style="margin-top:0;">Covers everything since the current session started (last time scores were reset or all players were cleared).</p>
+      <div id="recapCapture">
+        <div style="text-align:center; margin-bottom:1.8rem;">
+          <div class="capture-title">Vinyl'le</div>
+          <div class="capture-subtitle">Session Recap</div>
+        </div>
+        <div id="recapStats"></div>
+        <div id="recapSongList" class="history-scroll-box" style="margin-top:1rem;"></div>
+      </div>
+      <div class="row" style="margin-top:1.2rem;">
+        <button class="primary" id="saveRecapBtn" title="Saves as .txt">Save recap</button>
+      </div>
+      <div id="ad-slot-bottom-recap" class="ad-slot ad-slot-bottom"><span class="ad-slot-label">Ad</span></div>
     </div>
   </div>
 </div>
@@ -808,6 +880,7 @@
   <div class="menu-dropdown">
     <div class="menu-dropdown-inner">
       <button class="menu-dropdown-item" data-view="settings">Settings</button>
+      <button class="menu-dropdown-item" data-view="rules">Rules</button>
       <button class="menu-dropdown-item" data-view="history">History</button>
       <button class="menu-dropdown-item" data-view="stats">Stats</button>
       <button class="menu-dropdown-item" data-view="support">Support</button>
@@ -849,30 +922,76 @@
         <span class="menu-setting-value" id="uiScaleValue">100%</span>
       </div>
       <p class="hint">Bumps the size of most text and buttons across the whole app — useful if you're viewing this on a TV from across the room. It won't fix everything perfectly (a few elements are fixed-size), but it covers most of it.</p>
+      <div class="menu-setting-row" style="justify-content:space-between;">
+        <span class="field-label" style="margin:0;">Expert mode (release month)</span>
+        <div class="filter-toggle">
+          <span class="toggle-slider"></span>
+          <button class="sb-view-btn active expert-mode-btn" data-expertmode="off">Off</button>
+          <button class="sb-view-btn expert-mode-btn" data-expertmode="on">On</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="rulesView" style="display:none;">
+      <p class="hint" style="margin-top:0;">Vinyl'le doesn't enforce rules for you — the DJ and players agree on what to use before starting. Here's the base game, plus a few optional variants.</p>
+
+      <div class="history-scroll-box" style="padding:0 1rem 1rem 0; margin-top:.5rem;">
+      <h3 class="rules-h3">Base rules</h3>
+      <p class="hint" style="margin:0 0 .5rem;">One player draws and plays a mystery clip. That player will then have to guess what year the song came out in, or around in, they'll have to place it into their own timeline in the spot they think is chronologically correct. Say the player has a 1974, 1984, and a 2012 card in their timeline, the player has to guess where in that timeline the song fits in, if the played song is from 1982, and the player guessed it was from between 1984 and 2012, they lose their round and cannot add the card to their timeline. The answer of the song is revealed after a guess has been locked in. First to the target number of cards (set in Settings) wins. Default & recommended is 10 cards.</p>
+
+      <h3 class="rules-h3">Gold coin (bonus point)</h3>
+      <p class="hint" style="margin:0 0 .5rem;">If a player can also name the song's title and/or one of the artist(s) (if multiple) before it's revealed, they earn a gold coin. Tap the gold coin on their card to mark it as a bonus. What a bonus is actually worth (an extra card, a skip, a steal, nothing at all) is entirely up to your group — else it's merely a tiebreaker.</p>
+
+      <h3 class="rules-h3">Scoring System</h3>
+      <p class="hint" style="margin:0 0 .5rem;">The first player to the agreed number of cards in their timeline (default 10) wins the game. In case of a tie on cards, the winner is decided by gold coins. If still tied, the winner is decided by whoever has the closest year-gaps (or if on expert mode, closest months-gap) in their timeline — so a 2012 and a 2013 beats a 2012 and a 2014, by the difference in years. If tied again, this continues until a winner is found, and in the rare case both players have identical years, the winner is decided by name in alphabetical order — tough luck, William and Whitney.</p>
+
+      <h3 class="rules-h3">Gamemodes</h3>
+
+      <h3 class="rules-h3-sub">Steal</h3>
+      <p class="hint" style="margin:0 0 .5rem;">Cards can be dragged from one player's timeline to another at any time. A common house rule: if a player guesses a year exactly right, they may steal any one card from an opponent's timeline instead of adding their own — yes, if the stolen card has a gold coin you steal that as well!</p>
+
+      <h3 class="rules-h3-sub">Hard mode</h3>
+      <p class="hint" style="margin:0 0 .5rem;">Instead of scoring on the standard "was it placed correctly" basis, require players to also guess a specific year out loud before revealing and be within an agreed span of years, e.g. 5 years — not only just the correct relative position.</p>
+
+      <h3 class="rules-h3-sub">Teams</h3>
+      <p class="hint" style="margin:0 0 .5rem;">Two or more players share one timeline slot on the scoreboard, against a team of equal size and/or skill, instead of playing individually — useful for uneven group sizes or mixed skill levels.</p>
+      </div>
     </div>
 
     <div id="historyView" style="display:none;">
-      <p class="hint">Every song revealed this session, most recent first — regardless of which player claimed it.</p>
+      <p class="hint" style="margin-top:0;">Every song revealed, most recent first — regardless of which player claimed it.</p>
+      <div class="filter-toggle" style="margin-bottom:.9rem;">
+        <span class="toggle-slider"></span>
+        <button class="sb-view-btn active history-filter-btn" data-historyfilter="all">All-time</button>
+        <button class="sb-view-btn history-filter-btn" data-historyfilter="session">This session</button>
+      </div>
       <div id="historyList">
         <p class="empty">Nothing revealed yet this session.</p>
       </div>
-      <div class="row" style="margin-top:1rem;">
+      <div class="row" id="clearHistoryRow" style="margin-top:1rem;">
         <button id="clearHistoryBtn">Clear history</button>
       </div>
     </div>
 
     <div id="statsView" style="display:none;">
       <div class="menu-setting-row" style="justify-content:space-between;">
-        <span class="field-label" style="margin:0;">Songs drawn</span>
-        <span class="menu-setting-value" id="statsDrawnValue">0</span>
+        <span class="field-label" style="margin:0;">Songs listened</span>
+        <span class="menu-setting-value" id="statsRevealedValue">0</span>
       </div>
       <div class="menu-setting-row" style="justify-content:space-between;">
-        <span class="field-label" style="margin:0;">Songs revealed</span>
-        <span class="menu-setting-value" id="statsRevealedValue">0</span>
+        <span class="field-label" style="margin:0;">Cards placed</span>
+        <span class="menu-setting-value" id="statsCardsValue">0</span>
+      </div>
+      <div class="menu-setting-row" style="justify-content:space-between;">
+        <span class="field-label" style="margin:0;">Gold coins won</span>
+        <span class="menu-setting-value" id="statsCoinsValue">0</span>
       </div>
       <div class="menu-setting-row" style="justify-content:space-between;">
         <span class="field-label" style="margin:0;">Listening time</span>
         <span class="menu-setting-value" id="statsListenValue">0:00</span>
+      </div>
+      <div class="row" style="margin-top:1rem;">
+        <button id="resetStatsBtn">Reset stats</button>
       </div>
     </div>
 
@@ -912,12 +1031,18 @@
           <ol>
             <li>Go to <a href="https://developer.spotify.com/dashboard" target="_blank">developer.spotify.com/dashboard</a> and log in.</li>
             <li>Create an app (any name). When it asks for a Redirect URI, paste the exact value shown above in this app.</li>
-            <li>When it asks "Which API/SDKs are you planning to use," check <strong>Web API</strong> (this app doesn't need the Web Playback SDK — it plays clips via Spotify's embed player).</li>
+            <li>When it asks "Which API/SDKs are you planning to use," check <strong>Web API</strong>.</li>
             <li>Open the app → Settings → copy the Client ID into the box above.</li>
-            <li>Click "Connect Spotify account" below — it'll send you to Spotify to approve, then bring you back here.</li>
+            <li>Connect your Spotify account above — you'll get a popup from Spotify.com to approve.</li>
           </ol>
           <p>This logs in as you, so the app can read playlists you own (including ones you just made). No client secret needed, and nothing is sent anywhere except Spotify directly.</p>
         </details>
+
+        <div style="background:#3A1F1F; border:1px solid var(--red); border-radius:8px; padding:.9rem 1.1rem; margin-top:1rem; font-size:.85rem; color:#f0c4c4; line-height:1.5;">
+          <strong>Important:</strong> the connected account must actually <strong>own</strong> each playlist you use — a public playlist made by someone else won't work here, even if you can normally listen to it fine in Spotify.
+          <br><br>
+          Don't own the playlist you want? Copy it to your own account first: open the playlist in Spotify → tap the <strong>••• (three dots)</strong> → <strong>Add to other playlist</strong> → <strong>+ New playlist</strong>. Spotify creates a copy under your account — grab that new playlist's link instead and use it here.
+        </div>
 
         <div style="margin-top:1.2rem; border-top:1px solid var(--line); padding-top:1rem;">
           <span class="field-label">Playlist links (one per line)</span>
@@ -930,6 +1055,7 @@ https://open.spotify.com/playlist/yyyyyyyy"></textarea>
             <button id="resetBtn" disabled>Reset deck</button>
           </div>
           <div class="status-line" id="playlistStatus"></div>
+          <div id="notOwnedWarningBanner" style="display:none; background:#3A1F1F; border:1px solid var(--red); border-radius:8px; padding:.9rem 1.1rem; margin-top:.8rem; font-size:.85rem; color:#f0c4c4; line-height:1.5;"></div>
         </div>
       </div>
     </details>
@@ -1007,7 +1133,7 @@ https://open.spotify.com/playlist/yyyyyyyy"></textarea>
     </details>
   </div>
 
-  <p style="text-align:center; color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:.72rem; margin-top:2rem;">Vinyl'le — v10.7.1</p>
+  <p style="text-align:center; color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:.72rem; margin-top:2rem;">Vinyl'le — v12.0.5</p>
   <p style="text-align:center; color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:.65rem; margin-top:.3rem; opacity:.7;">Vibe coded by MB</p>
   <p style="text-align:center; font-family:'IBM Plex Mono',monospace; font-size:.7rem; margin-top:.6rem; opacity:.7;">
     <a href="#" class="footer-link">Feedback</a> · <a href="#" class="footer-link">Reach out</a> · <a href="#" class="footer-link">Buy me a coffee</a>
@@ -1057,12 +1183,18 @@ function saveSession(){
       loadedPlaylistIds: Array.from(loadedPlaylistIds),
       players: players.map(pl => ({name: pl.name, timeline: pl.timeline})),
       sessionHistory: sessionHistory,
-      statsDrawn: statsDrawn,
       statsRevealed: statsRevealed,
+      statsCardsPlaced: statsCardsPlaced,
+      statsCoinsWon: statsCoinsWon,
+      sessionCardsLost: sessionCardsLost,
+      sessionCardsPlaced: sessionCardsPlaced,
+      sessionCoinsWon: sessionCoinsWon,
+      currentSessionId: currentSessionId,
       statsListenSeconds: statsListenSeconds,
       clipSeconds: CLIP_SECONDS,
       winLength: WIN_LENGTH,
-      uiScale: parseInt(uiScaleInput.value, 10)
+      uiScale: parseInt(uiScaleInput.value, 10),
+      expertMode: expertMode
     };
     localStorage.setItem('bs_session', JSON.stringify(state));
   }catch(e){ console.error('saveSession failed:', e); }
@@ -1077,8 +1209,13 @@ function loadSession(){
     if(state.loadedPlaylistIds) loadedPlaylistIds = new Set(state.loadedPlaylistIds);
     if(state.players) players = state.players.map(pl => ({name: pl.name, timeline: pl.timeline || [], lastAdded: null}));
     if(state.sessionHistory) sessionHistory = state.sessionHistory;
-    if(typeof state.statsDrawn === 'number') statsDrawn = state.statsDrawn;
     if(typeof state.statsRevealed === 'number') statsRevealed = state.statsRevealed;
+    if(typeof state.statsCardsPlaced === 'number') statsCardsPlaced = state.statsCardsPlaced;
+    if(typeof state.statsCoinsWon === 'number') statsCoinsWon = state.statsCoinsWon;
+    if(typeof state.sessionCardsLost === 'number') sessionCardsLost = state.sessionCardsLost;
+    if(typeof state.sessionCardsPlaced === 'number') sessionCardsPlaced = state.sessionCardsPlaced;
+    if(typeof state.sessionCoinsWon === 'number') sessionCoinsWon = state.sessionCoinsWon;
+    if(typeof state.currentSessionId === 'number') currentSessionId = state.currentSessionId;
     if(typeof state.statsListenSeconds === 'number') statsListenSeconds = state.statsListenSeconds;
     if(typeof state.clipSeconds === 'number'){
       CLIP_SECONDS = state.clipSeconds;
@@ -1094,6 +1231,12 @@ function loadSession(){
       uiScaleInput.value = state.uiScale;
       uiScaleValue.textContent = state.uiScale + '%';
       document.documentElement.style.fontSize = (state.uiScale / 100 * 16) + 'px';
+    }
+    if(typeof state.expertMode === 'boolean'){
+      expertMode = state.expertMode;
+      document.querySelectorAll('.expert-mode-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.expertmode === (expertMode ? 'on' : 'off'));
+      });
     }
     if(playlists.length > 0){
       reloadBtn.disabled = false;
@@ -1132,6 +1275,7 @@ function animateClipBar(seconds){
 function tickCountdown(){
   countdownInterval = setInterval(() => {
     remainingSeconds -= 1;
+    statsListenSeconds += 1;
     if(remainingSeconds <= 0){
       remainingSeconds = 0;
       timerLine.textContent = '0s';
@@ -1157,7 +1301,6 @@ function startCountdown(seconds){
   animateClipBar(seconds);
   tickCountdown();
   armAutoStop(seconds);
-  statsListenSeconds += seconds;
 }
 
 function pauseCountdown(){
@@ -1546,9 +1689,15 @@ function bonusCount(player){
 }
 
 function playerGaps(player){
-  const years = player.timeline.map(e => e.year).slice().sort((a,b) => a - b);
+  let values;
+  if(expertMode){
+    values = player.timeline.map(e => e.year * 12 + ((typeof e.month === 'number' ? e.month : 0) - 1));
+  }else{
+    values = player.timeline.map(e => e.year);
+  }
+  values = values.slice().sort((a,b) => a - b);
   const gaps = [];
-  for(let i = 0; i < years.length - 1; i++) gaps.push(years[i+1] - years[i]);
+  for(let i = 0; i < values.length - 1; i++) gaps.push(values[i+1] - values[i]);
   gaps.sort((a,b) => a - b);
   return gaps;
 }
@@ -1620,6 +1769,13 @@ function renderScoreboard(){
     const actions = document.createElement('span');
     actions.className = 'player-actions';
 
+    const saveTimelineBtn = document.createElement('button');
+    saveTimelineBtn.className = 'icon-btn';
+    saveTimelineBtn.title = "Save " + player.name + "'s timeline as an image";
+    saveTimelineBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>';
+    saveTimelineBtn.addEventListener('click', () => saveTimelineAsImage(player));
+    actions.appendChild(saveTimelineBtn);
+
     const removeBtn = document.createElement('button');
     removeBtn.className = 'icon-btn';
     removeBtn.textContent = '✕';
@@ -1629,6 +1785,7 @@ function renderScoreboard(){
       if(!ok) return;
       const idx = players.indexOf(player);
       if(idx > -1) players.splice(idx, 1);
+      if(players.length === 0) resetDeckProgress();
       renderScoreboard();
     });
     actions.appendChild(removeBtn);
@@ -1638,14 +1795,47 @@ function renderScoreboard(){
 
     const timelineRow = document.createElement('div');
     timelineRow.className = 'player-timeline';
+    timelineRow.addEventListener('dragover', (e) => {
+      if(!draggedEntry) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      timelineRow.classList.add('drag-over');
+    });
+    timelineRow.addEventListener('dragleave', () => {
+      timelineRow.classList.remove('drag-over');
+    });
+    timelineRow.addEventListener('drop', (e) => {
+      e.preventDefault();
+      timelineRow.classList.remove('drag-over');
+      if(!draggedEntry || !draggedFromPlayer || draggedFromPlayer === player) return;
+      const idx = draggedFromPlayer.timeline.indexOf(draggedEntry);
+      if(idx > -1) draggedFromPlayer.timeline.splice(idx, 1);
+      player.timeline.push(draggedEntry);
+      player.timeline.sort((a,b) => (a.year - b.year) || ((a.month||0) - (b.month||0)));
+      if(draggedFromPlayer.lastAdded === draggedEntry) draggedFromPlayer.lastAdded = null;
+      draggedEntry = null;
+      draggedFromPlayer = null;
+      renderScoreboard();
+    });
 
     player.timeline.forEach(entry => {
       const card = document.createElement('div');
       card.className = 'vinyl-card' + (entry.bonus ? ' has-bonus' : '');
-      const yearEl = document.createElement('div');
-      yearEl.className = 'vinyl-card-year';
-      yearEl.textContent = entry.year;
-      card.appendChild(yearEl);
+      card.draggable = true;
+      card.addEventListener('dragstart', (e) => {
+        draggedEntry = entry;
+        draggedFromPlayer = player;
+        card.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        startAutoScroll();
+      });
+      card.addEventListener('dragend', () => {
+        card.classList.remove('dragging');
+        draggedEntry = null;
+        draggedFromPlayer = null;
+        stopAutoScroll();
+      });
+      appendCardYear(card, entry);
       if(entry.title){
         const titleEl = document.createElement('div');
         titleEl.className = 'vinyl-card-title';
@@ -1672,6 +1862,8 @@ function renderScoreboard(){
         bonusToggle.addEventListener('click', (e) => {
           e.stopPropagation();
           entry.bonus = !entry.bonus;
+          statsCoinsWon = Math.max(0, statsCoinsWon + (entry.bonus ? 1 : -1));
+          sessionCoinsWon = Math.max(0, sessionCoinsWon + (entry.bonus ? 1 : -1));
           renderScoreboard();
         });
         card.appendChild(bonusToggle);
@@ -1684,6 +1876,12 @@ function renderScoreboard(){
           const idx = player.timeline.indexOf(entry);
           if(idx > -1) player.timeline.splice(idx, 1);
           if(player.lastAdded === entry) player.lastAdded = null;
+          statsCardsPlaced = Math.max(0, statsCardsPlaced - 1);
+          sessionCardsPlaced = Math.max(0, sessionCardsPlaced - 1);
+          if(entry.bonus){
+            statsCoinsWon = Math.max(0, statsCoinsWon - 1);
+            sessionCoinsWon = Math.max(0, sessionCoinsWon - 1);
+          }
           renderScoreboard();
         });
         card.appendChild(removeCardBtn);
@@ -1718,14 +1916,17 @@ function renderScoreboard(){
       const entry = {
         id: currentCard.id,
         year: parseInt(currentCard.year, 10),
+        month: currentCard.month || null,
         title: currentCard.title || '',
         artist: currentCard.artist || '',
         bonus: false,
         locked: false
       };
       player.timeline.push(entry);
-      player.timeline.sort((a,b) => a.year - b.year);
+      player.timeline.sort((a,b) => (a.year - b.year) || ((a.month||0) - (b.month||0)));
       player.lastAdded = entry;
+      statsCardsPlaced++;
+      sessionCardsPlaced++;
       renderScoreboard();
     });
     timelineRow.appendChild(addSlot);
@@ -1753,14 +1954,17 @@ function closeScoreboard(){
   menuTrigger.classList.remove('hidden');
 }
 
-document.querySelectorAll('.sb-view-btn').forEach(btn => {
+document.querySelectorAll('.scoreboard-panel-header .sb-view-btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.sb-view-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.scoreboard-panel-header .sb-view-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
+    positionToggleSlider(btn.closest('.sb-view-toggle'));
     const view = btn.dataset.sbview;
     document.getElementById('sbListView').style.display = (view === 'list') ? 'block' : 'none';
     document.getElementById('sbPodiumView').style.display = (view === 'podium') ? 'block' : 'none';
+    document.getElementById('sbRecapView').style.display = (view === 'recap') ? 'block' : 'none';
     if(view === 'podium') renderPodium();
+    if(view === 'recap') renderRecap();
   });
 });
 
@@ -1785,13 +1989,49 @@ const winLengthInput = document.getElementById('winLengthInput');
 const winLengthValue = document.getElementById('winLengthValue');
 const historyList = document.getElementById('historyList');
 const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+const clearHistoryRow = document.getElementById('clearHistoryRow');
+const resetStatsBtn = document.getElementById('resetStatsBtn');
 let sessionHistory = [];
-let statsDrawn = 0;
+let currentSessionId = 0;
 let statsRevealed = 0;
+let statsCardsPlaced = 0;
+let statsCoinsWon = 0;
+let sessionCardsLost = 0;
+let sessionCardsPlaced = 0;
+let sessionCoinsWon = 0;
+let draggedEntry = null;
+let draggedFromPlayer = null;
+let autoScrollY = null;
+let autoScrollInterval = null;
+
+document.addEventListener('dragover', (e) => {
+  if(!draggedEntry) return;
+  autoScrollY = e.clientY;
+});
+
+function startAutoScroll(){
+  stopAutoScroll();
+  autoScrollInterval = setInterval(() => {
+    if(autoScrollY === null) return;
+    const edgeZone = 80;
+    const scrollAmount = 18;
+    if(autoScrollY < edgeZone){
+      scoreboardOverlay.scrollTop -= scrollAmount;
+    }else if(autoScrollY > window.innerHeight - edgeZone){
+      scoreboardOverlay.scrollTop += scrollAmount;
+    }
+  }, 16);
+}
+
+function stopAutoScroll(){
+  clearInterval(autoScrollInterval);
+  autoScrollInterval = null;
+  autoScrollY = null;
+}
 let statsListenSeconds = 0;
 
-const MENU_VIEWS = ['settings', 'history', 'stats', 'support'];
-const MENU_TITLES = {settings: 'Settings', history: 'History', stats: 'Stats', support: 'Support'};
+const MENU_VIEWS = ['settings', 'rules', 'history', 'stats', 'support'];
+const MENU_TITLES = {settings: 'Settings', rules: 'Rules', history: 'History', stats: 'Stats', support: 'Support'};
 
 function openMenu(view){
   menuOverlay.classList.add('open');
@@ -1800,6 +2040,7 @@ function openMenu(view){
   });
   menuTitle.textContent = MENU_TITLES[view];
   if(view === 'stats') renderStats();
+  document.querySelectorAll('#' + view + 'View .filter-toggle').forEach(positionToggleSlider);
 }
 function closeMenu(){ menuOverlay.classList.remove('open'); }
 
@@ -1823,11 +2064,140 @@ menuTrigger.addEventListener('mouseleave', () => {
 closeMenuBtn.addEventListener('click', closeMenu);
 
 function renderStats(){
-  document.getElementById('statsDrawnValue').textContent = statsDrawn;
   document.getElementById('statsRevealedValue').textContent = statsRevealed;
+  document.getElementById('statsCardsValue').textContent = statsCardsPlaced;
+  document.getElementById('statsCoinsValue').textContent = statsCoinsWon;
   const m = Math.floor(statsListenSeconds / 60);
   const s = statsListenSeconds % 60;
   document.getElementById('statsListenValue').textContent = m + ':' + String(s).padStart(2, '0');
+}
+
+function calcAccuracy(){
+  const total = sessionCardsPlaced + sessionCardsLost;
+  return total > 0 ? Math.round((sessionCardsPlaced / total) * 100) + '%' : '—';
+}
+
+function renderRecap(){
+  const container = document.getElementById('recapStats');
+  container.innerHTML = '';
+
+  const sessionSongs = sessionHistory.filter(e => e.sessionId === currentSessionId);
+  const sessionYears = sessionSongs.map(e => parseInt(e.year, 10)).filter(y => !isNaN(y));
+
+  let yearRangeText = '—';
+  let avgYearText = '—';
+  if(sessionYears.length > 0){
+    const minYear = Math.min(...sessionYears);
+    const maxYear = Math.max(...sessionYears);
+    yearRangeText = (minYear === maxYear) ? String(minYear) : (minYear + ' – ' + maxYear);
+    const avg = sessionYears.reduce((a,b) => a+b, 0) / sessionYears.length;
+    avgYearText = String(Math.round(avg));
+  }
+
+  const rows = [
+    ['Songs listened', sessionSongs.length],
+    ['Cards placed', sessionCardsPlaced],
+    ['Cards lost', sessionCardsLost],
+    ['Accuracy', calcAccuracy()],
+    ['Gold coins won', sessionCoinsWon],
+    ['Year range', yearRangeText],
+    ['Average year', avgYearText]
+  ];
+  rows.forEach(([label, value]) => {
+    const row = document.createElement('div');
+    row.className = 'menu-setting-row';
+    row.style.justifyContent = 'space-between';
+    row.innerHTML = '<span class="field-label" style="margin:0;">' + label + '</span><span class="menu-setting-value">' + value + '</span>';
+    container.appendChild(row);
+  });
+
+  const songList = document.getElementById('recapSongList');
+  songList.innerHTML = '';
+  songList.style.maxHeight = '';
+  if(sessionSongs.length === 0){
+    songList.innerHTML = '<p class="empty">Nothing revealed yet this session.</p>';
+  }else{
+    sessionSongs.slice().reverse().forEach(entry => {
+      const row = document.createElement('div');
+      row.className = 'history-entry';
+      row.innerHTML = `
+        <span class="history-year">${formatHistoryYear(entry)}</span>
+        <span class="history-title">${entry.title ? escapeHtml(entry.title) + (entry.artist ? ' — ' + escapeHtml(entry.artist) : '') : 'Unknown track'}</span>
+      `;
+      songList.appendChild(row);
+    });
+    const firstRow = songList.querySelector('.history-entry');
+    if(firstRow){
+      songList.style.maxHeight = (firstRow.offsetHeight * 10) + 'px';
+    }
+  }
+}
+
+function buildStaticVinylCard(entry){
+  const card = document.createElement('div');
+  card.className = 'vinyl-card' + (entry.bonus ? ' has-bonus' : '');
+  card.style.flexShrink = '0';
+  appendCardYear(card, entry);
+  if(entry.title){
+    const titleEl = document.createElement('div');
+    titleEl.className = 'vinyl-card-title';
+    titleEl.textContent = entry.title;
+    card.appendChild(titleEl);
+  }
+  if(entry.artist){
+    const artistEl = document.createElement('div');
+    artistEl.className = 'vinyl-card-artist';
+    artistEl.textContent = entry.artist;
+    card.appendChild(artistEl);
+  }
+  if(entry.bonus){
+    const badge = document.createElement('div');
+    badge.className = 'card-bonus-badge';
+    badge.innerHTML = COIN_SVG;
+    card.appendChild(badge);
+  }
+  return card;
+}
+
+function saveTimelineAsImage(player){
+  if(typeof html2canvas === 'undefined'){
+    alert('Image export library failed to load — check your connection and try again.');
+    return;
+  }
+  const capture = document.createElement('div');
+  capture.style.cssText = 'position:fixed;left:-99999px;top:0;background:#251A2B;padding:2.5rem 2rem;display:inline-block;';
+
+  const header = document.createElement('div');
+  header.style.cssText = 'text-align:center;margin-bottom:1.8rem;';
+  header.innerHTML = `
+    <div class="capture-title">Vinyl'le</div>
+    <div class="capture-subtitle">${escapeHtml(player.name)}'s timeline</div>
+  `;
+  capture.appendChild(header);
+
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex;flex-wrap:nowrap;gap:.9rem;';
+  if(player.timeline.length === 0){
+    const empty = document.createElement('p');
+    empty.className = 'empty';
+    empty.textContent = 'No cards placed yet.';
+    row.appendChild(empty);
+  }else{
+    player.timeline.forEach(entry => row.appendChild(buildStaticVinylCard(entry)));
+  }
+  capture.appendChild(row);
+
+  document.body.appendChild(capture);
+  html2canvas(capture, {backgroundColor: '#251A2B', scale: 2}).then(canvas => {
+    document.body.removeChild(capture);
+    const link = document.createElement('a');
+    const safeName = player.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase() || 'player';
+    link.download = 'vinylle-timeline-' + safeName + '.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }).catch(() => {
+    if(capture.parentNode) document.body.removeChild(capture);
+  });
 }
 
 function renderPodium(){
@@ -1892,6 +2262,67 @@ document.getElementById('savePodiumBtn').addEventListener('click', () => {
   });
 });
 
+document.getElementById('saveRecapBtn').addEventListener('click', () => {
+  const sessionSongs = sessionHistory.filter(e => e.sessionId === currentSessionId);
+  const sessionYears = sessionSongs.map(e => parseInt(e.year, 10)).filter(y => !isNaN(y));
+  let yearRangeText = '—';
+  let avgYearText = '—';
+  if(sessionYears.length > 0){
+    const minYear = Math.min(...sessionYears);
+    const maxYear = Math.max(...sessionYears);
+    yearRangeText = (minYear === maxYear) ? String(minYear) : (minYear + ' - ' + maxYear);
+    const avg = sessionYears.reduce((a,b) => a+b, 0) / sessionYears.length;
+    avgYearText = String(Math.round(avg));
+  }
+
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const timestamp = pad(now.getDate()) + '/' + pad(now.getMonth() + 1) + '/' + now.getFullYear() + ' - ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
+
+  const lines = [];
+  lines.push("VINYL'LE — SESSION RECAP");
+  lines.push(timestamp);
+  lines.push('');
+  lines.push('Songs listened: ' + sessionSongs.length);
+  lines.push('Cards placed: ' + sessionCardsPlaced);
+  lines.push('Cards lost: ' + sessionCardsLost);
+  lines.push('Accuracy: ' + calcAccuracy());
+  lines.push('Gold coins won: ' + sessionCoinsWon);
+  lines.push('Year range: ' + yearRangeText);
+  lines.push('Average year: ' + avgYearText);
+  lines.push('');
+  lines.push('LEADERBOARD');
+  lines.push('-----------------------------------------');
+  if(players.length === 0){
+    lines.push('No players this session.');
+  }else{
+    const sorted = players.slice().sort(comparePlayers);
+    sorted.forEach((player, i) => {
+      const coins = player.timeline.filter(e => e.bonus).length;
+      lines.push((i + 1) + '. ' + player.name + ' — ' + player.timeline.length + ' cards, ' + coins + ' coins');
+    });
+  }
+  lines.push('');
+  lines.push('SONGS THIS SESSION');
+  lines.push('-----------------------------------------');
+  if(sessionSongs.length === 0){
+    lines.push('Nothing revealed yet this session.');
+  }else{
+    sessionSongs.slice().reverse().forEach(entry => {
+      const titleArtist = entry.title ? entry.title + (entry.artist ? ' — ' + entry.artist : '') : 'Unknown track';
+      lines.push((entry.year || '----') + '  ' + titleArtist);
+    });
+  }
+
+  const blob = new Blob([lines.join('\n')], {type: 'text/plain'});
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.download = 'vinylle-recap.txt';
+  link.href = url;
+  link.click();
+  URL.revokeObjectURL(url);
+});
+
 clipLengthInput.addEventListener('input', () => {
   CLIP_SECONDS = parseInt(clipLengthInput.value, 10);
   clipLengthValue.textContent = CLIP_SECONDS + 's';
@@ -1913,29 +2344,104 @@ uiScaleInput.addEventListener('input', () => {
   saveSession();
 });
 
+function positionToggleSlider(container){
+  if(!container) return;
+  const slider = container.querySelector('.toggle-slider');
+  const activeBtn = container.querySelector('.sb-view-btn.active');
+  if(!slider || !activeBtn) return;
+  slider.style.left = activeBtn.offsetLeft + 'px';
+  slider.style.width = activeBtn.offsetWidth + 'px';
+}
+
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function formatHistoryYear(entry){
+  if(!entry.year) return '—';
+  if(expertMode && entry.month) return MONTH_NAMES[entry.month - 1] + ' ' + entry.year;
+  return entry.year;
+}
+
+function appendCardYear(card, entry){
+  const yearEl = document.createElement('div');
+  yearEl.className = 'vinyl-card-year';
+  yearEl.textContent = entry.year;
+  if(expertMode && entry.month){
+    const monthEl = document.createElement('div');
+    monthEl.className = 'vinyl-card-month';
+    monthEl.textContent = MONTH_NAMES[entry.month - 1] || '';
+    yearEl.appendChild(monthEl);
+  }
+  card.appendChild(yearEl);
+}
+
+let expertMode = false;
+document.querySelectorAll('.expert-mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.expert-mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    positionToggleSlider(btn.closest('.filter-toggle'));
+    expertMode = btn.dataset.expertmode === 'on';
+    refreshNowYearDisplay();
+    renderScoreboard();
+    renderHistory();
+    if(document.getElementById('sbRecapView').style.display !== 'none') renderRecap();
+    saveSession();
+  });
+});
+
+let historyFilterMode = 'all';
+
 function renderHistory(){
+  const filtered = historyFilterMode === 'session'
+    ? sessionHistory.filter(e => e.sessionId === currentSessionId)
+    : sessionHistory;
   historyList.innerHTML = '';
-  if(sessionHistory.length === 0){
-    historyList.innerHTML = '<p class="empty">Nothing revealed yet this session.</p>';
+  clearHistoryRow.style.display = historyFilterMode === 'all' ? '' : 'none';
+  if(filtered.length === 0){
+    historyList.innerHTML = historyFilterMode === 'session'
+      ? '<p class="empty">Nothing revealed yet this session.</p>'
+      : '<p class="empty">Nothing revealed yet.</p>';
     return;
   }
-  sessionHistory.slice().reverse().forEach(entry => {
+  filtered.slice().reverse().forEach(entry => {
     const row = document.createElement('div');
     row.className = 'history-entry';
     row.innerHTML = `
-      <span class="history-year">${entry.year || '—'}</span>
-      <span class="history-title">${entry.title ? entry.title + (entry.artist ? ' — ' + entry.artist : '') : 'Unknown track'}</span>
-      <span class="history-meta">${entry.playlist || ''}</span>
+      <span class="history-year">${formatHistoryYear(entry)}</span>
+      <span class="history-title">${entry.title ? escapeHtml(entry.title) + (entry.artist ? ' — ' + escapeHtml(entry.artist) : '') : 'Unknown track'}</span>
+      <span class="history-meta">${entry.playlist ? escapeHtml(entry.playlist) : ''}</span>
     `;
     historyList.appendChild(row);
   });
   saveSession();
 }
 
+document.querySelectorAll('.history-filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.history-filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    positionToggleSlider(btn.closest('.filter-toggle'));
+    historyFilterMode = btn.dataset.historyfilter;
+    renderHistory();
+  });
+});
+
 clearHistoryBtn.addEventListener('click', async () => {
   if(sessionHistory.length > 0 && !(await showConfirm('Clear the session history? This can\'t be undone.'))) return;
   sessionHistory = [];
   renderHistory();
+  saveSession();
+});
+
+resetStatsBtn.addEventListener('click', async () => {
+  const hasStats = statsRevealed > 0 || statsListenSeconds > 0 || statsCardsPlaced > 0 || statsCoinsWon > 0;
+  if(hasStats && !(await showConfirm('Reset songs listened, cards placed, gold coins won, and listening time back to zero? This can\'t be undone.'))) return;
+  statsRevealed = 0;
+  statsListenSeconds = 0;
+  statsCardsPlaced = 0;
+  statsCoinsWon = 0;
+  renderStats();
+  saveSession();
 });
 
 function capitalizeFirst(str){
@@ -1956,12 +2462,14 @@ playerNameInput.addEventListener('keydown', (e) => {
 });
 
 function resetDeckProgress(){
-  playlists.forEach(p => p.tracks.forEach(t => { t.drawn = false; t.revealedOnce = false; }));
+  playlists.forEach(p => p.tracks.forEach(t => { t.drawn = false; t.revealedOnce = false; t.loggedToHistory = false; }));
   currentCard = null;
   currentPlaylistName = null;
   revealed = false;
-  statsDrawn = 0;
-  statsRevealed = 0;
+  sessionCardsLost = 0;
+  sessionCardsPlaced = 0;
+  sessionCoinsWon = 0;
+  currentSessionId++;
   clearTimeout(snippetTimer);
   clearInterval(countdownInterval);
   clearTimeout(countdownStartFallback);
@@ -1997,15 +2505,6 @@ clearPlayersBtn.addEventListener('click', async () => {
   resetDeckProgress();
   renderScoreboard();
 });
-
-function shuffleArray(arr){
-  const a = arr.slice();
-  for(let i=a.length-1;i>0;i--){
-    const j = Math.floor(Math.random()*(i+1));
-    [a[i],a[j]] = [a[j],a[i]];
-  }
-  return a;
-}
 
 function addPlaylist(name, tracks, id){
   playlists.push({name, tracks, enabled: true, id: id || null, expanded: false});
@@ -2052,18 +2551,24 @@ async function fetchPlaylistTracks(playlistId){
         const errData = await res.json();
         detail = errData.error && errData.error.message ? errData.error.message : '';
       }catch(e){}
-      throw new Error('playlist request failed (' + res.status + ')' + (detail ? ': ' + detail : ''));
+      const err = new Error('playlist request failed (' + res.status + ')' + (detail ? ': ' + detail : ''));
+      if(res.status === 403) err.isForbidden = true;
+      throw err;
     }
     const data = await res.json();
     for(const entry of data.items){
       const t = entry.item || entry.track;
       if(!t || !t.id) continue;
+      const releaseDate = (t.album && t.album.release_date) ? t.album.release_date : '';
+      const precision = (t.album && t.album.release_date_precision) || '';
+      const hasMonth = releaseDate.length >= 7 && (precision === 'month' || precision === 'day');
       items.push({
         id: t.id,
         uri: t.uri,
         title: t.name,
         artist: (t.artists || []).map(a => a.name).join(', '),
-        year: (t.album && t.album.release_date) ? t.album.release_date.slice(0,4) : '',
+        year: releaseDate ? releaseDate.slice(0,4) : '',
+        month: hasMonth ? parseInt(releaseDate.slice(5,7), 10) : null,
         drawn:false
       });
     }
@@ -2101,15 +2606,23 @@ loadPlaylistBtn.addEventListener('click', async () => {
   loadPlaylistBtn.disabled = true;
   try{
     let loadedCount = 0;
+    const forbiddenNames = [];
+    const otherErrors = [];
     for(let i=0; i<ids.length; i++){
       playlistStatus.textContent = 'loading playlist ' + (i+1) + ' of ' + ids.length + '…';
-      const [name, tracks] = await Promise.all([
-        fetchPlaylistName(ids[i]),
-        fetchPlaylistTracks(ids[i])
-      ]);
-      if(tracks.length > 0){
-        addPlaylist(name, tracks, ids[i]);
-        loadedCount++;
+      const name = await fetchPlaylistName(ids[i]);
+      try{
+        const tracks = await fetchPlaylistTracks(ids[i]);
+        if(tracks.length > 0){
+          addPlaylist(name, tracks, ids[i]);
+          loadedCount++;
+        }
+      }catch(err){
+        if(err.isForbidden){
+          forbiddenNames.push(name);
+        }else{
+          otherErrors.push(name + ': ' + err.message);
+        }
       }
     }
     document.getElementById('playlistUrls').value = '';
@@ -2117,7 +2630,15 @@ loadPlaylistBtn.addEventListener('click', async () => {
       ? 'loaded ' + loadedCount + ' playlist' + (loadedCount===1?'':'s')
       : 'no playable tracks found in those playlists';
     if(skippedCount > 0) msg += ' — skipped ' + skippedCount + ' already loaded';
+    if(otherErrors.length > 0) msg += ' — ' + otherErrors.join('; ');
     playlistStatus.textContent = msg;
+    const notOwnedBanner = document.getElementById('notOwnedWarningBanner');
+    if(forbiddenNames.length > 0){
+      notOwnedBanner.innerHTML = '<strong>Heads up:</strong> Spotify blocked access to ' + (forbiddenNames.length === 1 ? 'this playlist' : 'these playlists') + ' — <strong>' + forbiddenNames.map(escapeHtml).join('</strong>, <strong>') + '</strong> (403 Forbidden). This almost always means the connected account doesn\'t own it. Copy it to your own account first (see the setup guide above) and use that link instead.';
+      notOwnedBanner.style.display = 'block';
+    }else{
+      notOwnedBanner.style.display = 'none';
+    }
   }catch(err){
     playlistStatus.textContent = err.message || 'something went wrong loading the playlists';
   }
@@ -2325,7 +2846,10 @@ drawBtn.addEventListener('click', () => {
   const availableTracks = p.tracks.filter(t => !t.drawn);
   const t = availableTracks[Math.floor(Math.random()*availableTracks.length)];
   t.drawn = true;
-  statsDrawn++;
+  if(currentCard){
+    const wasPlaced = players.some(pl => pl.timeline.some(e => e.id === currentCard.id));
+    if(!wasPlaced) sessionCardsLost++;
+  }
   players.forEach(pl => {
     pl.timeline.forEach(entry => { entry.locked = true; });
     pl.lastAdded = null;
@@ -2350,6 +2874,19 @@ drawBtn.addEventListener('click', () => {
 replayBtn.addEventListener('click', () => playSnippet(false));
 newPointBtn.addEventListener('click', () => playSnippet(true));
 
+function refreshNowYearDisplay(){
+  if(!currentCard || !revealed) return;
+  const showMonth = expertMode && currentCard.month;
+  nowYear.classList.toggle('with-month', !!showMonth);
+  if(!currentCard.year){
+    nowYear.textContent = 'year not set';
+  }else if(showMonth){
+    nowYear.innerHTML = '<span>' + escapeHtml(MONTH_NAMES[currentCard.month - 1]) + ',</span><span>' + escapeHtml(String(currentCard.year)) + '</span>';
+  }else{
+    nowYear.textContent = currentCard.year;
+  }
+}
+
 revealBtn.addEventListener('click', () => {
   if(!currentCard) return;
   revealed = true;
@@ -2357,17 +2894,20 @@ revealBtn.addEventListener('click', () => {
   vinylLabel.textContent = (currentCard.year || '').toString().slice(-2) || '★';
   nowTitle.textContent = currentCard.title;
   nowArtist.textContent = currentCard.artist;
-  nowYear.textContent = currentCard.year || 'year not set';
+  refreshNowYearDisplay();
   if(!currentCard.loggedToHistory){
     currentCard.loggedToHistory = true;
     statsRevealed++;
     sessionHistory.push({
       year: currentCard.year,
+      month: currentCard.month || null,
       title: currentCard.title,
       artist: currentCard.artist,
-      playlist: currentPlaylistName
+      playlist: currentPlaylistName,
+      sessionId: currentSessionId
     });
     renderHistory();
+    if(document.getElementById('sbRecapView').style.display !== 'none') renderRecap();
   }
   renderTracklist();
   renderScoreboard();
@@ -2389,7 +2929,18 @@ document.querySelectorAll('.footer-link').forEach(link => {
   link.addEventListener('click', (e) => e.preventDefault());
 });
 
+document.addEventListener('keydown', (e) => {
+  if(e.code !== 'Space') return;
+  const tag = document.activeElement.tagName;
+  if(tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement.isContentEditable) return;
+  e.preventDefault();
+  scrubPlayBtn.click();
+});
+
 loadSession();
+
+document.querySelectorAll('.sb-view-toggle').forEach(positionToggleSlider);
+document.querySelectorAll('#settingsView .filter-toggle').forEach(positionToggleSlider);
 </script>
 </body>
 </html>
