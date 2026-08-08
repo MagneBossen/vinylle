@@ -369,6 +369,36 @@ if(!deviceId){
   localStorage.setItem('vl_device_id', deviceId);
 }
 
+// A remembered code is a convenience for rejoining the game you're in, not a
+// bookmark. It goes stale after three hours, and the moment the server says
+// the lobby is gone we drop it on the spot rather than waiting out the clock.
+const CODE_MEMORY_MS = 3 * 60 * 60 * 1000;
+
+function rememberCode(code){
+  try{
+    localStorage.setItem('vl_last_code', code);
+    localStorage.setItem('vl_last_code_at', String(Date.now()));
+  }catch(e){ /* private mode */ }
+}
+
+function forgetCode(){
+  try{
+    localStorage.removeItem('vl_last_code');
+    localStorage.removeItem('vl_last_code_at');
+  }catch(e){ /* private mode */ }
+}
+
+function rememberedCode(){
+  let code, at;
+  try{
+    code = localStorage.getItem('vl_last_code');
+    at = Number(localStorage.getItem('vl_last_code_at')) || 0;
+  }catch(e){ return ''; }
+  if(!code) return '';
+  if(Date.now() - at > CODE_MEMORY_MS){ forgetCode(); return ''; }
+  return code;
+}
+
 const socket = io({ transports: ['websocket', 'polling'] });
 
 let lobbyCode = '';
@@ -419,9 +449,15 @@ function peek(code){
   socket.emit('lobby:peek', { code, deviceId }, (res) => {
     codeNextBtn.disabled = false;
     if(!res || !res.ok){
-      codeError.textContent = res && res.error === 'no-lobby'
-        ? "No game with that code — check the DJ's screen."
-        : 'Could not reach that game.';
+      if(res && res.error === 'no-lobby'){
+        // Dead lobby — drop it now rather than pre-filling a useless code on
+        // every future visit until the three hours run out.
+        forgetCode();
+        if(codeInput.value.toUpperCase() === String(code).toUpperCase()) codeInput.value = '';
+        codeError.textContent = "No game with that code — check the DJ's screen.";
+      }else{
+        codeError.textContent = 'Could not reach that game.';
+      }
       return;
     }
     lobbyCode = res.code;
@@ -486,6 +522,7 @@ function join(name){
         'full': 'This game is full (12 players).',
         'no-name': 'Type a name first.'
       }[res && res.error] || 'Could not join.';
+      if(res && res.error === 'no-lobby') forgetCode();
       nameError.textContent = msg;
       showView('name');
       return;
@@ -517,7 +554,7 @@ socket.on('join:result', (res) => {
   }
   joined = true;
   myName = res.name || myName;
-  localStorage.setItem('vl_last_code', lobbyCode);
+  rememberCode(lobbyCode);
   localStorage.setItem('vl_last_name', myName);
   // Put the lobby in the address bar so everyone in a game has the same URL,
   // however they got in. replaceState, not pushState — the code screen isn't
@@ -808,7 +845,7 @@ socket.on('lobby:end', (payload) => {
 });
 
 document.getElementById('endBtn').addEventListener('click', () => {
-  localStorage.removeItem('vl_last_code');
+  forgetCode();
   // Drop the dead lobby from the URL first, or the reload just re-peeks it.
   setLobbyUrl(null);
   window.location.replace('/player');
@@ -818,7 +855,7 @@ document.getElementById('endBtn').addEventListener('click', () => {
 const leaveOverlay = document.getElementById('leaveOverlay');
 
 function goHome(){
-  localStorage.removeItem('vl_last_code');
+  forgetCode();
   setLobbyUrl(null);
   window.location.href = '/';
 }
@@ -868,7 +905,7 @@ socket.on('disconnect', () => {
 (function boot(){
   const params = new URLSearchParams(window.location.search);
   const fromUrl = (params.get('code') || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-  const remembered = localStorage.getItem('vl_last_code');
+  const remembered = rememberedCode();
   const seed = fromUrl || remembered || '';
   if(seed) codeInput.value = seed.slice(0, 6);
   const savedName = localStorage.getItem('vl_last_name');
