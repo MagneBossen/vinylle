@@ -854,8 +854,16 @@
     font-family:'IBM Plex Mono',monospace;font-size:.68rem;
     border:1px solid var(--line);border-radius:20px;
     padding:.25rem .7rem;color:var(--paper);
+    background:transparent;
+    cursor:pointer;
+    transition:color .15s, border-color .15s, background-color .15s;
   }
-  .phone-chip .dot{width:6px;height:6px;border-radius:50%;background:var(--green);}
+  /* Click once to arm, again to remove — hovering turns it red so it's clear
+     the chip does something destructive before you commit. */
+  .phone-chip:hover{color:var(--red);border-color:var(--red);}
+  .phone-chip.armed{color:var(--red);border-color:var(--red);background:rgba(179,58,58,.14);}
+  .phone-chip .dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0;}
+  .phone-chip .dot.away{background:var(--gold);}
   .lobby-status{
     display:flex;align-items:center;gap:.45rem;
     font-family:'IBM Plex Mono',monospace;font-size:.62rem;
@@ -1335,7 +1343,7 @@ https://open.spotify.com/playlist/yyyyyyyy"></textarea>
     </details>
   </div>
 
-  <p style="text-align:center; color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:.72rem; margin-top:2rem;">Vinyl'le — v13.1.2</p>
+  <p style="text-align:center; color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:.72rem; margin-top:2rem;">Vinyl'le — v13.2.0</p>
   <p style="text-align:center; color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:.65rem; margin-top:.3rem; opacity:.7;">Vibe coded by MB</p>
   <p style="text-align:center; font-family:'IBM Plex Mono',monospace; font-size:.7rem; margin-top:.6rem; opacity:.7;">
     <a href="#" class="footer-link">Feedback</a> · <a href="#" class="footer-link">Reach out</a> · <a href="#" class="footer-link">Buy me a coffee</a>
@@ -2210,6 +2218,19 @@ document.addEventListener('keydown', (e) => {
   if(e.key === 'Escape'){
     closeScoreboard();
     closeMenu();
+    return;
+  }
+  // Tab toggles the scoreboard — the DJ opens it constantly and it's otherwise
+  // an unused key here. Still left alone while typing, so tabbing between
+  // fields (player name, playlist URLs, client id) keeps working.
+  if(e.key === 'Tab'){
+    const tag = document.activeElement && document.activeElement.tagName;
+    if(tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement.isContentEditable) return;
+    const role = document.getElementById('roleOverlay');
+    if(role && role.classList.contains('open')) return;
+    e.preventDefault();
+    if(scoreboardOverlay.classList.contains('open')) closeScoreboard();
+    else openScoreboard();
   }
 });
 
@@ -3284,15 +3305,17 @@ function playerLink(){
 }
 
 let phoneCount = 0;
+let awayCount = 0;
 
 function renderLobbySummary(){
   if(!lobbyCode){
     lobbySummaryEl.textContent = '';
     return;
   }
+  const phones = (phoneCount === 1 ? '1 phone' : phoneCount + ' phones');
+  const away = awayCount > 0 ? '<span class="sep">·</span>' + awayCount + ' away' : '';
   lobbySummaryEl.innerHTML = '<span class="sep">—</span>' + lobbyCode +
-    '<span class="sep">·</span><span class="count">' +
-    (phoneCount === 1 ? '1 phone' : phoneCount + ' phones') + '</span>';
+    '<span class="sep">·</span><span class="count">' + phones + away + '</span>';
 }
 
 function renderLobby(){
@@ -3338,23 +3361,63 @@ function openQr(){
   qrLobbyBtn.textContent = 'Hide QR';
 }
 
-function renderPhones(list){
+// Chips come from our own player list, not the server roster — that way a
+// phone that drops out stays on show as "away" instead of vanishing.
+let armedKickDevice = null;
+
+function renderPhones(){
   lobbyPhonesEl.innerHTML = '';
-  phoneCount = list ? list.length : 0;
+  const claimed = players.filter(p => p.deviceId);
+  phoneCount = claimed.length;
+  awayCount = claimed.filter(p => !p.online).length;
   renderLobbySummary();
-  if(phoneCount === 0){
+
+  if(claimed.length === 0){
     lobbyPhonesEl.innerHTML = '<span class="lobby-sub">no phones connected yet</span>';
+    armedKickDevice = null;
     return;
   }
-  list.forEach(phone => {
-    const chip = document.createElement('span');
-    chip.className = 'phone-chip';
-    chip.innerHTML = '<span class="dot"></span>';
+
+  claimed.forEach(player => {
+    const armed = armedKickDevice === player.deviceId;
+    const chip = document.createElement('button');
+    chip.className = 'phone-chip' + (armed ? ' armed' : '');
+    chip.title = armed ? 'Click again to remove ' + player.name : 'Click to remove ' + player.name;
+
+    const dot = document.createElement('span');
+    dot.className = 'dot' + (player.online ? '' : ' away');
+    dot.title = player.online ? 'connected' : 'away — phone disconnected';
+    chip.appendChild(dot);
+
     const label = document.createElement('span');
-    label.textContent = phone.name;
+    label.textContent = armed ? 'Kick' : player.name;
     chip.appendChild(label);
+
+    chip.addEventListener('click', () => {
+      if(armed){ kickPlayer(player); return; }
+      armedKickDevice = player.deviceId;
+      renderPhones();
+    });
+    // Wandering off cancels it, so a stray click never becomes a kick.
+    chip.addEventListener('mouseleave', () => {
+      if(armedKickDevice !== player.deviceId) return;
+      armedKickDevice = null;
+      renderPhones();
+    });
+
     lobbyPhonesEl.appendChild(chip);
   });
+}
+
+function kickPlayer(player){
+  armedKickDevice = null;
+  if(lobbySocket && player.deviceId) lobbySocket.emit('lobby:kick', { deviceId: player.deviceId });
+  const idx = players.indexOf(player);
+  if(idx > -1) players.splice(idx, 1);
+  if(players.length === 0) resetDeckProgress();
+  lobbyToast(player.name + ' was kicked');
+  renderScoreboard();
+  renderPhones();
 }
 
 let toastTimer = null;
@@ -3377,6 +3440,7 @@ function handleJoinRequest(req){
     player.online = true;
     lobbySocket.emit('player:join-result', { socketId: req.socketId, ok: true, name: player.name });
     renderScoreboard();
+    renderPhones();
   };
   const reject = (reason) => {
     lobbySocket.emit('player:join-result', { socketId: req.socketId, ok: false, reason });
@@ -3443,7 +3507,7 @@ function hostLobby(){
       sessionStorage.setItem('vl_dj_secret', lobbySecret);
       setLobbyStatus('live', 'live');
       renderLobby();
-      renderPhones(res.phones);
+      renderPhones();
       broadcastState();
     });
   }
@@ -3462,10 +3526,13 @@ function hostLobby(){
     const player = players.find(p => p.deviceId && p.deviceId === payload.deviceId);
     if(!player) return;
     player.online = false;
+    lobbyToast(player.name + ' disconnected');
     renderScoreboard();
+    renderPhones();
   });
 
-  lobbySocket.on('lobby:roster', (payload) => renderPhones(payload && payload.phones));
+  // Server roster changes are just a nudge — the chips read from our own list.
+  lobbySocket.on('lobby:roster', () => renderPhones());
 
   lobbySocket.on('lobby:end', () => {
     lobbyCode = null;
@@ -3473,7 +3540,7 @@ function hostLobby(){
     sessionStorage.removeItem('vl_dj_code');
     sessionStorage.removeItem('vl_dj_secret');
     players.forEach(p => { p.deviceId = null; p.online = false; });
-    renderPhones([]);
+    renderPhones();
     renderScoreboard();
 
     if(pendingNewLobby){

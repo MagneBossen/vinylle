@@ -96,6 +96,29 @@ function pushRoster(lobby){
   toDj(lobby, 'lobby:roster', { phones: L.roster(lobby) });
 }
 
+// The name list as one particular device sees it: a slot held by the asker is
+// its own to walk back into, not "taken".
+function nameRoster(lobby, asker){
+  const players = (lobby.state && Array.isArray(lobby.state.players)) ? lobby.state.players : [];
+  return players.map(p => ({
+    name: p.name,
+    claimed: !!p.deviceId && p.deviceId !== asker,
+    mine: !!asker && p.deviceId === asker
+  }));
+}
+
+// Phones sitting on the "who are you?" screen aren't in the game yet, so they
+// miss lobby:state-sync entirely. Push them the roster so a name the DJ adds
+// appears without them having to back out and re-enter the code.
+function pushNames(lobby){
+  for(const [socketId, deviceId] of lobby.peekers.entries()){
+    io.to(socketId).emit('lobby:names', {
+      names: nameRoster(lobby, deviceId),
+      full: L.isFull(lobby)
+    });
+  }
+}
+
 function closeLobby(lobby, reason){
   toPhones(lobby, 'lobby:end', { reason });
   toDj(lobby, 'lobby:end', { reason });
@@ -146,6 +169,7 @@ io.on('connection', (socket) => {
     lobby.state = state;
     L.touch(lobby);
     toPhones(lobby, 'lobby:state-sync', state);
+    pushNames(lobby);
   });
 
   // DJ's verdict on a phone that asked to join (claimed a slot, or self-registered).
@@ -162,6 +186,20 @@ io.on('connection', (socket) => {
     if(payload.ok) pushRoster(lobby);
   });
 
+  // DJ boots one phone. Not a ban — they can rejoin with the same code, they
+  // just come back as a fresh player with an empty timeline.
+  socket.on('lobby:kick', (payload) => {
+    const lobby = L.lobbyForDj(socket.id);
+    if(!lobby || !payload || !payload.deviceId) return;
+    const socketId = L.socketForDevice(lobby, payload.deviceId);
+    if(!socketId) return; // already gone; the DJ still drops them from the board
+    L.removePhone(lobby, socketId);
+    io.to(socketId).emit('lobby:kicked', {});
+    const s = io.sockets.sockets.get(socketId);
+    if(s) s.leave('phones:' + lobby.code);
+    pushRoster(lobby);
+  });
+
   socket.on('lobby:end', () => {
     const lobby = L.lobbyForDj(socket.id);
     if(lobby) closeLobby(lobby, 'dj-ended');
@@ -175,16 +213,11 @@ io.on('connection', (socket) => {
     const ack = typeof cb === 'function' ? cb : () => {};
     const lobby = L.getLobby(payload && payload.code);
     if(!lobby) return ack({ ok: false, error: 'no-lobby' });
-    // A name held by the asking device isn't "taken" from its point of view —
-    // that's its own slot to walk back into after a reload.
     const asker = payload && payload.deviceId;
-    const roster = (lobby.state && Array.isArray(lobby.state.players) ? lobby.state.players : [])
-      .map(p => ({
-        name: p.name,
-        claimed: !!p.deviceId && p.deviceId !== asker,
-        mine: !!asker && p.deviceId === asker
-      }));
-    ack({ ok: true, code: lobby.code, names: roster, full: L.isFull(lobby), djOnline: !!lobby.djSocketId });
+    // Remember them so roster changes get pushed while they pick a name.
+    lobby.peekers.set(socket.id, asker || null);
+    socket.data.peekCode = lobby.code;
+    ack({ ok: true, code: lobby.code, names: nameRoster(lobby, asker), full: L.isFull(lobby), djOnline: !!lobby.djSocketId });
   });
 
   socket.on('lobby:join', (payload, cb) => {
@@ -215,6 +248,7 @@ io.on('connection', (socket) => {
     socket.data.deviceId = deviceId;
     socket.join('phones:' + lobby.code);
     L.addPhone(lobby, socket.id, deviceId, name);
+    lobby.peekers.delete(socket.id); // in the game now, not browsing names
 
     ack({
       ok: true,
@@ -235,6 +269,9 @@ io.on('connection', (socket) => {
   // --- Teardown ------------------------------------------------------------
 
   socket.on('disconnect', () => {
+    const peeked = L.getLobby(socket.data.peekCode);
+    if(peeked) peeked.peekers.delete(socket.id);
+
     const djLobby = L.lobbyForDj(socket.id);
     if(djLobby){
       L.startGrace(djLobby, (expired) => closeLobby(expired, 'dj-timeout'));

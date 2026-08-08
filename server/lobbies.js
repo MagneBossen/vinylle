@@ -32,6 +32,7 @@ function createLobby(djSocketId){
     djSocketId,
     state: null,
     phones: new Map(),   // socketId -> {deviceId, name}
+    peekers: new Map(),  // socketId -> deviceId, for phones still on the name screen
     graceTimer: null,
     graceEndsAt: null,
     createdAt: Date.now(),
@@ -78,6 +79,14 @@ function removePhone(lobby, socketId){
   lobby.phones.delete(socketId);
   touch(lobby);
   return phone || null;
+}
+
+function socketForDevice(lobby, deviceId){
+  if(!deviceId) return null;
+  for(const [socketId, phone] of lobby.phones.entries()){
+    if(phone.deviceId === deviceId) return socketId;
+  }
+  return null;
 }
 
 function roster(lobby){
@@ -145,6 +154,7 @@ module.exports = {
   isFull,
   addPhone,
   removePhone,
+  socketForDevice,
   roster,
   startGrace,
   clearGrace,

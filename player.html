@@ -529,8 +529,25 @@ socket.on('join:result', (res) => {
   render();
 });
 
+// The DJ added, renamed or removed someone while we're still choosing — keep
+// the list live so nobody has to back out and re-enter the code.
+socket.on('lobby:names', (res) => {
+  if(!views.name.classList.contains('active')) return;
+  renderNameOptions(res.names || [], res.full);
+});
+
+socket.on('lobby:kicked', () => {
+  joined = false;
+  lastState = null;
+  stopGrace();
+  setLobbyUrl(null);
+  nameError.textContent = 'The DJ removed you from the game. You can join again.';
+  showView('name');
+  peekRefresh();
+});
+
 function peekRefresh(){
-  socket.emit('lobby:peek', { code: lobbyCode }, (res) => {
+  socket.emit('lobby:peek', { code: lobbyCode, deviceId }, (res) => {
     if(res && res.ok) renderNameOptions(res.names || [], res.full);
   });
 }
