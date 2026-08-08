@@ -738,6 +738,156 @@
   .tname::-webkit-scrollbar{display:none;}
   .tname.pending{color:var(--muted);font-style:italic;}
   .tyear{font-family:'IBM Plex Mono',monospace;color:var(--gold);font-size:.82rem;}
+
+  /* ── role picker (first thing you see) ─────────────────────────────── */
+  .role-overlay{
+    position:fixed;inset:0;z-index:3000;
+    background:var(--bg);
+    display:none;
+    align-items:center;justify-content:center;
+    padding:1.5rem;
+    overflow-y:auto;
+  }
+  .role-overlay.open{display:flex;}
+  .role-inner{max-width:640px;width:100%;text-align:center;}
+  .role-inner h1{font-size:clamp(2.4rem,7vw,3.4rem);margin-bottom:.4rem;}
+  .role-inner .tagline{margin-bottom:2.4rem;}
+  .role-options{display:flex;gap:1.1rem;justify-content:center;flex-wrap:wrap;}
+  .role-btn{
+    flex:1 1 240px;max-width:280px;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:1.8rem 1.4rem;
+    text-align:center;
+    cursor:pointer;
+    color:var(--paper);
+    transition:border-color .15s, background-color .15s, transform .15s;
+  }
+  .role-btn:hover{border-color:var(--gold);background:var(--surface-2);transform:translateY(-2px);}
+  .role-btn .role-icon{color:var(--gold);margin-bottom:.9rem;display:flex;justify-content:center;}
+  .role-btn .role-title{display:block;font-family:'Fraunces',serif;font-weight:600;font-size:1.5rem;margin-bottom:.4rem;}
+  .role-btn .role-desc{display:block;font-size:.85rem;color:var(--muted);line-height:1.5;}
+  .role-note{font-size:.78rem;color:var(--muted);margin-top:2rem;line-height:1.5;}
+  .role-btn.blocked{opacity:.45;}
+  .role-btn.blocked:hover{border-color:var(--line);background:var(--surface);transform:none;}
+  .role-warning{
+    display:none;
+    background:#3A1F1F;
+    border:1px solid var(--red);
+    border-radius:10px;
+    padding:.9rem 1.1rem;
+    margin-top:1.6rem;
+    font-size:.85rem;
+    color:#f0c4c4;
+    line-height:1.5;
+    text-align:left;
+  }
+  .role-warning.show{display:block;}
+  .home-title{cursor:pointer;transition:color .15s;-webkit-tap-highlight-color:transparent;}
+  .home-title:hover{color:var(--gold);}
+
+  /* ── lobby panel on the DJ screen ──────────────────────────────────── */
+  /* Code and phone count ride along in the summary, so the collapsed row is
+     still readable enough to share — no need to open it mid-game. */
+  .lobby-summary{
+    color:var(--paper);
+    letter-spacing:.18em;
+    margin-left:.7rem;
+  }
+  .lobby-summary .sep{color:var(--line);margin:0 .5rem;letter-spacing:0;}
+  .lobby-summary .count{color:var(--muted);letter-spacing:.1em;}
+  .lobby-card{display:flex;align-items:center;gap:1.2rem;flex-wrap:wrap;}
+  .lobby-code-block{display:flex;flex-direction:column;gap:.2rem;}
+  .lobby-code-row{display:flex;align-items:center;gap:.9rem;flex-wrap:wrap;}
+  /* A button so it's keyboard-reachable, styled back down to plain text. */
+  button.lobby-code{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:clamp(1.8rem,4.5vw,2.6rem);
+    letter-spacing:.22em;
+    color:var(--gold);
+    line-height:1.1;
+    background:transparent;
+    border:1px solid transparent;
+    border-radius:8px;
+    padding:.1rem .3rem;
+    margin:-.1rem -.3rem;
+    cursor:pointer;
+    transition:background-color .15s, border-color .15s;
+  }
+  button.lobby-code:hover{background:rgba(212,162,78,.08);border-color:var(--gold-dim);}
+  button.lobby-code.pending{cursor:default;}
+  button.lobby-code.pending:hover{background:transparent;border-color:transparent;}
+  button.lobby-code.pending{color:var(--muted);letter-spacing:.12em;font-size:1.2rem;}
+  .lobby-sub{font-family:'IBM Plex Mono',monospace;font-size:.62rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);}
+  .lobby-actions{display:flex;gap:.5rem;margin-left:auto;flex-wrap:wrap;}
+  .lobby-qr{
+    display:none;
+    width:100%;
+    align-items:center;
+    gap:1.2rem;
+    border-top:1px solid var(--line);
+    padding-top:1.1rem;
+  }
+  .lobby-qr.open{display:flex;}
+  .lobby-qr img{
+    width:190px;height:190px;
+    background:var(--paper);
+    border-radius:10px;
+    padding:.5rem;
+    flex-shrink:0;
+    display:block;
+  }
+  .lobby-qr-caption{display:flex;flex-direction:column;gap:.4rem;min-width:0;}
+  .lobby-qr-hint{font-size:.85rem;color:var(--paper);}
+  .lobby-qr-url{
+    font-family:'IBM Plex Mono',monospace;font-size:.7rem;
+    color:var(--muted);word-break:break-all;
+  }
+  .lobby-qr-warn{font-size:.78rem;color:var(--red);line-height:1.5;}
+  .lobby-phones{
+    width:100%;display:flex;gap:.45rem;flex-wrap:wrap;
+    border-top:1px solid var(--line);padding-top:.9rem;margin-top:.2rem;
+  }
+  .phone-chip{
+    display:flex;align-items:center;gap:.4rem;
+    font-family:'IBM Plex Mono',monospace;font-size:.68rem;
+    border:1px solid var(--line);border-radius:20px;
+    padding:.25rem .7rem;color:var(--paper);
+  }
+  .phone-chip .dot{width:6px;height:6px;border-radius:50%;background:var(--green);}
+  .lobby-status{
+    display:flex;align-items:center;gap:.45rem;
+    font-family:'IBM Plex Mono',monospace;font-size:.62rem;
+    text-transform:uppercase;letter-spacing:.1em;color:var(--muted);
+  }
+  .lobby-status .dot{width:7px;height:7px;border-radius:50%;background:var(--muted);}
+  .lobby-status.live .dot{background:var(--green);}
+  .lobby-status.down .dot{background:var(--red);}
+  .lobby-status.live{color:var(--green);}
+  .lobby-status.down{color:var(--red);}
+  .player-claim{
+    width:7px;height:7px;border-radius:50%;
+    background:var(--green);flex-shrink:0;
+  }
+  .player-claim.off{background:var(--line);}
+  .player-header input.player-name-input{
+    font-family:'Fraunces',serif;font-weight:600;
+    font-size:clamp(1.3rem,3vw,1.8rem);
+    color:var(--paper);
+    background:transparent;border:1px solid transparent;border-radius:6px;
+    padding:.1rem .35rem;margin:0;width:auto;max-width:min(48vw,320px);
+  }
+  .player-header input.player-name-input:hover{border-color:var(--line);}
+  .player-header input.player-name-input:focus{border-color:var(--gold-dim);background:var(--surface-2);outline:none;}
+  .player-block.leader input.player-name-input{color:var(--gold);}
+  .join-toast{
+    position:fixed;left:50%;bottom:1.5rem;transform:translateX(-50%);
+    background:var(--surface);border:1px solid var(--gold-dim);border-radius:10px;
+    padding:.7rem 1.1rem;font-size:.85rem;color:var(--paper);
+    z-index:50;box-shadow:0 8px 24px rgba(0,0,0,.4);
+    max-width:calc(100vw - 3rem);
+  }
   .badge{
     font-family:'IBM Plex Mono',monospace;
     font-size:.68rem;
@@ -811,6 +961,33 @@
 </style>
 </head>
 <body>
+<div class="role-overlay" id="roleOverlay">
+  <div class="role-inner">
+    <h1>Vinyl'le</h1>
+    <p class="tagline">A music year-guessing party game. How are you joining?</p>
+    <div class="role-options">
+      <button class="role-btn" id="roleDjBtn">
+        <span class="role-icon">
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="2.5"></circle><path d="M12 3a9 9 0 0 1 9 9"></path></svg>
+        </span>
+        <span class="role-title">I'm the DJ</span>
+        <span class="role-desc">Run the game from this screen — playlists, playback, and card placement. You'll get a code to share.</span>
+      </button>
+      <button class="role-btn" id="rolePlayerBtn">
+        <span class="role-icon">
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"></rect><line x1="10.5" y1="18.5" x2="13.5" y2="18.5"></line></svg>
+        </span>
+        <span class="role-title">I'm a player</span>
+        <span class="role-desc">Follow along on your phone — your timeline and the leaderboard, live.</span>
+      </button>
+    </div>
+    <div class="role-warning" id="roleDjWarning">
+      <strong>The DJ seat needs a laptop.</strong> Audio playback doesn't work reliably on a phone — it's a platform limitation in how Spotify's embed handles logins, not something this app can fix. Run the game from a laptop or desktop, then join from here as a player.
+    </div>
+    <p class="role-note">Playing on one screen with everyone crowded round? Pick DJ and just ignore the code.</p>
+  </div>
+</div>
+
 <button id="scoreboardTab">Scoreboard</button>
 <button id="scoreboardCloseTab" aria-label="Close scoreboard"><span class="grip-line"></span><span class="grip-line"></span><span class="grip-line"></span></button>
 <div class="scoreboard-overlay" id="scoreboardOverlay">
@@ -857,7 +1034,6 @@
     </div>
 
     <div id="sbRecapView" style="display:none;">
-      <p class="hint" style="margin-top:0;">Covers everything since the current session started (last time scores were reset or all players were cleared).</p>
       <div id="recapCapture">
         <div style="text-align:center; margin-bottom:1.8rem;">
           <div class="capture-title">Vinyl'le</div>
@@ -1006,16 +1182,12 @@
 <div id="ad-slot-left" class="ad-slot ad-slot-side"><span class="ad-slot-label">Ad</span></div>
 <div class="wrap">
 
-  <div id="iosWarningBanner" style="display:none; background:#3A1F1F; border:1px solid var(--red); border-radius:8px; padding:.9rem 1.1rem; margin-bottom:1.5rem; font-size:.85rem; color:#f0c4c4; line-height:1.5;">
-    <strong>Heads up:</strong> audio playback doesn't work reliably on iOS Safari (a platform limitation with how Spotify's embed handles logins, not something this app can fix). The scoreboard, settings, and everything else here still work fine on your phone — but for actually playing songs, use a laptop or desktop browser.
-  </div>
-
-  <h1>Vinyl'le</h1>
+  <h1 class="home-title" id="djHomeTitle" title="Back to the start screen">Vinyl'le</h1>
   <p class="tagline">A music year-guessing party game. Load a whole Spotify playlist, spin the mystery record, guess the year.</p>
 
   <div class="card">
     <details>
-      <summary style="font-family:'IBM Plex Mono',monospace;font-size:.75rem;text-transform:uppercase;letter-spacing:.12em;color:var(--gold);cursor:pointer;list-style:revert;">01 — Load playlists</summary>
+      <summary style="font-family:'IBM Plex Mono',monospace;font-size:.75rem;text-transform:uppercase;letter-spacing:.12em;color:var(--gold);cursor:pointer;list-style:revert;">Connect &amp; Load Playlists</summary>
       <div style="margin-top:1rem;">
         <span class="field-label">Spotify client ID</span>
         <input type="text" id="clientId" placeholder="paste your client id">
@@ -1063,7 +1235,7 @@ https://open.spotify.com/playlist/yyyyyyyy"></textarea>
   </div>
 
   <div class="card">
-    <h2>02 — Spin</h2>
+    <h2>Spin</h2>
     <div class="turntable">
       <div class="vinyl-box">
         <svg class="vinyl" id="vinylSvg" viewBox="0 0 160 160">
@@ -1116,25 +1288,54 @@ https://open.spotify.com/playlist/yyyyyyyy"></textarea>
           <button id="scrubSeekBtn">Seek here</button>
           <button id="continueBtn">Vibe mode: off</button>
         </div>
-        <p class="hint">Live position from Spotify, for scouting exactly where a track's hook or chorus lands. Dragging the slider and hitting "Seek here" jumps playback there directly. "Vibe mode" stays on until you turn it off again — while it's on, the 30s countdown and auto-stop are disabled entirely, even across New point, Replay, or Seek here — handy if everyone's vibing to a song and you don't want it cut off.</p>
+      </div>
+    </details>
+  </div>
+
+  <div class="card" id="lobbyCard">
+    <details id="lobbyDetails">
+      <summary style="font-family:'IBM Plex Mono',monospace;font-size:.75rem;text-transform:uppercase;letter-spacing:.12em;color:var(--gold);cursor:pointer;list-style:revert;">Lobby<span class="lobby-summary" id="lobbySummary"></span></summary>
+      <div style="margin-top:1rem;">
+        <div class="lobby-card">
+          <div class="lobby-code-block">
+            <div class="lobby-code-row">
+              <button class="lobby-code pending" id="lobbyCode" title="Click to copy the code">connecting…</button>
+              <span class="lobby-status" id="lobbyStatus"><span class="dot"></span><span id="lobbyStatusText">connecting</span></span>
+            </div>
+            <span class="lobby-sub" id="lobbyUrl">&nbsp;</span>
+          </div>
+          <div class="lobby-actions">
+            <button id="qrLobbyBtn" disabled>Show QR</button>
+            <button id="copyLobbyBtn" disabled>Copy link</button>
+            <button id="newLobbyBtn" disabled>New lobby</button>
+            <button id="endLobbyBtn" disabled>End lobby</button>
+          </div>
+          <div class="lobby-qr" id="lobbyQr">
+            <img id="lobbyQrImg" alt="QR code to join this lobby">
+            <div class="lobby-qr-caption">
+              <span class="lobby-qr-hint">Point a phone camera at this</span>
+              <span class="lobby-qr-url" id="lobbyQrUrl"></span>
+            </div>
+          </div>
+          <div class="lobby-phones" id="lobbyPhones"></div>
+        </div>
       </div>
     </details>
   </div>
 
   <div class="card">
     <details>
-      <summary style="font-family:'IBM Plex Mono',monospace;font-size:.75rem;text-transform:uppercase;letter-spacing:.12em;color:var(--gold);cursor:pointer;list-style:revert;">03 — Tracklist</summary>
+      <summary style="font-family:'IBM Plex Mono',monospace;font-size:.75rem;text-transform:uppercase;letter-spacing:.12em;color:var(--gold);cursor:pointer;list-style:revert;">Tracklist</summary>
       <div class="row" style="margin-top:1rem;">
         <button id="revealAllBtn">Reveal all names</button>
       </div>
-      <p class="hint">Shows every track's real title and artist for review — separate from actual game progress, so it doesn't mark anything as drawn.</p>
       <div class="tracklist" id="tracklist" style="margin-top:.5rem;">
         <div class="empty">Build a deck above to see your tracks here.</div>
       </div>
     </details>
   </div>
 
-  <p style="text-align:center; color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:.72rem; margin-top:2rem;">Vinyl'le — v12.0.6</p>
+  <p style="text-align:center; color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:.72rem; margin-top:2rem;">Vinyl'le — v13.1.2</p>
   <p style="text-align:center; color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:.65rem; margin-top:.3rem; opacity:.7;">Vibe coded by MB</p>
   <p style="text-align:center; font-family:'IBM Plex Mono',monospace; font-size:.7rem; margin-top:.6rem; opacity:.7;">
     <a href="#" class="footer-link">Feedback</a> · <a href="#" class="footer-link">Reach out</a> · <a href="#" class="footer-link">Buy me a coffee</a>
@@ -1146,6 +1347,7 @@ https://open.spotify.com/playlist/yyyyyyyy"></textarea>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
+<script src="/socket.io/socket.io.js"></script>
 <script>
 const confirmOverlay = document.getElementById('confirmOverlay');
 const confirmMessage = document.getElementById('confirmMessage');
@@ -1199,6 +1401,9 @@ function saveSession(){
     };
     localStorage.setItem('bs_session', JSON.stringify(state));
   }catch(e){ console.error('saveSession failed:', e); }
+  // Every state change already funnels through here, so this is the one place
+  // the phones need to be told about.
+  broadcastState();
 }
 
 function loadSession(){
@@ -1208,7 +1413,9 @@ function loadSession(){
     const state = JSON.parse(raw);
     if(state.playlists) playlists = state.playlists;
     if(state.loadedPlaylistIds) loadedPlaylistIds = new Set(state.loadedPlaylistIds);
-    if(state.players) players = state.players.map(pl => ({name: pl.name, timeline: pl.timeline || [], lastAdded: null}));
+    // Claims are per-session: socket ids and phones don't survive a reload, so
+    // everyone starts unclaimed and re-claims from their phone.
+    if(state.players) players = state.players.map(pl => ({name: pl.name, timeline: pl.timeline || [], lastAdded: null, deviceId: null, online: false}));
     if(state.sessionHistory) sessionHistory = state.sessionHistory;
     if(typeof state.statsRevealed === 'number') statsRevealed = state.statsRevealed;
     if(typeof state.statsCardsPlaced === 'number') statsCardsPlaced = state.statsCardsPlaced;
@@ -1534,8 +1741,15 @@ function isIOS(){
   return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 }
-if(isIOS()){
-  document.getElementById('iosWarningBanner').style.display = 'block';
+
+// Spotify's embed can't hold a login on iOS Safari, and a phone-sized touch
+// screen can't run the deck anyway — so the DJ seat is desktop-only. Surfaced
+// on the role picker rather than as a banner nobody reads.
+function canBeDj(){
+  if(isIOS()) return false;
+  const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+  const smallest = Math.min(window.screen.width, window.screen.height);
+  return !(coarse && smallest <= 500);
 }
 
 tryRestoreSession();
@@ -1742,9 +1956,29 @@ function renderScoreboard(){
     rankEl.textContent = String(sorted.indexOf(player) + 1).padStart(2, '0');
     header.appendChild(rankEl);
 
-    const name = document.createElement('span');
-    name.className = 'player-name';
-    name.textContent = player.name;
+    const claimDot = document.createElement('span');
+    claimDot.className = 'player-claim' + (player.online ? '' : ' off');
+    claimDot.title = player.online
+      ? player.name + "'s phone is connected"
+      : player.deviceId ? player.name + "'s phone dropped out" : 'no phone claimed this name yet';
+    header.appendChild(claimDot);
+
+    // Editable in place so the DJ can fix a typo (or rename a self-registered
+    // player) without wiping their timeline.
+    const name = document.createElement('input');
+    name.type = 'text';
+    name.className = 'player-name-input';
+    name.value = player.name;
+    name.size = Math.max(4, player.name.length);
+    name.title = 'Click to rename';
+    name.addEventListener('input', () => { name.size = Math.max(4, name.value.length); });
+    name.addEventListener('keydown', (e) => { if(e.key === 'Enter') name.blur(); });
+    name.addEventListener('blur', () => {
+      const next = capitalizeFirst(name.value.trim());
+      if(!next || next === player.name){ name.value = player.name; return; }
+      player.name = next;
+      renderScoreboard();
+    });
     header.appendChild(name);
 
     if(player.timeline.length >= WIN_LENGTH && isTrueLeader){
@@ -2453,7 +2687,7 @@ function capitalizeFirst(str){
 addPlayerBtn.addEventListener('click', () => {
   const name = capitalizeFirst(playerNameInput.value.trim());
   if(!name) return;
-  players.push({name, timeline: [], lastAdded: null});
+  players.push({name, timeline: [], lastAdded: null, deviceId: null, online: false});
   playerNameInput.value = '';
   renderScoreboard();
 });
@@ -2794,6 +3028,7 @@ function setPlayingVisual(isPlaying){
   vinyl.classList.toggle('spinning', isPlaying);
   tonearm.classList.toggle('down', isPlaying);
   audioEngine.classList.toggle('playing', isPlaying);
+  broadcastState();
 }
 
 let lastStartMs = 0;
@@ -2937,6 +3172,446 @@ document.addEventListener('keydown', (e) => {
   e.preventDefault();
   scrubPlayBtn.click();
 });
+
+/* ────────────────────────────────────────────────────────────────────────
+   Multiplayer lobby — DJ side.
+
+   This screen stays the authority on game state exactly as it always was.
+   The server is only a relay: we push the whole state blob whenever anything
+   changes, and it fans that out to the phones. Nothing below can change the
+   game — it only reads it, plus handles players claiming a name.
+   ──────────────────────────────────────────────────────────────────────── */
+
+const roleOverlay = document.getElementById('roleOverlay');
+const lobbyCard = document.getElementById('lobbyCard');
+const lobbyCodeEl = document.getElementById('lobbyCode');
+const lobbyUrlEl = document.getElementById('lobbyUrl');
+const lobbyStatusEl = document.getElementById('lobbyStatus');
+const lobbyStatusText = document.getElementById('lobbyStatusText');
+const lobbyPhonesEl = document.getElementById('lobbyPhones');
+const lobbySummaryEl = document.getElementById('lobbySummary');
+const lobbyQrEl = document.getElementById('lobbyQr');
+const lobbyQrImg = document.getElementById('lobbyQrImg');
+const lobbyQrUrlEl = document.getElementById('lobbyQrUrl');
+const qrLobbyBtn = document.getElementById('qrLobbyBtn');
+const copyLobbyBtn = document.getElementById('copyLobbyBtn');
+const newLobbyBtn = document.getElementById('newLobbyBtn');
+const endLobbyBtn = document.getElementById('endLobbyBtn');
+
+const MAX_LOBBY_PLAYERS = 12;
+const lobbyAvailable = typeof io !== 'undefined';
+
+let lobbySocket = null;
+let lobbyCode = null;
+let lobbySecret = sessionStorage.getItem('vl_dj_secret') || null;
+let broadcastQueued = false;
+let pendingNewLobby = false;
+
+function setLobbyStatus(kind, text){
+  lobbyStatusEl.className = 'lobby-status' + (kind ? ' ' + kind : '');
+  lobbyStatusText.textContent = text;
+}
+
+// Strip the state down to what phones actually need. Note the unrevealed card
+// is sent as a bare flag — no title, artist or year — so nobody can peek at
+// the answer from their own device.
+function buildStateBlob(){
+  let card = null;
+  if(currentCard){
+    card = revealed
+      ? {
+          revealed: true,
+          id: currentCard.id,
+          title: currentCard.title || '',
+          artist: currentCard.artist || '',
+          year: currentCard.year || null,
+          month: currentCard.month || null
+        }
+      : { revealed: false };
+  }
+  return {
+    players: players.map(p => ({
+      name: p.name,
+      deviceId: p.deviceId || null,
+      online: !!p.online,
+      lastAddedId: p.lastAdded ? p.lastAdded.id : null,
+      timeline: (p.timeline || []).map(e => ({
+        id: e.id,
+        year: e.year,
+        month: e.month || null,
+        title: e.title || '',
+        artist: e.artist || '',
+        bonus: !!e.bonus
+      }))
+    })),
+    currentCard: card,
+    revealed: revealed,
+    playing: vinyl.classList.contains('spinning'),
+    winLength: WIN_LENGTH,
+    expertMode: expertMode
+  };
+}
+
+// renderScoreboard() can fire several times in one interaction; coalesce so we
+// send one blob per frame instead of four.
+function broadcastState(){
+  if(!lobbySocket || !lobbyCode || broadcastQueued) return;
+  broadcastQueued = true;
+  setTimeout(() => {
+    broadcastQueued = false;
+    if(lobbySocket && lobbyCode) lobbySocket.emit('state:sync', buildStateBlob());
+  }, 0);
+}
+
+// The address bar says "localhost" when the DJ is on their own machine, and no
+// phone can reach that — the server tells us the LAN address to hand out
+// instead. Falls back to our own origin if it can't work one out.
+let shareOrigin = window.location.origin;
+let shareOriginReady = false;
+
+function loadShareOrigin(){
+  return fetch('/share-origin')
+    .then(r => r.json())
+    .then(data => {
+      if(data && data.origin) shareOrigin = data.origin;
+      shareOriginReady = true;
+    })
+    .catch(() => { shareOriginReady = true; });
+}
+
+function playerLink(){
+  return shareOrigin + '/player?code=' + lobbyCode;
+}
+
+let phoneCount = 0;
+
+function renderLobbySummary(){
+  if(!lobbyCode){
+    lobbySummaryEl.textContent = '';
+    return;
+  }
+  lobbySummaryEl.innerHTML = '<span class="sep">—</span>' + lobbyCode +
+    '<span class="sep">·</span><span class="count">' +
+    (phoneCount === 1 ? '1 phone' : phoneCount + ' phones') + '</span>';
+}
+
+function renderLobby(){
+  if(!lobbyCode){
+    lobbyCodeEl.textContent = 'connecting…';
+    lobbyCodeEl.classList.add('pending');
+    lobbyUrlEl.innerHTML = '&nbsp;';
+    copyLobbyBtn.disabled = true;
+    endLobbyBtn.disabled = true;
+    qrLobbyBtn.disabled = true;
+    closeQr();
+  }else{
+    lobbyCodeEl.textContent = lobbyCode;
+    lobbyCodeEl.classList.remove('pending');
+    lobbyUrlEl.textContent = shareOrigin.replace(/^https?:\/\//, '') + '/player';
+    copyLobbyBtn.disabled = false;
+    endLobbyBtn.disabled = false;
+    qrLobbyBtn.disabled = false;
+    // The code can change under an open QR (New lobby, or a resume that
+    // minted a fresh one) — repoint it rather than leaving a dead code up.
+    if(lobbyQrEl.classList.contains('open')) openQr();
+  }
+  newLobbyBtn.disabled = !lobbySocket || !lobbySocket.connected;
+  renderLobbySummary();
+}
+
+// Minting a lobby invalidates the code everyone just typed in, so it gets a
+// short lockout — enough to stop a double-click wiping the room twice. Silent
+// by design: the button looks normal, the click just doesn't land.
+const NEW_LOBBY_COOLDOWN_MS = 10000;
+let newLobbyCooldownUntil = 0;
+
+function closeQr(){
+  lobbyQrEl.classList.remove('open');
+  qrLobbyBtn.textContent = 'Show QR';
+  lobbyQrImg.removeAttribute('src');
+}
+
+function openQr(){
+  lobbyQrImg.src = '/qr/' + lobbyCode + '.svg?t=' + Date.now();
+  lobbyQrUrlEl.textContent = playerLink();
+  lobbyQrEl.classList.add('open');
+  qrLobbyBtn.textContent = 'Hide QR';
+}
+
+function renderPhones(list){
+  lobbyPhonesEl.innerHTML = '';
+  phoneCount = list ? list.length : 0;
+  renderLobbySummary();
+  if(phoneCount === 0){
+    lobbyPhonesEl.innerHTML = '<span class="lobby-sub">no phones connected yet</span>';
+    return;
+  }
+  list.forEach(phone => {
+    const chip = document.createElement('span');
+    chip.className = 'phone-chip';
+    chip.innerHTML = '<span class="dot"></span>';
+    const label = document.createElement('span');
+    label.textContent = phone.name;
+    chip.appendChild(label);
+    lobbyPhonesEl.appendChild(chip);
+  });
+}
+
+let toastTimer = null;
+function lobbyToast(message){
+  const existing = document.querySelector('.join-toast');
+  if(existing) existing.remove();
+  const el = document.createElement('div');
+  el.className = 'join-toast';
+  el.textContent = message;
+  document.body.appendChild(el);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.remove(), 3200);
+}
+
+// A phone asked to join. Two ways in: claim a name the DJ already created, or
+// register a brand new one. Same device coming back always gets its slot back.
+function handleJoinRequest(req){
+  const norm = s => (s || '').trim().toLowerCase();
+  const accept = (player) => {
+    player.online = true;
+    lobbySocket.emit('player:join-result', { socketId: req.socketId, ok: true, name: player.name });
+    renderScoreboard();
+  };
+  const reject = (reason) => {
+    lobbySocket.emit('player:join-result', { socketId: req.socketId, ok: false, reason });
+  };
+
+  const returning = players.find(p => p.deviceId && p.deviceId === req.deviceId);
+  if(returning){
+    accept(returning);
+    lobbyToast(returning.name + ' reconnected');
+    return;
+  }
+
+  const claimed = players.find(p => norm(p.name) === norm(req.name));
+  if(claimed){
+    if(claimed.deviceId){
+      reject('“' + claimed.name + '” is already taken by another phone.');
+      return;
+    }
+    claimed.deviceId = req.deviceId;
+    accept(claimed);
+    lobbyToast(claimed.name + ' joined from a phone');
+    return;
+  }
+
+  if(players.length >= MAX_LOBBY_PLAYERS){
+    reject('This game is full (' + MAX_LOBBY_PLAYERS + ' players).');
+    return;
+  }
+
+  const created = {
+    name: capitalizeFirst(req.name),
+    timeline: [],
+    lastAdded: null,
+    deviceId: req.deviceId,
+    online: true
+  };
+  players.push(created);
+  accept(created);
+  lobbyToast(created.name + ' joined the game');
+}
+
+function hostLobby(){
+  if(!lobbyAvailable){
+    lobbyCard.style.display = 'none';
+    return;
+  }
+  loadShareOrigin().then(() => { if(lobbyCode) renderLobby(); });
+  lobbySocket = io({ transports: ['websocket', 'polling'] });
+
+  // Passing the saved code + secret resumes that lobby; passing nothing mints
+  // a fresh one.
+  function openLobby(resume){
+    const payload = resume
+      ? { code: sessionStorage.getItem('vl_dj_code'), djSecret: lobbySecret }
+      : {};
+    lobbySocket.emit('lobby:create', payload, (res) => {
+      if(!res || !res.ok){
+        setLobbyStatus('down', 'lobby failed');
+        return;
+      }
+      lobbyCode = res.code;
+      lobbySecret = res.djSecret;
+      sessionStorage.setItem('vl_dj_code', lobbyCode);
+      sessionStorage.setItem('vl_dj_secret', lobbySecret);
+      setLobbyStatus('live', 'live');
+      renderLobby();
+      renderPhones(res.phones);
+      broadcastState();
+    });
+  }
+
+  lobbySocket.on('connect', () => openLobby(true));
+  lobbySocket.openLobby = openLobby;
+
+  lobbySocket.on('disconnect', () => {
+    setLobbyStatus('down', 'offline');
+    newLobbyBtn.disabled = true;
+  });
+
+  lobbySocket.on('player:join-request', handleJoinRequest);
+
+  lobbySocket.on('player:left', (payload) => {
+    const player = players.find(p => p.deviceId && p.deviceId === payload.deviceId);
+    if(!player) return;
+    player.online = false;
+    renderScoreboard();
+  });
+
+  lobbySocket.on('lobby:roster', (payload) => renderPhones(payload && payload.phones));
+
+  lobbySocket.on('lobby:end', () => {
+    lobbyCode = null;
+    lobbySecret = null;
+    sessionStorage.removeItem('vl_dj_code');
+    sessionStorage.removeItem('vl_dj_secret');
+    players.forEach(p => { p.deviceId = null; p.online = false; });
+    renderPhones([]);
+    renderScoreboard();
+
+    if(pendingNewLobby){
+      pendingNewLobby = false;
+      openLobby(false);
+      return;
+    }
+    // renderLobby's no-lobby branch does the whole teardown — greys out every
+    // button and folds the QR away. Only the headline text differs.
+    renderLobby();
+    setLobbyStatus('', 'ended');
+    lobbyCodeEl.textContent = 'lobby ended';
+  });
+}
+
+// Clicking the big code copies the code itself — the link lives on its own
+// button. Feedback goes in the sub-line so the code stays readable while
+// someone's still typing it in.
+let codeCopyTimer = null;
+lobbyCodeEl.addEventListener('click', async () => {
+  if(!lobbyCode) return;
+  let message = 'code copied';
+  try{
+    await navigator.clipboard.writeText(lobbyCode);
+  }catch(e){
+    message = 'press ⌘C to copy';
+    const range = document.createRange();
+    range.selectNodeContents(lobbyCodeEl);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+  lobbyUrlEl.textContent = message;
+  clearTimeout(codeCopyTimer);
+  codeCopyTimer = setTimeout(renderLobby, 1600);
+});
+
+qrLobbyBtn.addEventListener('click', () => {
+  if(!lobbyCode) return;
+  if(lobbyQrEl.classList.contains('open')) closeQr(); else openQr();
+});
+
+// A QR that resolves to localhost would silently fail on every phone that
+// scans it, so say so rather than showing a dud code.
+lobbyQrImg.addEventListener('error', () => {
+  lobbyQrUrlEl.innerHTML = '<span class="lobby-qr-warn">Couldn\'t build a QR — this machine has no network address phones can reach. Get everyone on the same wifi, or deploy the site.</span>';
+});
+
+copyLobbyBtn.addEventListener('click', async () => {
+  if(!lobbyCode) return;
+  const original = copyLobbyBtn.textContent;
+  try{
+    await navigator.clipboard.writeText(playerLink());
+    copyLobbyBtn.textContent = 'Copied';
+  }catch(e){
+    copyLobbyBtn.textContent = playerLink();
+  }
+  setTimeout(() => { copyLobbyBtn.textContent = original; }, 1600);
+});
+
+endLobbyBtn.addEventListener('click', async () => {
+  if(!lobbyCode) return;
+  const ok = await showConfirm('End the lobby? Every phone gets kicked out and the code stops working. The game on this screen carries on.');
+  if(!ok) return;
+  lobbySocket.emit('lobby:end');
+});
+
+newLobbyBtn.addEventListener('click', async () => {
+  if(!lobbySocket || !lobbySocket.connected) return;
+  if(newLobbyCooldownUntil > Date.now()) return;
+  if(lobbyCode){
+    const ok = await showConfirm('Start a new lobby? The current code stops working and everyone has to rejoin with the new one. Scores and timelines stay put.');
+    if(!ok) return;
+    // The server closes the old lobby first; we mint the new one once it
+    // confirms, so we never hold two at once.
+    pendingNewLobby = true;
+    newLobbyCooldownUntil = Date.now() + NEW_LOBBY_COOLDOWN_MS;
+    lobbySocket.emit('lobby:end');
+  }else{
+    newLobbyCooldownUntil = Date.now() + NEW_LOBBY_COOLDOWN_MS;
+    lobbySocket.openLobby(false);
+  }
+});
+
+/* ── role picker ──────────────────────────────────────────────────────── */
+
+const roleDjBtn = document.getElementById('roleDjBtn');
+const roleDjWarning = document.getElementById('roleDjWarning');
+
+function refuseDj(){
+  sessionStorage.removeItem('vl_role');
+  roleOverlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  roleDjWarning.classList.add('show');
+  roleDjBtn.classList.add('blocked');
+  roleDjWarning.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+function chooseDj(){
+  if(!canBeDj()){ refuseDj(); return false; }
+  sessionStorage.setItem('vl_role', 'dj');
+  roleOverlay.classList.remove('open');
+  document.body.style.overflow = '';
+  hostLobby();
+  return true;
+}
+
+roleDjBtn.addEventListener('click', chooseDj);
+
+// Tapping the wordmark drops back to the role picker. Always confirms here —
+// the DJ has a lobby and a game in progress to lose.
+document.getElementById('djHomeTitle').addEventListener('click', async () => {
+  if(roleOverlay.classList.contains('open')) return;
+  const ok = await showConfirm('Back to the start screen? The lobby closes and every phone gets kicked out. Players, scores and playlists are kept on this device.');
+  if(!ok) return;
+  if(lobbySocket && lobbyCode) lobbySocket.emit('lobby:end');
+  sessionStorage.removeItem('vl_role');
+  sessionStorage.removeItem('vl_dj_code');
+  sessionStorage.removeItem('vl_dj_secret');
+  window.location.href = '/';
+});
+
+document.getElementById('rolePlayerBtn').addEventListener('click', () => {
+  window.location.href = '/player';
+});
+
+(function pickRole(){
+  const params = new URLSearchParams(window.location.search);
+  // Coming back from Spotify's OAuth redirect is a DJ mid-setup — don't make
+  // them pick a role again and interrupt the token exchange.
+  const midAuth = params.has('code') || params.has('error');
+  if(midAuth || sessionStorage.getItem('vl_role') === 'dj'){
+    chooseDj();
+    return;
+  }
+  roleOverlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+})();
 
 loadSession();
 

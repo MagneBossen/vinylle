@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" href="/images/vinylle-logo.png" type="image/png">
+<meta charset="UTF-8">
+<title>Vinyl'le — player</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1B1420">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#1B1420;
+    --surface:#251A2B;
+    --surface-2:#2E2033;
+    --line:#3C2C42;
+    --gold:#D4A24E;
+    --gold-dim:#8C6F3B;
+    --red:#B33A3A;
+    --green:#5C9163;
+    --paper:#F3EADD;
+    --muted:#9C8FA3;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--paper);
+    font-family:'Work Sans',sans-serif;
+    padding:1.5rem 1rem calc(2rem + env(safe-area-inset-bottom));
+    -webkit-text-size-adjust:100%;
+  }
+  .wrap{max-width:520px;margin:0 auto;}
+  h1{
+    font-family:'Fraunces',serif;
+    font-weight:700;
+    font-size:2rem;
+    margin:0 0 .2rem;
+    letter-spacing:-0.01em;
+  }
+  .tagline{color:var(--muted);font-size:.9rem;margin:0 0 2rem;}
+  .card{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:1.2rem;
+    margin-bottom:1.1rem;
+  }
+  .card h2{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.7rem;
+    text-transform:uppercase;
+    letter-spacing:.12em;
+    color:var(--gold);
+    margin:0 0 .9rem;
+  }
+  input[type=text]{
+    width:100%;
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    border-radius:8px;
+    color:var(--paper);
+    font-family:'Work Sans',sans-serif;
+    font-size:1rem;
+    padding:.8rem .9rem;
+  }
+  input[type=text]::placeholder{color:var(--muted);}
+  input#codeInput{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:1.7rem;
+    letter-spacing:.4em;
+    text-align:center;
+    text-transform:uppercase;
+    padding:.9rem .4rem;
+  }
+  button{
+    font-family:'Work Sans',sans-serif;
+    font-weight:500;
+    font-size:.9rem;
+    padding:.75rem 1.1rem;
+    border-radius:8px;
+    border:1px solid var(--gold-dim);
+    background:transparent;
+    color:var(--gold);
+    cursor:pointer;
+  }
+  button:hover{background:rgba(212,162,78,.08);}
+  button:disabled{opacity:.35;cursor:not-allowed;}
+  button.primary{background:var(--gold);border-color:var(--gold);color:#241A0B;font-weight:600;}
+  button.primary:hover{background:#e0b568;}
+  button.block{width:100%;}
+  .hint{font-size:.78rem;color:var(--muted);margin-top:.6rem;line-height:1.5;}
+  .err{font-size:.82rem;color:var(--red);margin-top:.6rem;min-height:1.1em;}
+  .row{display:flex;gap:.6rem;flex-wrap:wrap;}
+
+  /* --- name picker --- */
+  .name-list{display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem;}
+  .name-option{
+    display:flex;align-items:center;justify-content:space-between;gap:.6rem;
+    width:100%;text-align:left;
+    font-family:'Fraunces',serif;font-weight:600;font-size:1.05rem;
+    color:var(--paper);
+    border:1px solid var(--line);
+    padding:.8rem .9rem;
+  }
+  .name-option:hover:not(:disabled){border-color:var(--gold-dim);background:rgba(212,162,78,.06);}
+  .name-option.mine{border-color:var(--gold-dim);}
+  .name-option.mine .taken{color:var(--gold);}
+  .name-option .taken{
+    font-family:'IBM Plex Mono',monospace;font-size:.62rem;
+    text-transform:uppercase;letter-spacing:.1em;color:var(--muted);
+  }
+  .divider{
+    display:flex;align-items:center;gap:.8rem;
+    font-family:'IBM Plex Mono',monospace;font-size:.62rem;
+    text-transform:uppercase;letter-spacing:.14em;color:var(--muted);
+    margin:1.1rem 0;
+  }
+  .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--line);}
+
+  /* --- game view --- */
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;gap:.8rem;
+    margin-bottom:.3rem;
+  }
+  .me{font-family:'Fraunces',serif;font-weight:600;font-size:1.9rem;margin-bottom:1.2rem;}
+  .topbar .code{
+    font-family:'IBM Plex Mono',monospace;font-size:.7rem;
+    letter-spacing:.14em;color:var(--muted);
+  }
+  /* Tapping the wordmark goes back to the start screen, on every view. */
+  .home-title,.home-mark{cursor:pointer;-webkit-tap-highlight-color:transparent;}
+  .home-title:hover,.home-mark:hover{color:var(--gold);}
+  .home-mark{
+    font-family:'Fraunces',serif;font-weight:600;font-size:1.05rem;
+    color:var(--muted);transition:color .15s;
+  }
+
+  .game-grid{display:block;}
+  .now-card{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:1.2rem;
+    margin-bottom:1.1rem;
+    text-align:center;
+  }
+  .now-state{
+    font-family:'IBM Plex Mono',monospace;font-size:.65rem;
+    text-transform:uppercase;letter-spacing:.14em;color:var(--gold);
+    margin-bottom:.7rem;
+  }
+  .now-title{font-family:'Fraunces',serif;font-weight:600;font-size:1.25rem;line-height:1.3;}
+  .now-artist{font-size:.85rem;color:var(--muted);margin-top:.2rem;}
+  .now-year{
+    font-family:'IBM Plex Mono',monospace;font-size:2.2rem;color:var(--gold);
+    margin-top:.5rem;letter-spacing:.02em;
+  }
+  .now-month{
+    font-family:'IBM Plex Mono',monospace;font-size:.7rem;
+    text-transform:uppercase;letter-spacing:.1em;color:var(--gold-dim);
+  }
+  .pulse{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--gold);margin-right:.45rem;vertical-align:middle;animation:pulse 1.4s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:.25;}50%{opacity:1;}}
+
+  .timeline-scroll{
+    display:flex;gap:.6rem;overflow-x:auto;padding-bottom:.5rem;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none;
+  }
+  .timeline-scroll::-webkit-scrollbar{display:none;}
+  .vinyl-card{
+    position:relative;flex-shrink:0;
+    width:88px;min-height:112px;
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    border-radius:10px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:.6rem .4rem;text-align:center;gap:.25rem;
+  }
+  .vinyl-card.has-bonus{border-color:var(--gold-dim);}
+  .vinyl-card.is-new{border-color:var(--gold);box-shadow:0 0 0 2px rgba(212,162,78,.18);}
+  .card-bonus-badge{position:absolute;top:5px;left:5px;}
+  .vinyl-card-year{font-family:'IBM Plex Mono',monospace;font-size:1.1rem;color:var(--gold);font-weight:500;}
+  .vinyl-card-month{
+    font-family:'IBM Plex Mono',monospace;font-size:.58rem;
+    text-transform:uppercase;letter-spacing:.08em;color:var(--gold-dim);
+  }
+  .vinyl-card-title{
+    font-family:'Fraunces',serif;font-size:.7rem;color:var(--paper);line-height:1.25;
+    overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  }
+  .vinyl-card-artist{
+    font-family:'Work Sans',sans-serif;font-size:.6rem;color:var(--muted);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;
+  }
+  .empty{color:var(--muted);font-size:.85rem;font-style:italic;margin:.4rem 0;}
+
+  .lb-row{
+    display:flex;align-items:center;gap:.7rem;
+    padding:.6rem 0;border-bottom:1px solid var(--line);
+  }
+  .lb-row:last-child{border-bottom:none;}
+  .lb-row.is-me .lb-name{color:var(--gold);}
+  .lb-rank{font-family:'IBM Plex Mono',monospace;font-size:.85rem;color:var(--muted);min-width:2.2ch;}
+  .lb-name{flex:1;font-family:'Fraunces',serif;font-weight:600;font-size:1rem;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .lb-dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0;}
+  .lb-dot.off{background:var(--line);}
+  .lb-coins{display:flex;align-items:center;gap:.3rem;font-family:'IBM Plex Mono',monospace;font-size:.8rem;color:var(--gold);}
+  .lb-count{font-family:'IBM Plex Mono',monospace;font-size:1.05rem;color:var(--gold);min-width:2.2ch;text-align:right;}
+  .win-badge{
+    font-family:'IBM Plex Mono',monospace;font-size:.55rem;color:var(--gold);
+    border:1px solid var(--gold);border-radius:20px;padding:.1rem .45rem;flex-shrink:0;
+  }
+
+  .banner{
+    border-radius:12px;padding:.9rem 1rem;margin-bottom:1.1rem;
+    font-size:.88rem;line-height:1.45;
+  }
+  .banner.warn{background:rgba(179,58,58,.12);border:1px solid var(--red);color:var(--paper);}
+  .banner.info{background:var(--surface-2);border:1px solid var(--line);color:var(--muted);}
+  .banner strong{font-family:'IBM Plex Mono',monospace;color:var(--gold);}
+
+  .overlay{
+    position:fixed;inset:0;background:rgba(12,8,15,.92);
+    display:none;align-items:center;justify-content:center;padding:1.5rem;z-index:40;
+  }
+  .overlay.open{display:flex;}
+  .overlay-panel{
+    background:var(--surface);border:1px solid var(--line);border-radius:16px;
+    padding:2rem 1.5rem;text-align:center;max-width:360px;width:100%;
+  }
+  .overlay-panel h3{font-family:'Fraunces',serif;font-size:1.5rem;margin:0 0 .6rem;}
+  .overlay-panel p{color:var(--muted);font-size:.9rem;line-height:1.5;margin:0 0 1.4rem;}
+  .overlay-panel .row button{flex:1;width:auto;}
+  .view{display:none;}
+  .view.active{display:block;}
+
+  /* Phone turned sideways: put the leaderboard next to the timeline and shrink
+     the chrome, so the cards get the room. Must stay last in the sheet — these
+     override the base rules above at equal specificity. */
+  @media (orientation:landscape) and (max-height:600px){
+    body{padding:.9rem 1rem calc(1.2rem + env(safe-area-inset-bottom));}
+    .wrap{max-width:none;}
+    .topbar{margin-bottom:.2rem;}
+    .me{font-size:1.35rem;margin-bottom:.7rem;}
+    .game-grid{display:grid;grid-template-columns:1.3fr .7fr;gap:1rem;align-items:start;}
+    .card,.now-card{padding:.9rem;margin-bottom:.8rem;}
+    .now-card{text-align:left;}
+    .now-title{font-size:1.1rem;}
+    .now-year{font-size:1.8rem;margin-top:.3rem;}
+    .vinyl-card{width:80px;min-height:100px;}
+    .banner{padding:.7rem .85rem;margin-bottom:.8rem;font-size:.82rem;}
+    .lb-row{padding:.45rem 0;}
+    .view#viewGame .hint{display:none;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ── join: enter code ────────────────────────────────────────────── -->
+  <div class="view active" id="viewCode">
+    <h1 class="home-title" data-home="direct">Vinyl'le</h1>
+    <p class="tagline">Enter the code your DJ is showing.</p>
+    <div class="card">
+      <h2>Lobby code</h2>
+      <input type="text" id="codeInput" maxlength="6" placeholder="——————"
+             autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" inputmode="text">
+      <div class="err" id="codeError"></div>
+      <button class="primary block" id="codeNextBtn" style="margin-top:.4rem;">Continue</button>
+    </div>
+  </div>
+
+  <!-- ── join: pick who you are ──────────────────────────────────────── -->
+  <div class="view" id="viewName">
+    <h1 class="home-title" data-home="confirm">Vinyl'le</h1>
+    <p class="tagline" id="namePrompt">Who are you? Tap your name, or add yourself.</p>
+    <div class="card">
+      <div class="name-list" id="nameList"></div>
+      <div class="divider" id="nameDivider">or</div>
+      <h2>Add yourself</h2>
+      <input type="text" id="nameInput" maxlength="20" placeholder="your name"
+             autocomplete="off" autocapitalize="words" spellcheck="false">
+      <div class="err" id="nameError"></div>
+      <button class="primary block" id="joinBtn" style="margin-top:.4rem;">Join game</button>
+      <button class="block" id="backToCodeBtn" style="margin-top:.6rem;">Use a different code</button>
+    </div>
+  </div>
+
+  <!-- ── waiting for the DJ to accept ────────────────────────────────── -->
+  <div class="view" id="viewWaiting">
+    <h1 class="home-title" data-home="confirm">Vinyl'le</h1>
+    <p class="tagline">Knocking on the door…</p>
+    <div class="card">
+      <p style="margin:0;color:var(--muted);font-size:.9rem;">
+        <span class="pulse"></span>Waiting for the DJ to let you in.
+      </p>
+    </div>
+  </div>
+
+  <!-- ── the game ────────────────────────────────────────────────────── -->
+  <div class="view" id="viewGame">
+    <div class="topbar">
+      <span class="home-mark" data-home="confirm">Vinyl'le</span>
+      <span class="code" id="meCode"></span>
+    </div>
+    <div class="me" id="meName">—</div>
+
+    <div id="banners"></div>
+
+    <div class="game-grid">
+      <div class="game-col">
+        <div class="now-card" id="nowCard">
+          <div class="now-state" id="nowState">Waiting for the DJ</div>
+          <div id="nowBody"></div>
+        </div>
+
+        <div class="card">
+          <h2>Your timeline · <span id="myCount">0</span></h2>
+          <div class="timeline-scroll" id="myTimeline"></div>
+        </div>
+      </div>
+
+      <div class="game-col">
+        <div class="card">
+          <h2>Leaderboard</h2>
+          <div id="leaderboard"></div>
+        </div>
+      </div>
+    </div>
+
+    <p class="hint" style="text-align:center;">
+      The DJ places cards from the main screen. This view updates on its own.
+    </p>
+  </div>
+
+</div>
+
+<div class="overlay" id="leaveOverlay">
+  <div class="overlay-panel">
+    <h3>Leave the game?</h3>
+    <p>You'll go back to the start screen. Your cards stay with the DJ — rejoin with the same code and name to pick them back up.</p>
+    <div class="row" style="flex-wrap:nowrap;">
+      <button class="block" id="leaveCancelBtn">Stay</button>
+      <button class="primary block" id="leaveConfirmBtn">Leave</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="endOverlay">
+  <div class="overlay-panel">
+    <h3 id="endTitle">Game over</h3>
+    <p id="endText">The DJ closed the lobby.</p>
+    <button class="primary block" id="endBtn">Join another game</button>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const COIN_SVG = '<svg viewBox="0 0 20 20" width="12" height="12" style="display:block;"><circle cx="10" cy="10" r="9" fill="var(--gold)" stroke="#8C6F3B" stroke-width="1.5"/><circle cx="10" cy="10" r="5" fill="none" stroke="#241A0B" stroke-width="1.2"/></svg>';
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+// A stable per-phone id, so locking your screen or refreshing gets your slot
+// back instead of creating a duplicate player.
+let deviceId = localStorage.getItem('vl_device_id');
+if(!deviceId){
+  deviceId = 'd' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+  localStorage.setItem('vl_device_id', deviceId);
+}
+
+const socket = io({ transports: ['websocket', 'polling'] });
+
+let lobbyCode = '';
+let myName = '';
+let joined = false;
+let lastState = null;
+let graceInterval = null;
+let graceEndsAt = null;
+let djOnline = true;
+
+const views = {
+  code: document.getElementById('viewCode'),
+  name: document.getElementById('viewName'),
+  waiting: document.getElementById('viewWaiting'),
+  game: document.getElementById('viewGame')
+};
+
+function showView(key){
+  Object.keys(views).forEach(k => views[k].classList.toggle('active', k === key));
+  window.scrollTo(0, 0);
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str == null ? '' : String(str);
+  return div.innerHTML;
+}
+
+// ── step 1: the code ────────────────────────────────────────────────────
+const codeInput = document.getElementById('codeInput');
+const codeError = document.getElementById('codeError');
+const codeNextBtn = document.getElementById('codeNextBtn');
+
+codeInput.addEventListener('input', () => {
+  codeInput.value = codeInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  codeError.textContent = '';
+});
+codeInput.addEventListener('keydown', (e) => { if(e.key === 'Enter') codeNextBtn.click(); });
+
+codeNextBtn.addEventListener('click', () => {
+  const code = codeInput.value.trim().toUpperCase();
+  if(code.length !== 6){ codeError.textContent = 'That code needs to be 6 characters.'; return; }
+  peek(code);
+});
+
+function peek(code){
+  codeNextBtn.disabled = true;
+  socket.emit('lobby:peek', { code, deviceId }, (res) => {
+    codeNextBtn.disabled = false;
+    if(!res || !res.ok){
+      codeError.textContent = res && res.error === 'no-lobby'
+        ? "No game with that code — check the DJ's screen."
+        : 'Could not reach that game.';
+      return;
+    }
+    lobbyCode = res.code;
+    renderNameOptions(res.names || [], res.full);
+    showView('name');
+  });
+}
+
+// ── step 2: who you are ─────────────────────────────────────────────────
+const nameList = document.getElementById('nameList');
+const nameDivider = document.getElementById('nameDivider');
+const namePrompt = document.getElementById('namePrompt');
+const nameInput = document.getElementById('nameInput');
+const nameError = document.getElementById('nameError');
+const joinBtn = document.getElementById('joinBtn');
+
+function renderNameOptions(names, full){
+  nameList.innerHTML = '';
+  const hasNames = names.length > 0;
+  nameDivider.style.display = hasNames ? '' : 'none';
+  namePrompt.textContent = hasNames
+    ? 'Tap your name, or add yourself.'
+    : 'The DJ has not added anyone yet — put your name in.';
+
+  names.forEach(entry => {
+    const btn = document.createElement('button');
+    btn.className = 'name-option' + (entry.mine ? ' mine' : '');
+    btn.disabled = entry.claimed;
+    btn.innerHTML = '<span>' + escapeHtml(entry.name) + '</span>' +
+      (entry.mine ? '<span class="taken">that\'s you</span>'
+                  : entry.claimed ? '<span class="taken">taken</span>' : '');
+    btn.addEventListener('click', () => join(entry.name));
+    nameList.appendChild(btn);
+  });
+
+  joinBtn.disabled = false;
+  if(full && !hasNames){
+    nameError.textContent = 'This game is full (12 players).';
+    joinBtn.disabled = true;
+  }
+}
+
+nameInput.addEventListener('keydown', (e) => { if(e.key === 'Enter') joinBtn.click(); });
+joinBtn.addEventListener('click', () => {
+  const name = nameInput.value.trim();
+  if(!name){ nameError.textContent = 'Type a name first.'; return; }
+  join(name);
+});
+
+document.getElementById('backToCodeBtn').addEventListener('click', () => {
+  nameError.textContent = '';
+  showView('code');
+});
+
+function join(name){
+  nameError.textContent = '';
+  myName = name;
+  socket.emit('lobby:join', { code: lobbyCode, name, deviceId }, (res) => {
+    if(!res || !res.ok){
+      const msg = {
+        'no-lobby': 'That game has ended.',
+        'full': 'This game is full (12 players).',
+        'no-name': 'Type a name first.'
+      }[res && res.error] || 'Could not join.';
+      nameError.textContent = msg;
+      showView('name');
+      return;
+    }
+    lobbyCode = res.code;
+    djOnline = res.djOnline;
+    if(res.state) lastState = res.state;
+    if(res.graceEndsAt) startGrace(res.graceEndsAt);
+    showView('waiting');
+  });
+}
+
+// Keeps the URL pointing at the lobby we're actually in — cleared again when
+// we leave, so a stale link never outlives the game it names.
+function setLobbyUrl(code){
+  try{
+    history.replaceState(null, '', code ? '/player?code=' + code : '/player');
+  }catch(e){ /* replaceState is unavailable in some embedded webviews */ }
+}
+
+// The DJ's verdict on our join.
+socket.on('join:result', (res) => {
+  if(!res.ok){
+    nameError.textContent = res.reason || 'The DJ turned that name down.';
+    joined = false;
+    showView('name');
+    if(lobbyCode) peekRefresh();
+    return;
+  }
+  joined = true;
+  myName = res.name || myName;
+  localStorage.setItem('vl_last_code', lobbyCode);
+  localStorage.setItem('vl_last_name', myName);
+  // Put the lobby in the address bar so everyone in a game has the same URL,
+  // however they got in. replaceState, not pushState — the code screen isn't
+  // somewhere Back should return to mid-game.
+  setLobbyUrl(lobbyCode);
+  document.getElementById('meName').textContent = myName;
+  document.getElementById('meCode').textContent = 'CODE ' + lobbyCode;
+  showView('game');
+  render();
+});
+
+function peekRefresh(){
+  socket.emit('lobby:peek', { code: lobbyCode }, (res) => {
+    if(res && res.ok) renderNameOptions(res.names || [], res.full);
+  });
+}
+
+// ── live state ──────────────────────────────────────────────────────────
+socket.on('lobby:state-sync', (state) => {
+  lastState = state;
+  if(joined) render();
+});
+
+function me(){
+  if(!lastState || !Array.isArray(lastState.players)) return null;
+  return lastState.players.find(p => p.deviceId === deviceId) || null;
+}
+
+function bonusCount(player){
+  return (player.timeline || []).filter(e => e.bonus).length;
+}
+
+function playerGaps(player){
+  const values = (player.timeline || [])
+    .map(e => e.year * 12 + ((e.month || 1) - 1))
+    .sort((a, b) => a - b);
+  const gaps = [];
+  for(let i = 1; i < values.length; i++) gaps.push(values[i] - values[i - 1]);
+  return gaps.sort((a, b) => a - b);
+}
+
+// Mirrors the DJ screen's ranking: cards, then coins, then tightest gaps.
+function comparePlayers(a, b){
+  const lenDiff = (b.timeline || []).length - (a.timeline || []).length;
+  if(lenDiff !== 0) return lenDiff;
+  const bonusDiff = bonusCount(b) - bonusCount(a);
+  if(bonusDiff !== 0) return bonusDiff;
+  const gapsA = playerGaps(a);
+  const gapsB = playerGaps(b);
+  const len = Math.min(gapsA.length, gapsB.length);
+  for(let i = 0; i < len; i++){
+    if(gapsA[i] !== gapsB[i]) return gapsA[i] - gapsB[i];
+  }
+  return 0;
+}
+
+function buildCard(entry, isNew){
+  const card = document.createElement('div');
+  card.className = 'vinyl-card' + (entry.bonus ? ' has-bonus' : '') + (isNew ? ' is-new' : '');
+  if(entry.bonus){
+    const badge = document.createElement('div');
+    badge.className = 'card-bonus-badge';
+    badge.innerHTML = COIN_SVG;
+    card.appendChild(badge);
+  }
+  if(entry.month && lastState && lastState.expertMode){
+    const monthEl = document.createElement('div');
+    monthEl.className = 'vinyl-card-month';
+    monthEl.textContent = MONTH_NAMES[entry.month - 1];
+    card.appendChild(monthEl);
+  }
+  const yearEl = document.createElement('div');
+  yearEl.className = 'vinyl-card-year';
+  yearEl.textContent = entry.year;
+  card.appendChild(yearEl);
+  if(entry.title){
+    const titleEl = document.createElement('div');
+    titleEl.className = 'vinyl-card-title';
+    titleEl.textContent = entry.title;
+    card.appendChild(titleEl);
+  }
+  if(entry.artist){
+    const artistEl = document.createElement('div');
+    artistEl.className = 'vinyl-card-artist';
+    artistEl.textContent = entry.artist;
+    card.appendChild(artistEl);
+  }
+  return card;
+}
+
+function renderNow(){
+  const stateEl = document.getElementById('nowState');
+  const bodyEl = document.getElementById('nowBody');
+  bodyEl.innerHTML = '';
+  const card = lastState && lastState.currentCard;
+
+  if(!card){
+    stateEl.textContent = 'Waiting for the DJ';
+    bodyEl.innerHTML = '<div class="now-title" style="color:var(--muted);">No card in play</div>';
+    return;
+  }
+
+  if(!card.revealed){
+    stateEl.innerHTML = '<span class="pulse"></span>' + (lastState.playing ? 'Now playing' : 'Mystery track');
+    bodyEl.innerHTML = '<div class="now-title">? ? ?</div>' +
+      '<div class="now-artist">Guess where it goes, then tell the DJ.</div>';
+    return;
+  }
+
+  stateEl.textContent = 'Revealed';
+  const title = document.createElement('div');
+  title.className = 'now-title';
+  title.textContent = card.title || 'Unknown track';
+  bodyEl.appendChild(title);
+
+  if(card.artist){
+    const artist = document.createElement('div');
+    artist.className = 'now-artist';
+    artist.textContent = card.artist;
+    bodyEl.appendChild(artist);
+  }
+  if(card.month && lastState.expertMode){
+    const month = document.createElement('div');
+    month.className = 'now-month';
+    month.textContent = MONTH_NAMES[card.month - 1];
+    bodyEl.appendChild(month);
+  }
+  const year = document.createElement('div');
+  year.className = 'now-year';
+  year.textContent = card.year || '—';
+  bodyEl.appendChild(year);
+}
+
+function renderMyTimeline(){
+  const holder = document.getElementById('myTimeline');
+  const countEl = document.getElementById('myCount');
+  holder.innerHTML = '';
+  const mine = me();
+  const timeline = mine ? (mine.timeline || []) : [];
+  countEl.textContent = timeline.length;
+
+  if(timeline.length === 0){
+    holder.innerHTML = '<p class="empty">No cards yet — win one and it lands here.</p>';
+    return;
+  }
+  timeline.forEach(entry => {
+    holder.appendChild(buildCard(entry, mine.lastAddedId && entry.id === mine.lastAddedId));
+  });
+}
+
+function renderLeaderboard(){
+  const holder = document.getElementById('leaderboard');
+  holder.innerHTML = '';
+  const list = (lastState && lastState.players) || [];
+  if(list.length === 0){
+    holder.innerHTML = '<p class="empty">Nobody in the game yet.</p>';
+    return;
+  }
+  const sorted = list.slice().sort(comparePlayers);
+  const leader = sorted[0];
+  const winLength = (lastState && lastState.winLength) || 10;
+
+  sorted.forEach((player, i) => {
+    const row = document.createElement('div');
+    row.className = 'lb-row' + (player.deviceId === deviceId ? ' is-me' : '');
+
+    const rank = document.createElement('span');
+    rank.className = 'lb-rank';
+    rank.textContent = String(i + 1).padStart(2, '0');
+    row.appendChild(rank);
+
+    const dot = document.createElement('span');
+    dot.className = 'lb-dot' + (player.online ? '' : ' off');
+    dot.title = player.online ? 'phone connected' : 'no phone connected';
+    row.appendChild(dot);
+
+    const name = document.createElement('span');
+    name.className = 'lb-name';
+    name.textContent = player.name;
+    row.appendChild(name);
+
+    if((player.timeline || []).length >= winLength && comparePlayers(player, leader) === 0){
+      const win = document.createElement('span');
+      win.className = 'win-badge';
+      win.textContent = 'WINS';
+      row.appendChild(win);
+    }
+
+    const coins = document.createElement('span');
+    coins.className = 'lb-coins';
+    coins.innerHTML = COIN_SVG + '<span>' + bonusCount(player) + '</span>';
+    row.appendChild(coins);
+
+    const count = document.createElement('span');
+    count.className = 'lb-count';
+    count.textContent = (player.timeline || []).length;
+    row.appendChild(count);
+
+    holder.appendChild(row);
+  });
+}
+
+function renderBanners(){
+  const holder = document.getElementById('banners');
+  holder.innerHTML = '';
+
+  if(!djOnline){
+    const b = document.createElement('div');
+    b.className = 'banner warn';
+    b.id = 'graceBanner';
+    b.innerHTML = 'The DJ dropped out. Game paused — ending in <strong id="graceClock">5:00</strong> unless they come back.';
+    holder.appendChild(b);
+    updateGraceClock();
+    return;
+  }
+  if(!me() && joined){
+    const b = document.createElement('div');
+    b.className = 'banner info';
+    b.textContent = 'The DJ has not put you on the board yet.';
+    holder.appendChild(b);
+  }
+}
+
+function render(){
+  renderBanners();
+  renderNow();
+  renderMyTimeline();
+  renderLeaderboard();
+}
+
+// ── DJ presence ─────────────────────────────────────────────────────────
+function updateGraceClock(){
+  const el = document.getElementById('graceClock');
+  if(!el || !graceEndsAt) return;
+  const left = Math.max(0, graceEndsAt - Date.now());
+  const m = Math.floor(left / 60000);
+  const s = Math.floor((left % 60000) / 1000);
+  el.textContent = m + ':' + String(s).padStart(2, '0');
+}
+
+function startGrace(endsAt){
+  graceEndsAt = endsAt;
+  djOnline = false;
+  clearInterval(graceInterval);
+  graceInterval = setInterval(updateGraceClock, 1000);
+  if(joined) render();
+}
+
+function stopGrace(){
+  clearInterval(graceInterval);
+  graceInterval = null;
+  graceEndsAt = null;
+  djOnline = true;
+  if(joined) render();
+}
+
+socket.on('dj:disconnect-warning', (payload) => startGrace(payload && payload.endsAt));
+socket.on('dj:reconnect', () => stopGrace());
+
+socket.on('lobby:end', (payload) => {
+  stopGrace();
+  const reason = payload && payload.reason;
+  document.getElementById('endTitle').textContent = reason === 'dj-timeout' ? 'The DJ never came back' : 'Game over';
+  document.getElementById('endText').textContent = reason === 'dj-timeout'
+    ? 'The lobby closed after five minutes without a DJ.'
+    : 'The DJ ended the game. Thanks for playing.';
+  document.getElementById('endOverlay').classList.add('open');
+  joined = false;
+});
+
+document.getElementById('endBtn').addEventListener('click', () => {
+  localStorage.removeItem('vl_last_code');
+  // Drop the dead lobby from the URL first, or the reload just re-peeks it.
+  setLobbyUrl(null);
+  window.location.replace('/player');
+});
+
+// ── going home ──────────────────────────────────────────────────────────
+const leaveOverlay = document.getElementById('leaveOverlay');
+
+function goHome(){
+  localStorage.removeItem('vl_last_code');
+  setLobbyUrl(null);
+  window.location.href = '/';
+}
+
+// The code screen has nothing to lose, so it leaves straight away. Every
+// other view asks first.
+document.querySelectorAll('[data-home]').forEach(el => {
+  el.addEventListener('click', () => {
+    if(el.dataset.home === 'direct'){ goHome(); return; }
+    leaveOverlay.classList.add('open');
+  });
+});
+
+document.getElementById('leaveConfirmBtn').addEventListener('click', goHome);
+document.getElementById('leaveCancelBtn').addEventListener('click', () => leaveOverlay.classList.remove('open'));
+leaveOverlay.addEventListener('click', (e) => {
+  if(e.target === leaveOverlay) leaveOverlay.classList.remove('open');
+});
+
+// ── reconnect ───────────────────────────────────────────────────────────
+socket.on('connect', () => {
+  if(joined && lobbyCode && myName){
+    // Socket dropped mid-game — retake our slot with the same device id.
+    socket.emit('lobby:join', { code: lobbyCode, name: myName, deviceId }, (res) => {
+      if(!res || !res.ok){
+        joined = false;
+        setLobbyUrl(null);
+        showView('code');
+        codeError.textContent = 'That game has ended.';
+        return;
+      }
+      djOnline = res.djOnline;
+      if(res.state) lastState = res.state;
+      if(res.graceEndsAt) startGrace(res.graceEndsAt); else stopGrace();
+      render();
+    });
+  }
+});
+
+socket.on('disconnect', () => {
+  if(!joined) return;
+  const holder = document.getElementById('banners');
+  holder.innerHTML = '<div class="banner info">Reconnecting…</div>';
+});
+
+// Deep link (?code=ABC123) or a code we used a moment ago.
+(function boot(){
+  const params = new URLSearchParams(window.location.search);
+  const fromUrl = (params.get('code') || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const remembered = localStorage.getItem('vl_last_code');
+  const seed = fromUrl || remembered || '';
+  if(seed) codeInput.value = seed.slice(0, 6);
+  const savedName = localStorage.getItem('vl_last_name');
+  if(savedName) nameInput.value = savedName;
+
+  socket.on('connect', function once(){
+    socket.off('connect', once);
+    if(seed.length === 6) peek(seed);
+  });
+})();
+</script>
+</body>
+</html>

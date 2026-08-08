@@ -1,0 +1,19 @@
+{
+  "name": "vinylle",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Vinyl'le — music timeline party game with multiplayer lobbies",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node server/index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "qrcode": "^1.5.4",
+    "socket.io": "^4.7.5"
+  }
+}
