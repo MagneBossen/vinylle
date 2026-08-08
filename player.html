@@ -197,8 +197,9 @@
   .empty{color:var(--muted);font-size:.85rem;font-style:italic;margin:.4rem 0;}
 
   .lb-row{
-    display:flex;align-items:center;gap:.7rem;
-    padding:.6rem 0;border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:.9rem;
+    padding:.7rem 0;border-bottom:1px solid var(--line);
+    font-size:1.05rem;
   }
   .lb-row:last-child{border-bottom:none;}
   .lb-row.is-me .lb-name{color:var(--gold);}
@@ -206,8 +207,13 @@
   .lb-name{flex:1;font-family:'Fraunces',serif;font-weight:600;font-size:1rem;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .lb-dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0;}
   .lb-dot.off{background:var(--line);}
-  .lb-coins{display:flex;align-items:center;gap:.3rem;font-family:'IBM Plex Mono',monospace;font-size:.8rem;color:var(--gold);}
-  .lb-count{font-family:'IBM Plex Mono',monospace;font-size:1.05rem;color:var(--gold);min-width:2.2ch;text-align:right;}
+  /* Same shape as the DJ screen's leaderboard rows: icon + number, cards
+     first, then coins. */
+  .lb-stat{
+    display:flex;align-items:center;gap:.4rem;
+    font-family:'IBM Plex Mono',monospace;color:var(--gold);
+  }
+  .lb-stat svg{width:15px;height:15px;}
   .win-badge{
     font-family:'IBM Plex Mono',monospace;font-size:.55rem;color:var(--gold);
     border:1px solid var(--gold);border-radius:20px;padding:.1rem .45rem;flex-shrink:0;
@@ -359,6 +365,7 @@
 <script src="/socket.io/socket.io.js"></script>
 <script>
 const COIN_SVG = '<svg viewBox="0 0 20 20" width="12" height="12" style="display:block;"><circle cx="10" cy="10" r="9" fill="var(--gold)" stroke="#8C6F3B" stroke-width="1.5"/><circle cx="10" cy="10" r="5" fill="none" stroke="#241A0B" stroke-width="1.2"/></svg>';
+const CARD_ICON_SVG = '<svg viewBox="0 0 16 20" width="12" height="15" style="display:block;"><rect x="1" y="1" width="14" height="18" rx="2.5" fill="none" stroke="var(--gold)" stroke-width="1.5"/><circle cx="8" cy="10" r="2" fill="var(--gold)"/></svg>';
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 // A stable per-phone id, so locking your screen or refreshing gets your slot
@@ -762,15 +769,15 @@ function renderLeaderboard(){
       row.appendChild(win);
     }
 
+    const cards = document.createElement('span');
+    cards.className = 'lb-stat';
+    cards.innerHTML = CARD_ICON_SVG + '<span>' + (player.timeline || []).length + '</span>';
+    row.appendChild(cards);
+
     const coins = document.createElement('span');
-    coins.className = 'lb-coins';
+    coins.className = 'lb-stat';
     coins.innerHTML = COIN_SVG + '<span>' + bonusCount(player) + '</span>';
     row.appendChild(coins);
-
-    const count = document.createElement('span');
-    count.className = 'lb-count';
-    count.textContent = (player.timeline || []).length;
-    row.appendChild(count);
 
     holder.appendChild(row);
   });
