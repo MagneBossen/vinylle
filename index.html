@@ -1343,7 +1343,7 @@ https://open.spotify.com/playlist/yyyyyyyy"></textarea>
     </details>
   </div>
 
-  <p style="text-align:center; color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:.72rem; margin-top:2rem;">Vinyl'le — v13.2.0</p>
+  <p style="text-align:center; color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:.72rem; margin-top:2rem;">Vinyl'le — v13.2.1</p>
   <p style="text-align:center; color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:.65rem; margin-top:.3rem; opacity:.7;">Vibe coded by MB</p>
   <p style="text-align:center; font-family:'IBM Plex Mono',monospace; font-size:.7rem; margin-top:.6rem; opacity:.7;">
     <a href="#" class="footer-link">Feedback</a> · <a href="#" class="footer-link">Reach out</a> · <a href="#" class="footer-link">Buy me a coffee</a>
@@ -2026,10 +2026,12 @@ function renderScoreboard(){
     removeBtn.addEventListener('click', async () => {
       const ok = await showConfirm('Remove ' + player.name + ' and their timeline? This can\'t be undone.');
       if(!ok) return;
+      evictPhone(player, 'kicked');
       const idx = players.indexOf(player);
       if(idx > -1) players.splice(idx, 1);
       if(players.length === 0) resetDeckProgress();
       renderScoreboard();
+      renderPhones();
     });
     actions.appendChild(removeBtn);
 
@@ -2757,9 +2759,11 @@ resetScoresBtn.addEventListener('click', async () => {
 
 clearPlayersBtn.addEventListener('click', async () => {
   if(players.length > 0 && !(await showConfirm('Clear all players and start a fresh deck? All songs become drawable again — this can\'t be undone.'))) return;
+  evictAllPhones('cleared');
   players = [];
   resetDeckProgress();
   renderScoreboard();
+  renderPhones();
 });
 
 function addPlaylist(name, tracks, id){
@@ -3409,9 +3413,23 @@ function renderPhones(){
   });
 }
 
+// Dropping someone from the board has to boot their phone too, or it sits
+// there "in the game" with no slot on the scoreboard. Sends them back to pick
+// a name — the lobby itself stays open.
+function evictPhone(player, reason){
+  if(!lobbySocket || !lobbyCode || !player || !player.deviceId) return;
+  lobbySocket.emit('lobby:kick', { deviceId: player.deviceId, reason: reason || 'kicked' });
+  player.deviceId = null;
+  player.online = false;
+}
+
+function evictAllPhones(reason){
+  players.filter(p => p.deviceId).forEach(p => evictPhone(p, reason));
+}
+
 function kickPlayer(player){
   armedKickDevice = null;
-  if(lobbySocket && player.deviceId) lobbySocket.emit('lobby:kick', { deviceId: player.deviceId });
+  evictPhone(player, 'kicked');
   const idx = players.indexOf(player);
   if(idx > -1) players.splice(idx, 1);
   if(players.length === 0) resetDeckProgress();

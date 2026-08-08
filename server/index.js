@@ -194,7 +194,10 @@ io.on('connection', (socket) => {
     const socketId = L.socketForDevice(lobby, payload.deviceId);
     if(!socketId) return; // already gone; the DJ still drops them from the board
     L.removePhone(lobby, socketId);
-    io.to(socketId).emit('lobby:kicked', {});
+    // Straight back onto the peeker list, so the name screen they land on gets
+    // live roster pushes immediately — no race against their own re-peek.
+    lobby.peekers.set(socketId, payload.deviceId);
+    io.to(socketId).emit('lobby:kicked', { reason: payload.reason || 'kicked' });
     const s = io.sockets.sockets.get(socketId);
     if(s) s.leave('phones:' + lobby.code);
     pushRoster(lobby);
@@ -245,6 +248,7 @@ io.on('connection', (socket) => {
 
     socket.data.role = 'player';
     socket.data.code = lobby.code;
+    socket.data.peekCode = lobby.code; // so disconnect cleanup finds the lobby
     socket.data.deviceId = deviceId;
     socket.join('phones:' + lobby.code);
     L.addPhone(lobby, socket.id, deviceId, name);

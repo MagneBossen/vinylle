@@ -536,12 +536,14 @@ socket.on('lobby:names', (res) => {
   renderNameOptions(res.names || [], res.full);
 });
 
-socket.on('lobby:kicked', () => {
+socket.on('lobby:kicked', (res) => {
   joined = false;
   lastState = null;
   stopGrace();
   setLobbyUrl(null);
-  nameError.textContent = 'The DJ removed you from the game. You can join again.';
+  nameError.textContent = (res && res.reason === 'cleared')
+    ? 'The DJ cleared the board. Pick a name to jump back in.'
+    : 'The DJ removed you from the game. You can join again.';
   showView('name');
   peekRefresh();
 });
