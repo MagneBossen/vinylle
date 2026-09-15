@@ -242,6 +242,121 @@
   .view{display:none;}
   .view.active{display:block;}
 
+  /* ════════════════════════════════════════════════════════════════════
+     Redesign — glow, spinning records, code boxes, the timeline spine.
+     ════════════════════════════════════════════════════════════════════ */
+  :root{--vinyl:#0E0A11;--ink:#241A0B;--glow:rgba(212,162,78,.16);}
+  [hidden]{display:none !important;}
+  html{background:var(--bg);}
+  body{
+    min-height:100vh;
+    background:
+      radial-gradient(560px 400px at 100% -6%, var(--glow), transparent 65%),
+      radial-gradient(500px 400px at -20% 105%, rgba(92,145,99,.06), transparent 60%),
+      var(--bg);
+  }
+  :focus-visible{outline:2px solid var(--gold);outline-offset:3px;}
+  button:focus:not(:focus-visible){outline:none;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .card{background:rgba(37,26,43,.8);}
+
+  /* A record, CSS-only: grooves + a gold label. */
+  .rec{
+    border-radius:50%;flex-shrink:0;position:relative;
+    background:
+      radial-gradient(circle, var(--vinyl) 0 3%, var(--gold) 4% 30%, transparent 31%),
+      repeating-radial-gradient(circle, var(--vinyl) 0 2px, #1a131e 2px 3px);
+    box-shadow:0 0 0 1px #000, 0 18px 40px rgba(0,0,0,.55);
+  }
+  .join-hero{display:grid;place-items:center;margin:.6rem 0 1.6rem;}
+  .join-hero .rec{width:140px;height:140px;animation:spin 6s linear infinite;}
+  .view-center > h1,.view-center > .tagline{text-align:center;}
+
+  /* Six boxes over one real input: typing, pasting and autofill all still
+     go through #codeInput, the boxes just mirror it. */
+  .otp{position:relative;max-width:340px;margin:0 auto;}
+  .otp-boxes{display:flex;gap:6px;justify-content:center;}
+  .otp-boxes span{
+    flex:1;max-width:50px;height:60px;border-radius:12px;
+    border:1px solid var(--line);background:var(--surface-2);
+    display:grid;place-items:center;
+    font-family:'IBM Plex Mono',monospace;font-size:1.6rem;color:var(--paper);
+    transition:border-color .15s, box-shadow .15s;
+  }
+  .otp-boxes span.filled{border-color:var(--gold-dim);}
+  .otp.focused .otp-boxes span.cur{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,162,78,.18);}
+  .otp.focused .otp-boxes span.cur:empty::after{content:'';width:2px;height:26px;background:var(--gold);animation:blink 1s steps(1) infinite;}
+  @keyframes blink{50%{opacity:0;}}
+  .otp input#codeInput{
+    position:absolute;inset:0;width:100%;height:100%;z-index:1;
+    color:transparent;caret-color:transparent;background:transparent;border:none;
+    font-size:16px;letter-spacing:0;padding:0;text-align:left;
+  }
+  .otp input#codeInput::selection{background:transparent;}
+  .otp input#codeInput::placeholder{color:transparent;}
+  .otp-hint{font-family:'IBM Plex Mono',monospace;font-size:.64rem;color:var(--muted);text-align:center;margin-top:1rem;letter-spacing:.04em;line-height:1.6;}
+
+  .waiting-rec{display:grid;place-items:center;margin:1rem 0 1.4rem;}
+  .waiting-rec .rec{width:110px;height:110px;animation:spin 1.8s linear infinite;}
+
+  /* ── in game ── */
+  .me{margin-bottom:.15rem;}
+  .me-sub{font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--muted);letter-spacing:.06em;min-height:1em;}
+  .me-sub b{color:var(--gold);font-weight:500;}
+  .pips{display:flex;gap:5px;flex-wrap:wrap;margin:.75rem 0 1.2rem;min-height:18px;}
+  .pip{width:18px;height:18px;border-radius:50%;border:1px solid var(--gold-dim);box-sizing:border-box;}
+  .pip.f{background:radial-gradient(circle, var(--vinyl) 0 16%, var(--gold) 22%);border-color:var(--gold);}
+  .pips-bar{display:block;width:100%;height:6px;border-radius:6px;background:var(--line);overflow:hidden;}
+  .pips-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--gold-dim),var(--gold));}
+
+  .now-card{display:flex;align-items:center;gap:1rem;text-align:left;background:rgba(37,26,43,.85);}
+  .mini-rec{width:76px;height:76px;display:grid;place-items:center;}
+  .mini-rec{background:repeating-radial-gradient(circle, var(--vinyl) 0 2px, #1a131e 2px 3px);}
+  .mini-rec span{
+    width:46%;height:46%;border-radius:50%;background:var(--gold);color:var(--ink);
+    display:grid;place-items:center;font-family:'Fraunces',serif;font-weight:700;font-size:1rem;
+  }
+  .mini-rec.spinning{animation:spin 1.8s linear infinite;}
+  .mini-rec.revealed span{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:.64rem;}
+  .now-text{flex:1;min-width:0;}
+  .now-state{margin-bottom:.35rem;}
+  .now-year{font-size:1.9rem;margin-top:.3rem;line-height:1;}
+  .now-year,.now-title{animation:rise .4s both cubic-bezier(.3,1.3,.5,1);}
+  @keyframes rise{from{opacity:0;transform:translateY(6px);}}
+
+  .spine{position:relative;padding-left:1.2rem;}
+  .spine::before{content:'';position:absolute;left:4px;top:.7rem;bottom:.7rem;width:2px;background:var(--line);}
+  .ent{position:relative;display:flex;gap:.8rem;align-items:baseline;padding:.45rem .5rem;margin-left:-.5rem;border-radius:8px;}
+  .ent::before{
+    content:'';position:absolute;left:calc(-.7rem + 1px);top:.9rem;width:8px;height:8px;border-radius:50%;
+    background:var(--surface-2);border:1px solid var(--gold-dim);box-sizing:border-box;
+  }
+  .ent .y{font-family:'IBM Plex Mono',monospace;color:var(--gold);font-size:.98rem;min-width:3.1rem;}
+  .ent .y small{display:block;font-size:.55rem;color:var(--gold-dim);letter-spacing:.08em;text-transform:uppercase;}
+  .ent .t{flex:1;min-width:0;}
+  .ent .t b{display:block;font-family:'Fraunces',serif;font-weight:400;font-size:.94rem;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ent .t small{display:block;font-size:.7rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ent .coin{flex-shrink:0;align-self:center;}
+  .ent.new{background:linear-gradient(90deg,rgba(212,162,78,.16),transparent);animation:rise .5s both;}
+  .ent.new::before{background:var(--gold);border-color:var(--gold);box-shadow:0 0 0 4px rgba(212,162,78,.2);}
+  .gap-tag{font-family:'IBM Plex Mono',monospace;font-size:.6rem;color:var(--muted);padding:0 0 0 .45rem;line-height:1;}
+  .gap-tag.tight{color:var(--green);}
+
+  .toast{
+    position:fixed;left:1rem;right:1rem;bottom:calc(1rem + env(safe-area-inset-bottom));z-index:60;
+    max-width:490px;margin:0 auto;display:flex;align-items:center;gap:.8rem;
+    background:var(--gold);color:var(--ink);border-radius:14px;padding:.85rem 1rem;
+    font-weight:600;font-size:.94rem;box-shadow:0 12px 30px rgba(212,162,78,.35);
+    transform:translateY(160%);transition:transform .45s cubic-bezier(.3,1.4,.5,1);
+  }
+  .toast.show{transform:none;}
+  .toast small{display:block;font-weight:400;font-size:.76rem;opacity:.8;margin-top:.1rem;}
+  .toast-rec{width:34px;height:34px;border-radius:50%;flex-shrink:0;background:var(--ink);border:11px solid var(--vinyl);box-sizing:border-box;box-shadow:inset 0 0 0 3px var(--gold);animation:spin 1.2s linear infinite;}
+
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation:none !important;transition:none !important;}
+  }
+
   /* Phone turned sideways: put the leaderboard next to the timeline and shrink
      the chrome, so the cards get the room. Must stay last in the sheet — these
      override the base rules above at equal specificity. */
@@ -256,6 +371,9 @@
     .now-title{font-size:1.1rem;}
     .now-year{font-size:1.8rem;margin-top:.3rem;}
     .vinyl-card{width:80px;min-height:100px;}
+    .pips{margin:.4rem 0 .7rem;}
+    .mini-rec{width:58px;height:58px;}
+    .join-hero .rec{width:90px;height:90px;}
     .banner{padding:.7rem .85rem;margin-bottom:.8rem;font-size:.82rem;}
     .lb-row{padding:.45rem 0;}
     .view#viewGame .hint{display:none;}
@@ -266,15 +384,19 @@
 <div class="wrap">
 
   <!-- ── join: enter code ────────────────────────────────────────────── -->
-  <div class="view active" id="viewCode">
-    <h1 class="home-title" data-home="direct">Vinyl'le</h1>
-    <p class="tagline">Enter the code your DJ is showing.</p>
+  <div class="view active view-center" id="viewCode">
+    <div class="join-hero" aria-hidden="true"><div class="rec"></div></div>
+    <h1 class="home-title" data-home="direct">Join the party</h1>
+    <p class="tagline">Type the code on the DJ's screen.</p>
     <div class="card">
-      <h2>Lobby code</h2>
-      <input type="text" id="codeInput" maxlength="6" placeholder="——————"
-             autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" inputmode="text">
-      <div class="err" id="codeError"></div>
+      <div class="otp" id="otp">
+        <input type="text" id="codeInput" maxlength="6" placeholder="——————" aria-label="Lobby code"
+               autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" inputmode="text">
+        <div class="otp-boxes" id="otpBoxes" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+      </div>
+      <div class="err" id="codeError" style="text-align:center;"></div>
       <button class="primary block" id="codeNextBtn" style="margin-top:.4rem;">Continue</button>
+      <div class="otp-hint">No code? Scan the QR on the big screen.</div>
     </div>
   </div>
 
@@ -298,6 +420,7 @@
   <div class="view" id="viewWaiting">
     <h1 class="home-title" data-home="confirm">Vinyl'le</h1>
     <p class="tagline">Knocking on the door…</p>
+    <div class="waiting-rec" aria-hidden="true"><div class="rec"></div></div>
     <div class="card">
       <p style="margin:0;color:var(--muted);font-size:.9rem;">
         <span class="pulse"></span>Waiting for the DJ to let you in.
@@ -312,19 +435,24 @@
       <span class="code" id="meCode"></span>
     </div>
     <div class="me" id="meName">—</div>
+    <div class="me-sub" id="meSub"></div>
+    <div class="pips" id="mePips"></div>
 
     <div id="banners"></div>
 
     <div class="game-grid">
       <div class="game-col">
         <div class="now-card" id="nowCard">
-          <div class="now-state" id="nowState">Waiting for the DJ</div>
-          <div id="nowBody"></div>
+          <div class="rec mini-rec" id="miniRec" aria-hidden="true"><span id="miniLabel">?</span></div>
+          <div class="now-text">
+            <div class="now-state" id="nowState">Waiting for the DJ</div>
+            <div id="nowBody"></div>
+          </div>
         </div>
 
         <div class="card">
           <h2>Your timeline · <span id="myCount">0</span></h2>
-          <div class="timeline-scroll" id="myTimeline"></div>
+          <div class="spine" id="myTimeline"></div>
         </div>
       </div>
 
@@ -341,6 +469,11 @@
     </p>
   </div>
 
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite">
+  <span class="toast-rec" aria-hidden="true"></span>
+  <div><span id="toastTitle"></span><small id="toastSub"></small></div>
 </div>
 
 <div class="overlay" id="leaveOverlay">
@@ -445,6 +578,21 @@ codeInput.addEventListener('input', () => {
 });
 codeInput.addEventListener('keydown', (e) => { if(e.key === 'Enter') codeNextBtn.click(); });
 
+// Mirror the real input into the six boxes, with the next empty box lit.
+const otpEl = document.getElementById('otp');
+const otpBoxes = Array.from(document.querySelectorAll('#otpBoxes span'));
+function renderOtp(){
+  const v = codeInput.value.toUpperCase();
+  otpBoxes.forEach((box, i) => {
+    box.textContent = v[i] || '';
+    box.classList.toggle('filled', !!v[i]);
+    box.classList.toggle('cur', i === Math.min(v.length, 5));
+  });
+}
+codeInput.addEventListener('input', renderOtp);
+codeInput.addEventListener('focus', () => { otpEl.classList.add('focused'); renderOtp(); });
+codeInput.addEventListener('blur', () => otpEl.classList.remove('focused'));
+
 codeNextBtn.addEventListener('click', () => {
   const code = codeInput.value.trim().toUpperCase();
   if(code.length !== 6){ codeError.textContent = 'That code needs to be 6 characters.'; return; }
@@ -461,6 +609,7 @@ function peek(code){
         // every future visit until the three hours run out.
         forgetCode();
         if(codeInput.value.toUpperCase() === String(code).toUpperCase()) codeInput.value = '';
+        renderOtp();
         codeError.textContent = "No game with that code — check the DJ's screen.";
       }else{
         codeError.textContent = 'Could not reach that game.';
@@ -560,6 +709,7 @@ socket.on('join:result', (res) => {
     return;
   }
   joined = true;
+  seenLastAdded = undefined; // no toast for cards we already had
   myName = res.name || myName;
   rememberCode(lobbyCode);
   localStorage.setItem('vl_last_name', myName);
@@ -677,16 +827,23 @@ function renderNow(){
   bodyEl.innerHTML = '';
   const card = lastState && lastState.currentCard;
 
+  // The mini record mirrors the DJ's: spins while the clip plays, stops on
+  // the reveal with the year on its label.
+  const rec = document.getElementById('miniRec');
+  rec.classList.toggle('spinning', !!(card && !card.revealed && lastState.playing));
+  rec.classList.toggle('revealed', !!(card && card.revealed));
+  document.getElementById('miniLabel').textContent = (card && card.revealed) ? (card.year || '★') : '?';
+
   if(!card){
     stateEl.textContent = 'Waiting for the DJ';
-    bodyEl.innerHTML = '<div class="now-title" style="color:var(--muted);">No card in play</div>';
+    bodyEl.innerHTML = '<div class="now-title" style="color:var(--muted);">No record on yet</div>';
     return;
   }
 
   if(!card.revealed){
-    stateEl.innerHTML = '<span class="pulse"></span>' + (lastState.playing ? 'Now playing' : 'Mystery track');
-    bodyEl.innerHTML = '<div class="now-title">? ? ?</div>' +
-      '<div class="now-artist">Guess where it goes, then tell the DJ.</div>';
+    stateEl.innerHTML = (lastState.playing ? '<span class="pulse"></span>Now playing' : 'Mystery record');
+    bodyEl.innerHTML = '<div class="now-title">Mystery record</div>' +
+      '<div class="now-artist">Where does it fit in your timeline?</div>';
     return;
   }
 
@@ -714,6 +871,57 @@ function renderNow(){
   bodyEl.appendChild(year);
 }
 
+// Timeline as a vertical spine — oldest at the top — with the gap between
+// neighbours on the line (the same "closest gaps" the tiebreaker uses).
+let seenLastAdded; // undefined until the first render after joining
+
+function gapMonths(a, b){
+  const expert = lastState && lastState.expertMode;
+  const va = expert ? a.year * 12 + ((a.month || 1) - 1) : a.year * 12;
+  const vb = expert ? b.year * 12 + ((b.month || 1) - 1) : b.year * 12;
+  return vb - va;
+}
+
+function gapText(months){
+  if(months <= 0) return '±0';
+  if(!(lastState && lastState.expertMode)) return '+' + Math.round(months / 12) + 'y';
+  const y = Math.floor(months / 12);
+  const m = months % 12;
+  return '+' + (y ? y + 'y' : '') + (y && m ? ' ' : '') + (m ? m + 'm' : '');
+}
+
+function buildEntry(entry, isNew){
+  const row = document.createElement('div');
+  row.className = 'ent' + (isNew ? ' new' : '');
+  const y = document.createElement('span');
+  y.className = 'y';
+  y.textContent = entry.year;
+  if(entry.month && lastState && lastState.expertMode){
+    const m = document.createElement('small');
+    m.textContent = MONTH_NAMES[entry.month - 1];
+    y.prepend(m);
+  }
+  row.appendChild(y);
+  const t = document.createElement('span');
+  t.className = 't';
+  const b = document.createElement('b');
+  b.textContent = entry.title || 'Unknown track';
+  t.appendChild(b);
+  if(entry.artist){
+    const s = document.createElement('small');
+    s.textContent = entry.artist;
+    t.appendChild(s);
+  }
+  row.appendChild(t);
+  if(entry.bonus){
+    const c = document.createElement('span');
+    c.className = 'coin';
+    c.innerHTML = COIN_SVG;
+    row.appendChild(c);
+  }
+  return row;
+}
+
 function renderMyTimeline(){
   const holder = document.getElementById('myTimeline');
   const countEl = document.getElementById('myCount');
@@ -722,13 +930,69 @@ function renderMyTimeline(){
   const timeline = mine ? (mine.timeline || []) : [];
   countEl.textContent = timeline.length;
 
+  const newest = (mine && mine.lastAddedId) ? timeline.find(e => e.id === mine.lastAddedId) : null;
+  if(seenLastAdded !== undefined && newest && mine.lastAddedId !== seenLastAdded) celebrate(newest);
+  seenLastAdded = mine ? (mine.lastAddedId || null) : null;
+
   if(timeline.length === 0){
     holder.innerHTML = '<p class="empty">No cards yet — win one and it lands here.</p>';
     return;
   }
-  timeline.forEach(entry => {
-    holder.appendChild(buildCard(entry, mine.lastAddedId && entry.id === mine.lastAddedId));
+  const gaps = timeline.map((e, i) => i ? gapMonths(timeline[i - 1], e) : null);
+  const tight = timeline.length >= 3 ? Math.min(...gaps.slice(1)) : null;
+  timeline.forEach((entry, i) => {
+    if(i > 0){
+      const g = document.createElement('div');
+      g.className = 'gap-tag' + (gaps[i] === tight ? ' tight' : '');
+      g.textContent = gapText(gaps[i]);
+      holder.appendChild(g);
+    }
+    holder.appendChild(buildEntry(entry, newest && entry.id === newest.id));
   });
+}
+
+// "You got it!" — a toast and a buzz when the DJ drops a card into our timeline.
+let toastTimer = null;
+function celebrate(entry){
+  document.getElementById('toastTitle').textContent = 'You got it — ' + entry.year + '!';
+  document.getElementById('toastSub').textContent = (entry.title || '') + (entry.artist ? ' · ' + entry.artist : '');
+  const toast = document.getElementById('toast');
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 4200);
+  try{ if(navigator.vibrate) navigator.vibrate([60, 40, 140]); }catch(e){ /* not allowed */ }
+}
+
+function ordinal(n){
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
+// Rank, cards to go, and one little record per card toward the target.
+function renderMe(){
+  const sub = document.getElementById('meSub');
+  const pips = document.getElementById('mePips');
+  const mine = me();
+  pips.innerHTML = '';
+  if(!mine){ sub.textContent = ''; return; }
+  const list = (lastState && lastState.players) || [];
+  const winLength = (lastState && lastState.winLength) || 10;
+  const sorted = list.slice().sort(comparePlayers);
+  const rank = sorted.findIndex(p => p.deviceId === deviceId) + 1;
+  const count = (mine.timeline || []).length;
+  const toGo = Math.max(0, winLength - count);
+  sub.innerHTML = '<b>' + ordinal(rank) + '</b> of ' + sorted.length + ' · ' +
+    (toGo === 0 ? 'target reached' : toGo + ' card' + (toGo === 1 ? '' : 's') + ' to go');
+  if(winLength > 15){
+    pips.innerHTML = '<span class="pips-bar"><i style="width:' + Math.min(100, count / winLength * 100) + '%"></i></span>';
+    return;
+  }
+  for(let i = 0; i < winLength; i++){
+    const d = document.createElement('i');
+    d.className = 'pip' + (i < count ? ' f' : '');
+    pips.appendChild(d);
+  }
 }
 
 function renderLeaderboard(){
@@ -806,6 +1070,7 @@ function renderBanners(){
 
 function render(){
   renderBanners();
+  renderMe();
   renderNow();
   renderMyTimeline();
   renderLeaderboard();
@@ -915,6 +1180,7 @@ socket.on('disconnect', () => {
   const remembered = rememberedCode();
   const seed = fromUrl || remembered || '';
   if(seed) codeInput.value = seed.slice(0, 6);
+  renderOtp();
   const savedName = localStorage.getItem('vl_last_name');
   if(savedName) nameInput.value = savedName;
 
