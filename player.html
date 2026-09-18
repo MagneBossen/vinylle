@@ -339,7 +339,7 @@
   .ent .coin{flex-shrink:0;align-self:center;}
   .ent.new{background:linear-gradient(90deg,rgba(212,162,78,.16),transparent);animation:rise .5s both;}
   .ent.new::before{background:var(--gold);border-color:var(--gold);box-shadow:0 0 0 4px rgba(212,162,78,.2);}
-  .gap-tag{font-family:'IBM Plex Mono',monospace;font-size:.6rem;color:var(--muted);padding:0 0 0 .45rem;line-height:1;}
+  .gap-tag{font-family:'IBM Plex Mono',monospace;font-size:.6rem;color:var(--muted);padding:0 0 0 .45rem;line-height:1;margin:-.3rem 0 -.1rem;}
   .gap-tag.tight{color:var(--green);}
 
   .toast{
@@ -352,6 +352,61 @@
   .toast.show{transform:none;}
   .toast small{display:block;font-weight:400;font-size:.76rem;opacity:.8;margin-top:.1rem;}
   .toast-rec{width:34px;height:34px;border-radius:50%;flex-shrink:0;background:var(--ink);border:11px solid var(--vinyl);box-sizing:border-box;box-shadow:inset 0 0 0 3px var(--gold);animation:spin 1.2s linear infinite;}
+
+  /* ── timeline: List / Cards switch ── */
+  .tl-head{display:flex;align-items:center;justify-content:space-between;gap:.8rem;margin-bottom:.9rem;}
+  .tl-head h2{margin:0;}
+  .seg{display:inline-flex;background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:2px;}
+  .seg button{
+    font-family:'IBM Plex Mono',monospace;font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;
+    padding:.3rem .7rem;border:none;border-radius:999px;color:var(--muted);background:transparent;
+  }
+  .seg button.on{background:var(--gold);color:var(--ink);}
+
+  /* Cards view: one long row of sleeves, record peeking out, swiped sideways
+     — like the cards laid out on a table in front of you. */
+  .sleeves{
+    display:flex;align-items:flex-end;overflow-x:auto;overscroll-behavior-x:contain;
+    scroll-snap-type:x proximity;scroll-padding:0 1rem;
+    padding:2.1rem .2rem .9rem;margin:0 -.4rem;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none;
+    -webkit-mask-image:linear-gradient(90deg,transparent,#000 .8rem,#000 calc(100% - .8rem),transparent);
+    mask-image:linear-gradient(90deg,transparent,#000 .8rem,#000 calc(100% - .8rem),transparent);
+  }
+  .sleeves::-webkit-scrollbar{display:none;}
+  .sleeves .vinyl-card{
+    --disc:72px;
+    width:116px;min-height:150px;flex-shrink:0;scroll-snap-align:center;
+    background:transparent;border:none;
+    justify-content:flex-start;padding:3rem .5rem .7rem;gap:.2rem;
+  }
+  .sleeves .vinyl-card::before{
+    content:'';position:absolute;left:50%;top:calc(var(--disc) * -.36);
+    width:var(--disc);height:var(--disc);margin-left:calc(var(--disc) / -2);border-radius:50%;
+    background:
+      radial-gradient(circle, var(--vinyl) 0 4%, var(--gold) 5% 27%, transparent 28%),
+      repeating-radial-gradient(circle, var(--vinyl) 0 2px, #1a131e 2px 3px);
+    box-shadow:0 0 0 1px #000;
+  }
+  .sleeves .vinyl-card::after{
+    content:'';position:absolute;inset:0;border-radius:12px;
+    background:linear-gradient(165deg,#36263D,#261B2C 72%);
+    border:1px solid var(--line);box-shadow:0 10px 20px rgba(0,0,0,.35);
+  }
+  .sleeves .vinyl-card > *{position:relative;z-index:1;}
+  .sleeves .vinyl-card.has-bonus::after{border-color:var(--gold-dim);}
+  .sleeves .vinyl-card.is-new::after{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,162,78,.2),0 10px 20px rgba(0,0,0,.35);}
+  .sleeves .card-bonus-badge{position:absolute;top:7px;left:auto;right:7px;}
+  .sleeves .vinyl-card-year{font-size:1.45rem;line-height:1;margin-bottom:.15rem;}
+  .sleeves .vinyl-card-month{position:absolute;top:1.85rem;left:0;right:0;}
+  .sleeves .vinyl-card-title{font-size:.76rem;}
+  .sleeves .vinyl-card-artist{font-size:.62rem;}
+  .game-col{min-width:0;}
+  .cgap{flex:0 0 2.1rem;align-self:center;position:relative;height:2px;background:var(--line);margin-top:1.2rem;}
+  .cgap span{position:absolute;left:50%;transform:translateX(-50%);font-family:'IBM Plex Mono',monospace;font-size:.58rem;color:var(--muted);white-space:nowrap;bottom:6px;}
+  .cgap span.under{bottom:auto;top:6px;}
+  .cgap.tight{background:rgba(92,145,99,.6);}
+  .cgap.tight span{color:var(--green);}
 
   @media (prefers-reduced-motion:reduce){
     *,*::before,*::after{animation:none !important;transition:none !important;}
@@ -371,6 +426,10 @@
     .now-title{font-size:1.1rem;}
     .now-year{font-size:1.8rem;margin-top:.3rem;}
     .vinyl-card{width:80px;min-height:100px;}
+    .sleeves{padding-top:1.9rem;padding-bottom:.6rem;}
+    .sleeves .vinyl-card{--disc:64px;width:104px;min-height:134px;padding-top:2.6rem;}
+    .sleeves .vinyl-card-month{top:1.5rem;}
+    .sleeves .vinyl-card-year{font-size:1.3rem;}
     .pips{margin:.4rem 0 .7rem;}
     .mini-rec{width:58px;height:58px;}
     .join-hero .rec{width:90px;height:90px;}
@@ -451,7 +510,13 @@
         </div>
 
         <div class="card">
-          <h2>Your timeline · <span id="myCount">0</span></h2>
+          <div class="tl-head">
+            <h2>Your timeline · <span id="myCount">0</span></h2>
+            <div class="seg" role="group" aria-label="Timeline view">
+              <button type="button" data-tlview="list" class="on">List</button>
+              <button type="button" data-tlview="cards">Cards</button>
+            </div>
+          </div>
           <div class="spine" id="myTimeline"></div>
         </div>
       </div>
@@ -922,9 +987,48 @@ function buildEntry(entry, isNew){
   return row;
 }
 
+// List (text spine) or Cards (a swipeable row of sleeves) — the player's
+// own choice, remembered on this phone.
+let tlView = 'list';
+try{ if(localStorage.getItem('vl_tl_view') === 'cards') tlView = 'cards'; }catch(e){}
+function syncTlToggle(){
+  document.querySelectorAll('[data-tlview]').forEach(b => b.classList.toggle('on', b.dataset.tlview === tlView));
+}
+document.querySelectorAll('[data-tlview]').forEach(b => b.addEventListener('click', () => {
+  if(tlView === b.dataset.tlview) return;
+  tlView = b.dataset.tlview;
+  try{ localStorage.setItem('vl_tl_view', tlView); }catch(e){}
+  syncTlToggle();
+  tlScrolledTo = null;
+  renderMyTimeline();
+}));
+syncTlToggle();
+let tlScrolledTo = null;
+
+function buildCardGap(months, tight){
+  const g = document.createElement('div');
+  g.className = 'cgap' + (tight ? ' tight' : '');
+  const txt = gapText(months);
+  // "+9y 10m" doesn't fit over a 2rem line: years above, months below.
+  const parts = txt.split(' ');
+  const over = document.createElement('span');
+  over.textContent = parts[0];
+  g.appendChild(over);
+  if(parts[1]){
+    const under = document.createElement('span');
+    under.className = 'under';
+    under.textContent = parts[1];
+    g.appendChild(under);
+  }
+  return g;
+}
+
 function renderMyTimeline(){
   const holder = document.getElementById('myTimeline');
   const countEl = document.getElementById('myCount');
+  // State syncs re-render this constantly — keep the swipe position.
+  const keepScroll = holder.scrollLeft;
+  holder.className = tlView === 'cards' ? 'sleeves' : 'spine';
   holder.innerHTML = '';
   const mine = me();
   const timeline = mine ? (mine.timeline || []) : [];
@@ -940,6 +1044,25 @@ function renderMyTimeline(){
   }
   const gaps = timeline.map((e, i) => i ? gapMonths(timeline[i - 1], e) : null);
   const tight = timeline.length >= 3 ? Math.min(...gaps.slice(1)) : null;
+  if(tlView === 'cards'){
+    let newEl = null;
+    timeline.forEach((entry, i) => {
+      if(i > 0) holder.appendChild(buildCardGap(gaps[i], gaps[i] === tight));
+      const isNew = newest && entry.id === newest.id;
+      const c = buildCard(entry, isNew);
+      if(isNew) newEl = c;
+      holder.appendChild(c);
+    });
+    // Jump to a newly won card once; otherwise stay where the player swiped.
+    const newId = newEl ? newest.id : null;
+    if(newEl && tlScrolledTo !== newId){
+      tlScrolledTo = newId;
+      holder.scrollLeft = newEl.offsetLeft - (holder.clientWidth - newEl.offsetWidth) / 2;
+    }else{
+      holder.scrollLeft = keepScroll;
+    }
+    return;
+  }
   timeline.forEach((entry, i) => {
     if(i > 0){
       const g = document.createElement('div');

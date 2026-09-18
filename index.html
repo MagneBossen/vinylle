@@ -3800,8 +3800,6 @@ function refreshNowYearDisplay(){
 
 revealBtn.addEventListener('click', () => {
   if(!currentCard) return;
-  // Lifting the needle on reveal, as on a real deck.
-  if(awaitingSound || vinyl.classList.contains('spinning')) stopPlayback();
   revealed = true;
   currentCard.revealedOnce = true;
   setDeckLabel(currentCard);
