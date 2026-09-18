@@ -542,23 +542,21 @@
   .vinyl-card.dragging{opacity:.4;cursor:grabbing;}
   .card-remove-btn{
     position:absolute;
-    bottom:6px;
-    right:6px;
-    width:20px;height:20px;
-    border-radius:50%;
-    border:1px solid var(--red);
-    background:var(--surface);
-    color:var(--red);
-    font-size:.7rem;
-    line-height:1;
-    display:flex;
-    align-items:center;
-    justify-content:center;
+    bottom:7px;
+    right:7px;
+    width:24px;height:24px;padding:0;
+    border-radius:7px;
+    border:1px solid transparent;
+    background:rgba(14,10,17,.55);
+    color:var(--muted);
+    display:grid;place-items:center;
     cursor:pointer;
     opacity:0;
-    transition:opacity .15s;
+    transition:opacity .15s, color .15s, background .15s, border-color .15s;
   }
+  .card-remove-btn svg{width:13px;height:13px;display:block;}
   .vinyl-card:hover .card-remove-btn{opacity:1;}
+  .card-remove-btn:hover{color:#F1B5AE;background:rgba(177,72,62,.28);border-color:rgba(177,72,62,.6);}
   .vinyl-card.has-bonus{border-color:var(--gold-dim);}
   .card-bonus-badge{
     position:absolute;
@@ -997,23 +995,36 @@
   }
   .tonearm.down{transform:rotate(-4deg);}
 
-  .readout{flex:1;min-width:250px;max-width:400px;}
+  .readout{flex:1;min-width:250px;max-width:400px;position:relative;}
   .state-line{
     display:flex;align-items:center;gap:.5rem;
     font-family:'IBM Plex Mono',monospace;font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);
+    white-space:nowrap;min-width:0;
   }
+  .state-line #stageState{overflow:hidden;text-overflow:ellipsis;}
   .live-dot{width:7px;height:7px;border-radius:50%;background:var(--gold);display:none;animation:pulse 1.3s ease-in-out infinite;}
   .deck.playing .live-dot{display:inline-block;}
   @keyframes pulse{50%{opacity:.2;}}
+  /* Every line above the hero button is exactly one line tall, whatever it
+     holds, so Reveal and Next record sit on the same pixel. Text too long for
+     the line runs as a ticker instead of wrapping. */
   .readout .title{
     font-family:'Fraunces',serif;font-weight:600;font-size:clamp(1.6rem,3vw,2.3rem);
-    line-height:1.1;margin:.6rem 0 .3rem;letter-spacing:-.01em;min-height:1.2em;
+    line-height:1.25;height:1.25em;margin:.5rem 0 .2rem;letter-spacing:-.01em;
   }
-  .readout .sub{color:var(--muted);font-size:1.05rem;min-height:1.3rem;}
+  .readout .sub{color:var(--muted);font-size:1.05rem;line-height:1.35;height:1.35em;}
+  .ticker{overflow:hidden;white-space:nowrap;}
+  .ticker > span{display:inline-block;}
+  .ticker.run{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 2.4rem),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 2.4rem),transparent);}
+  /* Rests at the start of each lap so the title can be read, then rolls. */
+  .ticker.run > span{animation:ticker var(--tk-dur,10s) linear infinite;}
+  .ticker.run > span::after{content:attr(data-text);padding-left:3.5rem;}
+  @keyframes ticker{0%,18%{transform:none;}100%{transform:translateX(calc(-1 * var(--tk-dist)));}}
   .readout .year{
     font-family:'IBM Plex Mono',monospace;font-size:clamp(2.4rem,5vw,3.4rem);color:var(--gold);
-    margin-top:.4rem;line-height:1;min-height:0;
+    margin-top:.4rem;line-height:1;height:1.05em;white-space:nowrap;
   }
+  .readout .year:empty::before{content:'????';color:var(--line);letter-spacing:.04em;}
   .readout .year:not(:empty){animation:yearIn .45s .4s both cubic-bezier(.3,1.3,.5,1);}
   .readout .year.with-month{display:inline-flex;gap:.25em;align-items:baseline;}
   .readout .year.with-month span:first-child{font-size:.45em;color:var(--gold-dim);text-transform:uppercase;letter-spacing:.1em;}
@@ -1035,7 +1046,9 @@
   }
   .ibtn:hover{color:var(--gold);border-color:var(--gold-dim);background:var(--surface-2);}
   .ibtn svg{width:18px;height:18px;}
-  .clip-timer{flex-direction:row;justify-content:flex-start;margin-top:1rem;gap:.6rem;}
+  /* The ring and the live dot already say this, so the timer row is hidden —
+     but kept rendered: the Spotify iframe lives in it and the ring reads the bar. */
+  .clip-timer{position:absolute;left:0;bottom:0;margin:0;opacity:0;pointer-events:none;z-index:-1;}
   .clip-timer .audio-engine{margin:0;}
   .clip-timer-num{font-size:1rem;min-width:0;text-align:left;}
   /* The bar still drives the timing maths (and the ring copies it), so it
@@ -1053,8 +1066,7 @@
   .give.muted{font-family:'IBM Plex Mono',monospace;font-weight:400;font-size:.72rem;color:var(--muted);}
   .give:disabled{opacity:.35;}
   .deck-meta{font-family:'IBM Plex Mono',monospace;font-size:.66rem;color:var(--muted);margin-top:1rem;letter-spacing:.04em;line-height:1.6;}
-  .deck-meta #offStatus{opacity:.75;}
-  .deck-meta #offStatus:not(:empty)::before{content:'· ';}
+  .deck-meta #offStatus{opacity:.75;display:block;}
   .debug{margin-top:.9rem;}
   .debug > summary{font-family:'IBM Plex Mono',monospace;font-size:.64rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);}
   .debug > summary:hover{color:var(--gold);}
@@ -1216,6 +1228,7 @@
   }
   .card-gap{position:absolute;right:100%;top:55%;width:2.2rem;height:2px;background:var(--line);pointer-events:none;}
   .card-gap span{position:absolute;left:50%;bottom:6px;transform:translateX(-50%);font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);white-space:nowrap;}
+  .card-gap span.under{bottom:auto;top:6px;}
   .card-gap.tight{background:rgba(92,145,99,.6);}
   .card-gap.tight span{color:var(--green);}
   .vinyl-card.row-start .card-gap{display:none;}
@@ -1253,6 +1266,7 @@
   .player-block{background:rgba(37,26,43,.5);border:1px solid var(--line);border-radius:16px;padding:1.2rem 1.3rem 1.4rem;}
   .player-block.leader{border-color:var(--gold-dim);}
   #podiumStage{position:relative;}
+  #podiumStage.is-empty::before{content:none;}
   #podiumStage::before{
     content:'';position:absolute;left:50%;top:-40px;width:420px;height:420px;margin-left:-210px;pointer-events:none;
     background:radial-gradient(circle, rgba(212,162,78,.16), transparent 65%);
@@ -1605,8 +1619,8 @@
 
         <div class="readout">
           <div class="state-line"><span class="live-dot"></span><span id="stageState">Ready</span></div>
-          <div class="title" id="nowTitle">—</div>
-          <div class="sub" id="nowArtist"></div>
+          <div class="title ticker"><span id="nowTitle">—</span></div>
+          <div class="sub ticker"><span id="nowArtist"></span></div>
           <div class="year" id="nowYear"></div>
 
           <div class="deck-controls">
@@ -2525,7 +2539,8 @@ function renderScoreboard(){
         card.appendChild(bonusToggle);
         const removeCardBtn = document.createElement('button');
         removeCardBtn.className = 'card-remove-btn';
-        removeCardBtn.textContent = '×';
+        removeCardBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v5M14 11v5"/></svg>';
+        removeCardBtn.setAttribute('aria-label', 'Remove this card');
         removeCardBtn.title = 'Remove this card';
         removeCardBtn.addEventListener('click', (e) => {
           e.stopPropagation();
@@ -2643,6 +2658,10 @@ document.querySelectorAll('[data-open-sb]').forEach(btn => {
 closeScoreboardBtn.addEventListener('click', closeScoreboard);
 document.addEventListener('keydown', (e) => {
   if(e.key === 'Escape'){
+    // One layer per press, top-most first: the confirm dialog, then the
+    // hamburger dropdown, then whichever panel is open.
+    if(confirmOverlay.classList.contains('open')){ confirmCancelBtn.click(); return; }
+    if(menuTrigger.classList.contains('open')){ menuTrigger.classList.remove('open'); return; }
     closeScoreboard();
     closeMenu();
     closeRecords();
@@ -2656,9 +2675,11 @@ document.addEventListener('keydown', (e) => {
     if(tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement.isContentEditable) return;
     const role = document.getElementById('roleOverlay');
     if(role && role.classList.contains('open')) return;
+    if(confirmOverlay.classList.contains('open')) return;
     e.preventDefault();
+    menuTrigger.classList.remove('open');
     if(scoreboardOverlay.classList.contains('open')) closeScoreboard();
-    else openScoreboard();
+    else { closeMenu(); openScoreboard(); }
   }
 });
 
@@ -2898,6 +2919,7 @@ function renderPodium(){
   const rest = document.getElementById('podiumRest');
   stage.innerHTML = '';
   rest.innerHTML = '';
+  stage.classList.toggle('is-empty', players.length === 0);
   if(players.length === 0){
     stage.innerHTML = '<p class="empty">No players yet.</p>';
     return;
@@ -4272,6 +4294,26 @@ document.addEventListener('keydown', (e) => {
   heroBtn.click();
 });
 
+// Title and artist are one line each. Anything wider runs as a ticker:
+// the span carries a second copy of its text (::after) and scrolls by exactly
+// one copy's width, so the loop is seamless.
+function fitTicker(span){
+  const box = span.parentElement;
+  box.classList.remove('run');
+  const textW = span.offsetWidth;
+  if(textW <= box.clientWidth + 1) return;
+  const gap = 3.5 * parseFloat(getComputedStyle(document.documentElement).fontSize);
+  span.dataset.text = span.textContent;
+  span.style.setProperty('--tk-dist', (textW + gap) + 'px');
+  span.style.setProperty('--tk-dur', Math.max(7, (textW + gap) / 55 / .82) + 's');
+  box.classList.add('run');
+}
+[nowTitle, nowArtist].forEach(el => {
+  new MutationObserver(() => fitTicker(el)).observe(el, { childList: true, characterData: true, subtree: true });
+});
+window.addEventListener('resize', () => { fitTicker(nowTitle); fitTicker(nowArtist); });
+document.fonts && document.fonts.ready.then(() => { fitTicker(nowTitle); fitTicker(nowArtist); });
+
 // The ring copies the (invisible) clip bar every frame, so every code path
 // that drives the bar — countdown, pause, resume, vibe mode — drives the ring.
 const RING_C = 1118.4;
@@ -4440,21 +4482,32 @@ function timelineGaps(timeline){
   return diffs.map(d => d === null ? null : { months: d, tight: d === min });
 }
 
+// [above the line, below the line] — the gap is only ~2rem wide, so a
+// "+9y 10m" split over both sides of the connector instead of spilling onto
+// the neighbouring cards.
 function gapLabel(months){
-  if(months <= 0) return '±0';
-  if(!expertMode) return '+' + Math.round(months / 12) + 'y';
+  if(months <= 0) return ['±0', ''];
+  if(!expertMode) return ['+' + Math.round(months / 12) + 'y', ''];
   const y = Math.floor(months / 12);
   const m = months % 12;
-  return '+' + (y ? y + 'y' : '') + (y && m ? ' ' : '') + (m ? m + 'm' : '');
+  if(!y) return ['+' + m + 'm', ''];
+  return ['+' + y + 'y', m ? m + 'm' : ''];
 }
 
 function buildGapEl(info){
   const g = document.createElement('span');
   g.className = 'card-gap' + (info && info.tight ? ' tight' : '');
   if(info){
+    const [over, under] = gapLabel(info.months);
     const label = document.createElement('span');
-    label.textContent = gapLabel(info.months);
+    label.textContent = over;
     g.appendChild(label);
+    if(under){
+      const u = document.createElement('span');
+      u.className = 'under';
+      u.textContent = under;
+      g.appendChild(u);
+    }
   }
   return g;
 }
