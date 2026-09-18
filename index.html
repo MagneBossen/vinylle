@@ -1916,21 +1916,29 @@ function tickCountdown(){
   }, 1000);
 }
 
-function armAutoStop(seconds){
+// Song position (ms) at which the current clip ends; 0 = no clip running.
+let clipEndMs = 0;
+
+function endClip(){
   clearTimeout(snippetTimer);
-  snippetTimer = setTimeout(() => {
-    if(controller) controller.pause();
-    setPlayingVisual(false);
-  }, seconds * 1000);
+  clipEndMs = 0;
+  if(controller) controller.pause();
+  setPlayingVisual(false);
 }
 
-function startCountdown(seconds){
+// Wall-clock backup only — playback updates re-aim it at the song position.
+function armAutoStop(seconds){
+  clearTimeout(snippetTimer);
+  snippetTimer = setTimeout(endClip, seconds * 1000);
+}
+
+function startCountdown(seconds, exact){
   clearInterval(countdownInterval);
   remainingSeconds = seconds;
   timerLine.textContent = remainingSeconds + 's';
-  animateClipBar(seconds);
+  animateClipBar(exact || seconds);
   tickCountdown();
-  armAutoStop(seconds);
+  armAutoStop(exact || seconds);
 }
 
 function pauseCountdown(){
@@ -3514,11 +3522,40 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
       lastKnownPaused = e.data.isPaused;
       lastKnownPosition = e.data.position || 0;
       lastKnownDuration = e.data.duration || 0;
-      if(pendingCountdownStart && !untimedMode && !e.data.isPaused && Math.abs(lastKnownPosition - lastStartMs) < 4000){
-        pendingCountdownStart = false;
-        clearTimeout(countdownStartFallback);
-        clearTimeout(timerSyncTimeout);
-        timerSyncTimeout = setTimeout(() => startCountdown(CLIP_SECONDS), TIMER_SYNC_DELAY);
+      // The clip is measured in song time, not wall time: it ends when the
+      // song itself reaches clipEndMs. Spotify can take a few seconds to
+      // buffer after "play", and a stopwatch started on the click would eat
+      // those seconds out of the clip.
+      if(clipEndMs && !untimedMode && !e.data.isPaused){
+        const clipStartMs = clipEndMs - CLIP_SECONDS * 1000;
+        const left = clipEndMs - lastKnownPosition;
+        if(pendingCountdownStart){
+          // Only start once the song is actually moving past the start point.
+          if(lastKnownPosition > clipStartMs && lastKnownPosition < clipStartMs + 4000){
+            pendingCountdownStart = false;
+            clearTimeout(countdownStartFallback);
+            clearTimeout(timerSyncTimeout);
+            startCountdown(Math.ceil(left / 1000), left / 1000);
+          }
+        }else if(left <= 0){
+          endClip();
+        }else if(lastKnownPosition >= clipStartMs){
+          // Re-aim the stop at the real song position on every update, and
+          // put the ring back in step if buffering let it drift.
+          clearTimeout(snippetTimer);
+          snippetTimer = setTimeout(endClip, left);
+          if(Math.abs(remainingSeconds * 1000 - left) > 1500){
+            clearInterval(countdownInterval);
+            remainingSeconds = Math.ceil(left / 1000);
+            timerLine.textContent = remainingSeconds + 's';
+            clipBar.style.transition = 'none';
+            clipBar.style.width = (left / (CLIP_SECONDS * 1000) * 100) + '%';
+            void clipBar.offsetWidth;
+            clipBar.style.transition = 'width ' + (left / 1000) + 's linear';
+            clipBar.style.width = '0%';
+            tickCountdown();
+          }
+        }
       }
       if(!isScrubbing){
         scrubSlider.max = lastKnownDuration || 100;
@@ -3567,6 +3604,7 @@ continueBtn.addEventListener('click', () => {
   untimedMode = !untimedMode;
   continueBtn.textContent = untimedMode ? 'Vibe mode: on' : 'Vibe mode: off';
   if(untimedMode){
+    clipEndMs = 0;
     clearTimeout(snippetTimer);
     clearInterval(countdownInterval);
     clearTimeout(countdownStartFallback);
@@ -3606,6 +3644,7 @@ function playSnippet(useNewPoint, overrideStartMs){
     lastStartMs = (15 + Math.random()*30) * 1000;
   }
   const startAtSeconds = Math.floor(lastStartMs / 1000);
+  clipEndMs = untimedMode ? 0 : (startAtSeconds + CLIP_SECONDS) * 1000;
   controller.loadUri(currentCard.uri, false, startAtSeconds);
   controller.play();
   setPlayingVisual(true);
@@ -3623,9 +3662,9 @@ function playSnippet(useNewPoint, overrideStartMs){
     if(pendingCountdownStart && !untimedMode){
       pendingCountdownStart = false;
       clearTimeout(timerSyncTimeout);
-      timerSyncTimeout = setTimeout(() => startCountdown(CLIP_SECONDS), TIMER_SYNC_DELAY);
+      startCountdown(CLIP_SECONDS);
     }
-  }, 4000);
+  }, 12000);
 }
 
 drawBtn.addEventListener('click', () => {
