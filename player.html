@@ -339,7 +339,9 @@
   .ent .coin{flex-shrink:0;align-self:center;}
   .ent.new{background:linear-gradient(90deg,rgba(212,162,78,.16),transparent);animation:rise .5s both;}
   .ent.new::before{background:var(--gold);border-color:var(--gold);box-shadow:0 0 0 4px rgba(212,162,78,.2);}
-  .gap-tag{font-family:'IBM Plex Mono',monospace;font-size:.6rem;color:var(--muted);padding:0 0 0 .45rem;line-height:1;margin:-.3rem 0 -.1rem;}
+  /* Positioned by placeGapTags(): exactly halfway between the two years. */
+  .gap-tag{position:absolute;left:1.65rem;transform:translateY(-50%);font-family:'IBM Plex Mono',monospace;font-size:.6rem;color:var(--muted);line-height:1;}
+  .spine .ent + .ent{margin-top:.25rem;}
   .gap-tag.tight{color:var(--green);}
 
   .toast{
@@ -347,9 +349,10 @@
     max-width:490px;margin:0 auto;display:flex;align-items:center;gap:.8rem;
     background:var(--gold);color:var(--ink);border-radius:14px;padding:.85rem 1rem;
     font-weight:600;font-size:.94rem;box-shadow:0 12px 30px rgba(212,162,78,.35);
-    transform:translateY(160%);transition:transform .45s cubic-bezier(.3,1.4,.5,1);
+    transform:translateY(160%);opacity:0;visibility:hidden;pointer-events:none;
+    transition:transform .45s cubic-bezier(.3,1.4,.5,1), opacity .3s, visibility 0s .45s;
   }
-  .toast.show{transform:none;}
+  .toast.show{transform:none;opacity:1;visibility:visible;pointer-events:auto;transition:transform .45s cubic-bezier(.3,1.4,.5,1), opacity .2s;}
   .toast small{display:block;font-weight:400;font-size:.76rem;opacity:.8;margin-top:.1rem;}
   .toast-rec{width:34px;height:34px;border-radius:50%;flex-shrink:0;background:var(--ink);border:11px solid var(--vinyl);box-sizing:border-box;box-shadow:inset 0 0 0 3px var(--gold);animation:spin 1.2s linear infinite;}
 
@@ -891,6 +894,8 @@ function renderNow(){
   const bodyEl = document.getElementById('nowBody');
   bodyEl.innerHTML = '';
   const card = lastState && lastState.currentCard;
+  // The game has moved on (a new mystery record is up) — clear "You got it".
+  if(!card || !card.revealed) hideToast();
 
   // The mini record mirrors the DJ's: spins while the clip plays, stops on
   // the reveal with the year on its label.
@@ -1072,10 +1077,34 @@ function renderMyTimeline(){
     }
     holder.appendChild(buildEntry(entry, newest && entry.id === newest.id));
   });
+  placeGapTags();
 }
+
+function placeGapTags(){
+  const holder = document.getElementById('myTimeline');
+  if(!holder.classList.contains('spine')) return;
+  const ents = holder.querySelectorAll('.ent');
+  // Centred in the empty space between one year block and the next (with
+  // expert mode's month on top of the next one), so it never touches either.
+  // Layout offsets, not screen rects, so the new card's slide-in doesn't skew it.
+  const yTop = (ent) => { const y = ent.querySelector('.y'); return ent.offsetTop + y.offsetTop; };
+  const yBottom = (ent) => { const y = ent.querySelector('.y'); return ent.offsetTop + y.offsetTop + y.offsetHeight; };
+  holder.querySelectorAll('.gap-tag').forEach((tag, i) => {
+    if(!ents[i + 1]) return;
+    tag.style.top = ((yBottom(ents[i]) + yTop(ents[i + 1])) / 2) + 'px';
+  });
+}
+window.addEventListener('resize', placeGapTags);
+if(document.fonts) document.fonts.ready.then(placeGapTags);
 
 // "You got it!" — a toast and a buzz when the DJ drops a card into our timeline.
 let toastTimer = null;
+function hideToast(){
+  clearTimeout(toastTimer);
+  document.getElementById('toast').classList.remove('show');
+}
+document.getElementById('toast').addEventListener('click', hideToast);
+
 function celebrate(entry){
   document.getElementById('toastTitle').textContent = 'You got it — ' + entry.year + '!';
   document.getElementById('toastSub').textContent = (entry.title || '') + (entry.artist ? ' · ' + entry.artist : '');
