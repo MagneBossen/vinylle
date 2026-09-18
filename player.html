@@ -31,6 +31,8 @@
     padding:1.5rem 1rem calc(2rem + env(safe-area-inset-bottom));
     -webkit-text-size-adjust:100%;
   }
+  /* No double-tap zoom (players tap a lot); pinch-zoom still works. */
+  html,body{touch-action:manipulation;}
   .wrap{max-width:520px;margin:0 auto;}
   h1{
     font-family:'Fraunces',serif;
@@ -371,17 +373,18 @@
   .sleeves{
     display:flex;align-items:flex-end;overflow-x:auto;overscroll-behavior-x:contain;
     scroll-snap-type:x proximity;scroll-padding:0 1rem;
-    padding:2.1rem .2rem .9rem;margin:0 -.4rem;
+    padding:1.9rem .9rem .9rem;margin:0 -.4rem;
     -webkit-overflow-scrolling:touch;scrollbar-width:none;
     -webkit-mask-image:linear-gradient(90deg,transparent,#000 .8rem,#000 calc(100% - .8rem),transparent);
     mask-image:linear-gradient(90deg,transparent,#000 .8rem,#000 calc(100% - .8rem),transparent);
   }
   .sleeves::-webkit-scrollbar{display:none;}
+  /* Sized so three sleeves fit across an iPhone 14/15 (390pt). */
   .sleeves .vinyl-card{
-    --disc:72px;
-    width:116px;min-height:150px;flex-shrink:0;scroll-snap-align:center;
+    --disc:56px;
+    width:82px;min-height:120px;flex-shrink:0;scroll-snap-align:center;
     background:transparent;border:none;
-    justify-content:flex-start;padding:3rem .5rem .7rem;gap:.2rem;
+    justify-content:flex-start;padding:2.45rem .4rem .6rem;gap:.15rem;
   }
   .sleeves .vinyl-card::before{
     content:'';position:absolute;left:50%;top:calc(var(--disc) * -.36);
@@ -399,14 +402,15 @@
   .sleeves .vinyl-card > *{position:relative;z-index:1;}
   .sleeves .vinyl-card.has-bonus::after{border-color:var(--gold-dim);}
   .sleeves .vinyl-card.is-new::after{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,162,78,.2),0 10px 20px rgba(0,0,0,.35);}
-  .sleeves .card-bonus-badge{position:absolute;top:7px;left:auto;right:7px;}
-  .sleeves .vinyl-card-year{font-size:1.45rem;line-height:1;margin-bottom:.15rem;}
-  .sleeves .vinyl-card-month{position:absolute;top:1.85rem;left:0;right:0;}
-  .sleeves .vinyl-card-title{font-size:.76rem;}
-  .sleeves .vinyl-card-artist{font-size:.62rem;}
+  .sleeves .card-bonus-badge{position:absolute;top:6px;left:auto;right:6px;}
+  .sleeves .card-bonus-badge svg{width:14px;height:14px;}
+  .sleeves .vinyl-card-year{font-size:1.18rem;line-height:1;margin-bottom:.1rem;}
+  .sleeves .vinyl-card-month{position:absolute;top:1.5rem;left:0;right:0;font-size:.52rem;}
+  .sleeves .vinyl-card-title{font-size:.66rem;}
+  .sleeves .vinyl-card-artist{font-size:.56rem;}
   .game-col{min-width:0;}
-  .cgap{flex:0 0 2.1rem;align-self:center;position:relative;height:2px;background:var(--line);margin-top:1.2rem;}
-  .cgap span{position:absolute;left:50%;transform:translateX(-50%);font-family:'IBM Plex Mono',monospace;font-size:.58rem;color:var(--muted);white-space:nowrap;bottom:6px;}
+  .cgap{flex:0 0 1.6rem;align-self:center;position:relative;height:2px;background:var(--line);margin-top:1.2rem;}
+  .cgap span{position:absolute;left:50%;transform:translateX(-50%);font-family:'IBM Plex Mono',monospace;font-size:.54rem;color:var(--muted);white-space:nowrap;bottom:6px;}
   .cgap span.under{bottom:auto;top:6px;}
   .cgap.tight{background:rgba(92,145,99,.6);}
   .cgap.tight span{color:var(--green);}
@@ -430,9 +434,7 @@
     .now-year{font-size:1.8rem;margin-top:.3rem;}
     .vinyl-card{width:80px;min-height:100px;}
     .sleeves{padding-top:1.9rem;padding-bottom:.6rem;}
-    .sleeves .vinyl-card{--disc:64px;width:104px;min-height:134px;padding-top:2.6rem;}
-    .sleeves .vinyl-card-month{top:1.5rem;}
-    .sleeves .vinyl-card-year{font-size:1.3rem;}
+    .sleeves{padding-left:.9rem;padding-right:.9rem;}
     .pips{margin:.4rem 0 .7rem;}
     .mini-rec{width:58px;height:58px;}
     .join-hero .rec{width:90px;height:90px;}
