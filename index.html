@@ -1193,7 +1193,9 @@
   .vinyl-card{
     --disc:clamp(66px,calc(7.6 * var(--vw, 1vw)),92px);
     background:transparent;border:none;
-    justify-content:flex-end;padding:.75rem .6rem .7rem;gap:.2rem;
+    /* Year sits at a fixed height on every card (month above it), so a row
+       of cards lines up whatever the title length; title and artist follow. */
+    justify-content:flex-start;padding:3.8rem .6rem .8rem;gap:.2rem;
   }
   /* Painting order does the layering: the disc (::before) goes first, the
      sleeve face (::after) over it, and the text sits on top at z-index 1. */
@@ -1213,7 +1215,7 @@
   }
   .vinyl-card:hover::before{transform:translateY(-6px) rotate(40deg);}
   .vinyl-card > .vinyl-card-year,.vinyl-card > .vinyl-card-title,.vinyl-card > .vinyl-card-artist{position:relative;z-index:1;}
-  .vinyl-card-year{font-size:clamp(1.3rem,calc(2.4 * var(--vw, 1vw)),1.75rem);line-height:1;margin-bottom:.15rem;}
+  .vinyl-card-year{font-size:clamp(1.55rem,calc(2.8 * var(--vw, 1vw)),2rem);line-height:1;margin-bottom:.2rem;}
   .vinyl-card-title{font-size:.84rem;line-height:1.2;}
   .card-bonus-badge,.card-bonus-toggle,.card-remove-btn,.card-new-tag,.card-gap{z-index:2;}
   .card-bonus-badge{top:8px;left:auto;right:8px;}
@@ -1229,9 +1231,21 @@
   .card-gap span.under{bottom:auto;top:6px;}
   .card-gap.tight{background:rgba(92,145,99,.6);}
   .card-gap.tight span{color:var(--green);}
-  .vinyl-card.row-start .card-gap{display:none;}
+  /* First card of a wrapped row: the gap back to the previous row's last
+     card moves onto the sleeve as a small tag, since there's no line to hang
+     it on. */
+  .vinyl-card.row-start .card-gap{
+    display:flex;align-items:center;gap:.3em;
+    right:auto;left:50%;top:10px;transform:translateX(-50%);width:auto;height:auto;
+    background:rgba(14,10,17,.55);border:1px solid var(--line);border-radius:999px;padding:.12rem .45rem;
+  }
+  .vinyl-card.row-start .card-gap::before{content:'↳';font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--muted);}
+  .vinyl-card.row-start .card-gap span{position:static;transform:none;}
+  .vinyl-card.row-start .card-gap.tight{background:rgba(92,145,99,.18);border-color:rgba(92,145,99,.6);}
+  .vinyl-card.row-start .card-gap.tight::before{color:var(--green);}
+  .vinyl-card.add-slot.row-start .card-gap{display:none;}
   .vinyl-card.dragging::before{opacity:0;}
-  .vinyl-card.add-slot{border:1.5px dashed var(--gold-dim);background:transparent;justify-content:center;}
+  .vinyl-card.add-slot{border:1.5px dashed var(--gold-dim);background:transparent;justify-content:center;padding:.75rem .6rem;}
   .vinyl-card.add-slot::before,.vinyl-card.add-slot::after{content:none;}
   .vinyl-card.add-slot .card-gap{background:repeating-linear-gradient(90deg,var(--gold-dim) 0 5px,transparent 5px 10px);}
   .vinyl-card.add-slot:disabled .card-gap{background:repeating-linear-gradient(90deg,var(--line) 0 5px,transparent 5px 10px);}
@@ -3573,7 +3587,7 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
           }
         }
         cuePrevPos = inWindow ? pos : null;
-      }else if(clipEndMs && !untimedMode && !e.data.isPaused){
+      }else if(clipEndMs && !untimedMode && !e.data.isPaused && vinyl.classList.contains('spinning')){
         const left = clipEndMs - lastKnownPosition;
         if(left <= 0){
           endClip();
@@ -3606,7 +3620,11 @@ scrubSlider.addEventListener('touchstart', () => isScrubbing = true);
 
 scrubPlayBtn.addEventListener('click', () => {
   if(!controller || !currentCard) return;
-  if(lastKnownPaused){
+  // Decide from our own state, not Spotify's last report: a late "playing"
+  // update right after a pause used to flip it back, so the next Space
+  // paused again instead of resuming.
+  const running = awaitingSound || vinyl.classList.contains('spinning');
+  if(!running){
     // Resume only within what's left of the clip; once it's used up Space
     // does nothing (Vibe mode has no limit).
     if(!untimedMode && (!clipEndMs || clipEndMs - pausedAtMs <= 0)) return;
@@ -3619,12 +3637,15 @@ scrubPlayBtn.addEventListener('click', () => {
     controller.play();
     cueNeedle(resumeAtSeconds * 1000);
   }else{
-    pausedAtMs = lastKnownPosition;
+    // Paused before the sound even started: resume from the cue point, not
+    // from whatever position Spotify last reported.
+    pausedAtMs = awaitingSound ? soundFromMs : lastKnownPosition;
     controller.pause();
     setPlayingVisual(false);
     clearTimeout(timerSyncTimeout);
     pauseCountdown();
   }
+  if(document.activeElement && document.activeElement.tagName === 'BUTTON') document.activeElement.blur();
 });
 
 scrubSeekBtn.addEventListener('click', () => {
@@ -3824,6 +3845,7 @@ document.querySelectorAll('.footer-link').forEach(link => {
 
 document.addEventListener('keydown', (e) => {
   if(e.code !== 'Space') return;
+  if(e.repeat){ e.preventDefault(); return; }
   const tag = document.activeElement.tagName;
   if(tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement.isContentEditable) return;
   e.preventDefault();
@@ -4619,6 +4641,9 @@ function markRowStarts(){
   });
 }
 window.addEventListener('resize', () => requestAnimationFrame(markRowStarts));
+// Also whenever the timelines change size or become visible — marking them
+// while the overlay was closed measured nothing and left stale connectors.
+if(window.ResizeObserver) new ResizeObserver(() => markRowStarts()).observe(scoreboardEl);
 
 // Progress toward the win: one little record per card up to 15, a bar beyond.
 function buildPips(count, target){
