@@ -1927,6 +1927,20 @@ function armAutoStop(seconds){
   snippetTimer = setTimeout(endClip, seconds * 1000);
 }
 
+// Run the ring/countdown for the time left in the clip and arm the stop.
+function runClip(leftMs){
+  clearInterval(countdownInterval);
+  remainingSeconds = Math.ceil(leftMs / 1000);
+  timerLine.textContent = remainingSeconds + 's';
+  clipBar.style.transition = 'none';
+  clipBar.style.width = Math.min(100, leftMs / (CLIP_SECONDS * 1000) * 100) + '%';
+  void clipBar.offsetWidth;
+  clipBar.style.transition = 'width ' + (leftMs / 1000) + 's linear';
+  clipBar.style.width = '0%';
+  tickCountdown();
+  armAutoStop(leftMs / 1000);
+}
+
 function startCountdown(seconds, exact){
   clearInterval(countdownInterval);
   remainingSeconds = seconds;
@@ -3542,42 +3556,33 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
       lastKnownPaused = e.data.isPaused;
       lastKnownPosition = e.data.position || 0;
       lastKnownDuration = e.data.duration || 0;
-      if(awaitingSound && !e.data.isPaused && lastKnownPosition > soundFromMs && lastKnownPosition < soundFromMs + 4000){
-        setPlayingVisual(true);
-      }
       // The clip is measured in song time, not wall time: it ends when the
-      // song itself reaches clipEndMs. Spotify can take a few seconds to
-      // buffer after "play", and a stopwatch started on the click would eat
-      // those seconds out of the clip.
-      if(clipEndMs && !untimedMode && !e.data.isPaused){
-        const clipStartMs = clipEndMs - CLIP_SECONDS * 1000;
-        const left = clipEndMs - lastKnownPosition;
-        if(pendingCountdownStart){
-          // Only start once the song is actually moving past the start point.
-          if(lastKnownPosition > clipStartMs && lastKnownPosition < clipStartMs + 4000){
+      // song itself reaches clipEndMs. Nothing (spin, ring, countdown) starts
+      // until the song is really moving — Spotify often sends a stale
+      // "playing" update with the old position first, so it takes two
+      // updates with the position going up.
+      if(awaitingSound){
+        const pos = lastKnownPosition;
+        const inWindow = !e.data.isPaused && pos >= soundFromMs && pos < soundFromMs + 5000;
+        if(inWindow && cuePrevPos !== null && pos > cuePrevPos + 50){
+          setPlayingVisual(true);
+          if(clipEndMs && !untimedMode){
             pendingCountdownStart = false;
-            clearTimeout(countdownStartFallback);
-            clearTimeout(timerSyncTimeout);
-            startCountdown(Math.ceil(left / 1000), left / 1000);
+            if(clipEndMs - pos <= 0) endClip();
+            else runClip(clipEndMs - pos);
           }
-        }else if(left <= 0){
+        }
+        cuePrevPos = inWindow ? pos : null;
+      }else if(clipEndMs && !untimedMode && !e.data.isPaused){
+        const left = clipEndMs - lastKnownPosition;
+        if(left <= 0){
           endClip();
-        }else if(lastKnownPosition >= clipStartMs){
+        }else if(lastKnownPosition >= clipEndMs - CLIP_SECONDS * 1000){
           // Re-aim the stop at the real song position on every update, and
           // put the ring back in step if buffering let it drift.
           clearTimeout(snippetTimer);
           snippetTimer = setTimeout(endClip, left);
-          if(Math.abs(remainingSeconds * 1000 - left) > 1500){
-            clearInterval(countdownInterval);
-            remainingSeconds = Math.ceil(left / 1000);
-            timerLine.textContent = remainingSeconds + 's';
-            clipBar.style.transition = 'none';
-            clipBar.style.width = (left / (CLIP_SECONDS * 1000) * 100) + '%';
-            void clipBar.offsetWidth;
-            clipBar.style.transition = 'width ' + (left / 1000) + 's linear';
-            clipBar.style.width = '0%';
-            tickCountdown();
-          }
+          if(Math.abs(remainingSeconds * 1000 - left) > 1500) runClip(left);
         }
       }
       if(!isScrubbing){
@@ -3602,12 +3607,17 @@ scrubSlider.addEventListener('touchstart', () => isScrubbing = true);
 scrubPlayBtn.addEventListener('click', () => {
   if(!controller || !currentCard) return;
   if(lastKnownPaused){
+    // Resume only within what's left of the clip; once it's used up Space
+    // does nothing (Vibe mode has no limit).
+    if(!untimedMode && (!clipEndMs || clipEndMs - pausedAtMs <= 0)) return;
     const resumeAtSeconds = Math.floor(pausedAtMs / 1000);
+    // Spotify only seeks to whole seconds, so up to a second gets replayed.
+    // Push the clip's end back by exactly that much: a resume can repeat a
+    // little, but never cuts the clip short.
+    if(clipEndMs) clipEndMs += pausedAtMs - resumeAtSeconds * 1000;
     controller.loadUri(currentCard.uri, false, resumeAtSeconds);
     controller.play();
     cueNeedle(resumeAtSeconds * 1000);
-    clearTimeout(timerSyncTimeout);
-    timerSyncTimeout = setTimeout(() => resumeCountdown(), TIMER_SYNC_DELAY);
   }else{
     pausedAtMs = lastKnownPosition;
     controller.pause();
@@ -3647,6 +3657,7 @@ continueBtn.addEventListener('click', () => {
 // spins once Spotify's song position is actually moving, and the needle
 // lifts again on stop, clip end or reveal.
 let awaitingSound = false;
+let cuePrevPos = null;
 let soundFromMs = 0;
 let soundFallback = null;
 
@@ -3668,9 +3679,14 @@ function cueNeedle(fromMs){
   tonearm.classList.add('down');
   awaitingSound = true;
   soundFromMs = fromMs;
+  cuePrevPos = null;
   clearTimeout(soundFallback);
-  // If Spotify never reports the song moving, spin anyway rather than hang.
-  soundFallback = setTimeout(() => { if(awaitingSound) setPlayingVisual(true); }, 12000);
+  // If Spotify never reports the song moving, start anyway rather than hang.
+  soundFallback = setTimeout(() => {
+    if(!awaitingSound) return;
+    setPlayingVisual(true);
+    if(clipEndMs && !untimedMode){ pendingCountdownStart = false; runClip(clipEndMs - fromMs); }
+  }, 12000);
   syncStage();
 }
 
@@ -3702,13 +3718,6 @@ function playSnippet(useNewPoint, overrideStartMs){
   freezeClipBar();
   clipBar.style.width = '100%';
   pendingCountdownStart = true;
-  countdownStartFallback = setTimeout(() => {
-    if(pendingCountdownStart && !untimedMode){
-      pendingCountdownStart = false;
-      clearTimeout(timerSyncTimeout);
-      startCountdown(CLIP_SECONDS);
-    }
-  }, 12000);
 }
 
 drawBtn.addEventListener('click', () => {
