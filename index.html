@@ -76,7 +76,7 @@
   h1{
     font-family:'Fraunces',serif;
     font-weight:700;
-    font-size:clamp(2rem,5vw,2.8rem);
+    font-size:clamp(2rem,calc(5 * var(--vw, 1vw)),2.8rem);
     margin:0 0 .2rem;
     letter-spacing:-0.01em;
   }
@@ -243,7 +243,7 @@
   .scoreboard-panel-header h2{
     font-family:'Fraunces',serif;
     font-weight:700;
-    font-size:clamp(1.8rem,5vw,2.6rem);
+    font-size:clamp(1.8rem,calc(5 * var(--vw, 1vw)),2.6rem);
     margin:0;
     color:var(--paper);
   }
@@ -396,13 +396,13 @@
   }
   .history-entry:last-child{border-bottom:none;}
   #historyList{
-    max-height:55vh;
+    max-height:calc(55vh / var(--z, 1));
     overflow-y:auto;
     padding-right:.5rem;
     border-top:1px solid var(--line);
   }
   .history-scroll-box{
-    max-height:70vh;
+    max-height:calc(70vh / var(--z, 1));
     overflow-y:auto;
     padding-right:.5rem;
     border-top:1px solid var(--line);
@@ -466,7 +466,7 @@
   .player-header{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;margin-bottom:1rem;}
   .player-rank{font-family:'IBM Plex Mono',monospace;font-size:1.2rem;color:var(--muted);min-width:2ch;flex-shrink:0;}
   .player-block.leader .player-rank{color:var(--gold);}
-  .player-name{font-family:'Fraunces',serif;font-weight:600;font-size:clamp(1.3rem,3vw,1.8rem);color:var(--paper);}
+  .player-name{font-family:'Fraunces',serif;font-weight:600;font-size:clamp(1.3rem,calc(3 * var(--vw, 1vw)),1.8rem);color:var(--paper);}
   .player-block.leader .player-name{color:var(--gold);}
   .player-win-badge{
     font-family:'IBM Plex Mono',monospace;
@@ -521,12 +521,12 @@
   }
   .icon-btn:hover{background:var(--surface-2);color:var(--gold);}
   .icon-btn:disabled{opacity:.3;cursor:not-allowed;}
-  .player-timeline{display:flex;flex-wrap:wrap;gap:.9rem;min-height:calc(clamp(120px,13vw,168px) + .4rem);border-radius:10px;transition:background-color .15s;}
+  .player-timeline{display:flex;flex-wrap:wrap;gap:.9rem;min-height:calc(clamp(120px,calc(13 * var(--vw, 1vw)),168px) + .4rem);border-radius:10px;transition:background-color .15s;}
   .player-timeline.drag-over{background-color:rgba(212,162,78,0.1);outline:2px dashed var(--gold-dim);outline-offset:4px;}
   .vinyl-card{
     position:relative;
-    width:clamp(96px,11vw,136px);
-    min-height:clamp(120px,13vw,168px);
+    width:clamp(96px,calc(11 * var(--vw, 1vw)),136px);
+    min-height:clamp(120px,calc(13 * var(--vw, 1vw)),168px);
     background:var(--surface-2);
     border:1px solid var(--line);
     border-radius:10px;
@@ -582,7 +582,7 @@
   .vinyl-card:hover .card-bonus-toggle{opacity:1;}
   .vinyl-card-year{
     font-family:'IBM Plex Mono',monospace;
-    font-size:clamp(1.15rem,2.2vw,1.5rem);
+    font-size:clamp(1.15rem,calc(2.2 * var(--vw, 1vw)),1.5rem);
     color:var(--gold);
     font-weight:500;
     position:relative;
@@ -658,7 +658,7 @@
   }
   .role-overlay.open{display:flex;}
   .role-inner{max-width:640px;width:100%;text-align:center;}
-  .role-inner h1{font-size:clamp(2.4rem,7vw,3.4rem);margin-bottom:.4rem;}
+  .role-inner h1{font-size:clamp(2.4rem,calc(7 * var(--vw, 1vw)),3.4rem);margin-bottom:.4rem;}
   .role-inner .tagline{margin-bottom:2.4rem;}
   .role-options{display:flex;gap:1.1rem;justify-content:center;flex-wrap:wrap;}
   .role-btn{
@@ -699,7 +699,7 @@
   /* A button so it's keyboard-reachable, styled back down to plain text. */
   button.lobby-code{
     font-family:'IBM Plex Mono',monospace;
-    font-size:clamp(1.8rem,4.5vw,2.6rem);
+    font-size:clamp(1.8rem,calc(4.5 * var(--vw, 1vw)),2.6rem);
     letter-spacing:.22em;
     color:var(--gold);
     line-height:1.1;
@@ -777,10 +777,10 @@
   .player-claim.off{background:var(--line);}
   .player-header input.player-name-input{
     font-family:'Fraunces',serif;font-weight:600;
-    font-size:clamp(1.3rem,3vw,1.8rem);
+    font-size:clamp(1.3rem,calc(3 * var(--vw, 1vw)),1.8rem);
     color:var(--paper);
     background:transparent;border:1px solid transparent;border-radius:6px;
-    padding:.1rem .35rem;margin:0;width:auto;max-width:min(48vw,320px);
+    padding:.1rem .35rem;margin:0;width:auto;max-width:min(calc(48 * var(--vw, 1vw)),320px);
   }
   .player-header input.player-name-input:hover{border-color:var(--line);}
   .player-header input.player-name-input:focus{border-color:var(--gold-dim);background:var(--surface-2);outline:none;}
@@ -790,7 +790,7 @@
     background:var(--surface);border:1px solid var(--gold-dim);border-radius:10px;
     padding:.7rem 1.1rem;font-size:.85rem;color:var(--paper);
     z-index:1500;box-shadow:0 8px 24px rgba(0,0,0,.4);
-    max-width:calc(100vw - 3rem);
+    max-width:calc(calc(100 * var(--vw, 1vw)) - 3rem);
   }
   .badge{
     font-family:'IBM Plex Mono',monospace;
@@ -877,7 +877,7 @@
   html{background:var(--bg);}
   body{
     padding:0 0 3rem;
-    min-height:100vh;
+    min-height:calc(100vh / var(--z, 1));
     background:
       radial-gradient(1100px 620px at 92% -12%, var(--glow), transparent 62%),
       radial-gradient(800px 560px at -12% 108%, rgba(92,145,99,.06), transparent 60%),
@@ -943,7 +943,6 @@
   /* ── stage ── */
   .stage-wrap{position:relative;z-index:2;max-width:1320px;margin:0 auto;padding:1.8rem 1.6rem 0;}
   .stage{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,320px);gap:1.6rem;align-items:start;}
-  @media (max-width:980px){.stage{grid-template-columns:1fr;}}
   .stage-main{
     position:relative;min-height:470px;
     background:rgba(37,26,43,.45);border:1px solid var(--line);border-radius:20px;
@@ -955,9 +954,9 @@
   /* Top-aligned, so anything that appears in the readout (the reveal, the
      give chips, the debug panel) grows downward instead of re-centring and
      shoving everything up. The padding sets the resting position. */
-  .deck{display:flex;align-items:flex-start;justify-content:center;gap:clamp(1.6rem,4vw,3.4rem);flex-wrap:wrap;min-height:420px;}
-  @media (min-width:760px){ .deck .readout{padding-top:clamp(0px,3.4vw,48px);} }
-  .tt{position:relative;width:clamp(230px,28vw,350px);aspect-ratio:1;flex-shrink:0;margin:14px;}
+  .deck{display:flex;align-items:flex-start;justify-content:center;gap:clamp(1.6rem,calc(4 * var(--vw, 1vw)),3.4rem);flex-wrap:wrap;min-height:420px;}
+  .deck .readout{padding-top:clamp(0px,calc(3.4 * var(--vw, 1vw)),48px);}
+  .tt{position:relative;width:clamp(230px,calc(28 * var(--vw, 1vw)),350px);aspect-ratio:1;flex-shrink:0;margin:14px;}
   .ring{position:absolute;inset:-14px;width:calc(100% + 28px);height:calc(100% + 28px);transform:rotate(-90deg);pointer-events:none;}
   .ring circle{fill:none;stroke-width:3;}
   .ring-track{stroke:var(--line);}
@@ -981,9 +980,9 @@
     background:radial-gradient(circle at 35% 30%, #E4B865, var(--gold) 55%, #B98838);
     color:var(--ink);box-shadow:inset 0 0 0 1px rgba(36,26,11,.3);
   }
-  .face.front span{font-family:'Fraunces',serif;font-weight:700;font-size:clamp(2.2rem,4.4vw,3.4rem);line-height:1;}
+  .face.front span{font-family:'Fraunces',serif;font-weight:700;font-size:clamp(2.2rem,calc(4.4 * var(--vw, 1vw)),3.4rem);line-height:1;}
   .face.back{transform:rotateY(180deg);}
-  .face.back .y{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:clamp(1.3rem,2.7vw,2.1rem);letter-spacing:.02em;line-height:1.1;}
+  .face.back .y{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:clamp(1.3rem,calc(2.7 * var(--vw, 1vw)),2.1rem);letter-spacing:.02em;line-height:1.1;}
   .face.back .m{font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;opacity:.7;}
   .spindle{position:absolute;left:50%;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;background:var(--vinyl);z-index:3;transition:opacity .3s;}
   .tt.revealed .spindle{opacity:0;}
@@ -1009,7 +1008,7 @@
      holds, so Reveal and Next record sit on the same pixel. Text too long for
      the line runs as a ticker instead of wrapping. */
   .readout .title{
-    font-family:'Fraunces',serif;font-weight:600;font-size:clamp(1.6rem,3vw,2.3rem);
+    font-family:'Fraunces',serif;font-weight:600;font-size:clamp(1.6rem,calc(3 * var(--vw, 1vw)),2.3rem);
     line-height:1.25;height:1.25em;margin:.5rem 0 .2rem;letter-spacing:-.01em;
   }
   .readout .sub{color:var(--muted);font-size:1.05rem;line-height:1.35;height:1.35em;}
@@ -1021,7 +1020,7 @@
   .ticker.run > span::after{content:attr(data-text);padding-left:3.5rem;}
   @keyframes ticker{0%,18%{transform:none;}100%{transform:translateX(calc(-1 * var(--tk-dist)));}}
   .readout .year{
-    font-family:'IBM Plex Mono',monospace;font-size:clamp(2.4rem,5vw,3.4rem);color:var(--gold);
+    font-family:'IBM Plex Mono',monospace;font-size:clamp(2.4rem,calc(5 * var(--vw, 1vw)),3.4rem);color:var(--gold);
     margin-top:.4rem;line-height:1;height:1.05em;white-space:nowrap;
   }
   .readout .year:empty::before{content:'????';color:var(--line);letter-spacing:.04em;}
@@ -1049,7 +1048,7 @@
   /* The ring and the live dot already say this, so the timer row is hidden —
      but kept rendered: the Spotify iframe lives in it and the ring reads the bar. */
   .clip-timer{position:absolute;left:0;bottom:0;margin:0;opacity:0;pointer-events:none;z-index:-1;}
-  .clip-timer .audio-engine{margin:0;}
+  .tt .audio-engine{position:absolute;left:50%;top:50%;margin:-13px 0 0 -13px;pointer-events:none;}
   .clip-timer-num{font-size:1rem;min-width:0;text-align:left;}
   /* The bar still drives the timing maths (and the ring copies it), so it
      stays rendered — just out of sight. */
@@ -1107,14 +1106,13 @@
 
   /* ── pre-game lobby hero ── */
   .lobby-hero{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2.2rem;align-items:center;min-height:420px;}
-  @media (max-width:760px){.lobby-hero{grid-template-columns:1fr;}}
   .lobby-hero .kicker{display:flex;align-items:center;gap:.9rem;font-family:'IBM Plex Mono',monospace;font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);}
-  .lobby-hero-title{font-family:'Fraunces',serif;font-weight:700;font-size:clamp(2.2rem,5vw,3.4rem);margin:.5rem 0 .5rem;line-height:1.02;letter-spacing:-.015em;color:var(--paper);}
+  .lobby-hero-title{font-family:'Fraunces',serif;font-weight:700;font-size:clamp(2.2rem,calc(5 * var(--vw, 1vw)),3.4rem);margin:.5rem 0 .5rem;line-height:1.02;letter-spacing:-.015em;color:var(--paper);}
   .lobby-hero-url{font-family:'IBM Plex Mono',monospace;color:var(--muted);font-size:1rem;}
   .lobby-hero-url b{color:var(--paper);font-weight:500;}
   button.lobby-code{
     display:flex;gap:.45rem;flex-wrap:wrap;margin:1.1rem 0 .35rem;padding:0;border:none;background:none;
-    font-size:clamp(1.8rem,4vw,2.8rem);letter-spacing:0;
+    font-size:clamp(1.8rem,calc(4 * var(--vw, 1vw)),2.8rem);letter-spacing:0;
   }
   button.lobby-code:hover{background:none;border-color:transparent;}
   button.lobby-code .ch{
@@ -1142,7 +1140,7 @@
   .drawer-scrim{position:fixed;inset:0;z-index:940;background:rgba(10,7,15,.55);opacity:0;pointer-events:none;transition:opacity .3s;}
   .drawer-scrim.open{opacity:1;pointer-events:auto;}
   .drawer{
-    position:fixed;top:0;right:0;bottom:0;z-index:950;width:min(460px,100vw);
+    position:fixed;top:0;right:0;bottom:0;z-index:950;width:min(460px,calc(100 * var(--vw, 1vw)));
     background:var(--surface);border-left:1px solid var(--line);
     transform:translateX(104%);transition:transform .35s cubic-bezier(.4,0,.2,1);
     display:flex;flex-direction:column;box-shadow:-24px 0 60px rgba(0,0,0,.5);
@@ -1193,7 +1191,7 @@
   /* ── sleeves: timeline cards with the record peeking out ── */
   .player-timeline{gap:2.6rem 2.2rem;padding-top:2rem;align-items:flex-end;}
   .vinyl-card{
-    --disc:clamp(66px,7.6vw,92px);
+    --disc:clamp(66px,calc(7.6 * var(--vw, 1vw)),92px);
     background:transparent;border:none;
     justify-content:flex-end;padding:.75rem .6rem .7rem;gap:.2rem;
   }
@@ -1215,7 +1213,7 @@
   }
   .vinyl-card:hover::before{transform:translateY(-6px) rotate(40deg);}
   .vinyl-card > .vinyl-card-year,.vinyl-card > .vinyl-card-title,.vinyl-card > .vinyl-card-artist{position:relative;z-index:1;}
-  .vinyl-card-year{font-size:clamp(1.3rem,2.4vw,1.75rem);line-height:1;margin-bottom:.15rem;}
+  .vinyl-card-year{font-size:clamp(1.3rem,calc(2.4 * var(--vw, 1vw)),1.75rem);line-height:1;margin-bottom:.15rem;}
   .vinyl-card-title{font-size:.84rem;line-height:1.2;}
   .card-bonus-badge,.card-bonus-toggle,.card-remove-btn,.card-new-tag,.card-gap{z-index:2;}
   .card-bonus-badge{top:8px;left:auto;right:8px;}
@@ -1335,12 +1333,6 @@
   .pw-t{font-family:'Fraunces',serif;font-size:12px;line-height:1.2;max-height:29px;overflow:hidden;}
   .pw-more{align-self:center;font-family:'IBM Plex Mono',monospace;color:var(--muted);font-size:22px;padding-left:6px;}
 
-  @media (max-width:700px){
-    .topbar{padding:.7rem 4.6rem .7rem 1rem;gap:.6rem;flex-wrap:wrap;}
-    .joinchip-count{display:none;}
-    .stage-wrap{padding:1.2rem 1rem 0;}
-    .stage-main{padding:1.4rem 1.1rem;}
-  }
   @media (prefers-reduced-motion:reduce){
     *,*::before,*::after{animation:none !important;transition:none !important;}
   }
@@ -1478,11 +1470,11 @@
         <span class="menu-setting-value" id="winLengthValue">10</span>
       </div>
       <div class="menu-setting-row">
-        <span class="field-label" style="margin:0;">UI scale</span>
+        <span class="field-label" style="margin:0;">Display size</span>
         <input type="range" id="uiScaleInput" min="80" max="160" value="100">
         <span class="menu-setting-value" id="uiScaleValue">100%</span>
       </div>
-      <p class="hint">Bumps the size of most text and buttons across the whole app — useful if you're viewing this on a TV from across the room. It won't fix everything perfectly (a few elements are fixed-size), but it covers most of it.</p>
+      <p class="hint">Vinyl'le already scales itself to fit your window. This nudges it bigger or smaller on top of that — handy on a TV across the room.</p>
       <div class="menu-setting-row" style="justify-content:space-between;">
         <span class="field-label" style="margin:0;">Expert mode (release month)</span>
         <div class="filter-toggle">
@@ -1604,6 +1596,13 @@
 
       <section class="deck" id="deck">
         <div class="tt" id="turntable">
+          <!-- The Spotify player lives here, tucked under the record: fully
+               on screen and opaque (Chrome slows down hidden cross-origin
+               frames), just painted over by the vinyl. -->
+          <div class="audio-engine" id="audioEngine" title="audio engine" aria-hidden="true">
+            <div id="sp-frame-holder"></div>
+            <div class="audio-engine-cover"><span class="audio-engine-dot"></span></div>
+          </div>
           <svg class="ring" viewBox="0 0 368 368" aria-hidden="true"><circle class="ring-track" cx="184" cy="184" r="178"/><circle class="ring-prog" id="ringProg" cx="184" cy="184" r="178"/></svg>
           <div class="spin-wrap" id="vinylSvg">
             <div class="record"></div>
@@ -1633,10 +1632,6 @@
           </div>
 
           <div class="clip-timer">
-            <div class="audio-engine" id="audioEngine" title="audio engine" aria-hidden="true">
-              <div id="sp-frame-holder"></div>
-              <div class="audio-engine-cover"><span class="audio-engine-dot"></span></div>
-            </div>
             <span class="clip-timer-num" id="timerLine">30s</span>
             <div class="clip-timer-track"><div class="clip-timer-bar" id="clipBar"></div></div>
           </div>
@@ -1860,7 +1855,7 @@ function loadSession(){
     if(typeof state.uiScale === 'number'){
       uiScaleInput.value = state.uiScale;
       uiScaleValue.textContent = state.uiScale + '%';
-      document.documentElement.style.fontSize = (state.uiScale / 100 * 16) + 'px';
+      applyZoom();
     }
     if(typeof state.expertMode === 'boolean'){
       expertMode = state.expertMode;
@@ -1955,6 +1950,32 @@ function resumeCountdown(){
   clipBar.style.width = '0%';
   tickCountdown();
   armAutoStop(remainingSeconds);
+}
+
+/* Fit to screen: the layout is drawn for a 1440×800 window and the whole
+   page is zoomed to fit the actual one, so a half-size window shows the same
+   screen at half size, a TV shows it bigger. Display size (settings)
+   multiplies on top. --vw is 1% of the zoomed layout width, used in place of
+   vw so vw-based sizes scale with everything else. */
+function fitScale(){
+  const DESIGN_W = 1440, DESIGN_H = 800;
+  const w = window.innerWidth, h = window.innerHeight;
+  return Math.min(3, Math.max(0.25, Math.min(w / DESIGN_W, h / DESIGN_H)));
+}
+function applyZoom(){
+  const el = document.getElementById('uiScaleInput');
+  const user = el ? parseInt(el.value, 10) / 100 : 1;
+  const z = Math.round(fitScale() * user * 1000) / 1000;
+  document.documentElement.style.zoom = z;
+  document.documentElement.style.setProperty('--z', z);
+  document.documentElement.style.setProperty('--vw', (window.innerWidth / z / 100) + 'px');
+}
+window.addEventListener('resize', applyZoom);
+applyZoom();
+// Exports are laid out at fixed pixel sizes, so snapshot them un-zoomed.
+function snapshot(el, opts){
+  document.documentElement.style.zoom = 1;
+  return html2canvas(el, opts).finally(applyZoom);
 }
 
 const vinyl = document.getElementById('vinylSvg');
@@ -2910,7 +2931,7 @@ function saveTimelineAsImage(player){
   capture.appendChild(row);
 
   document.body.appendChild(capture);
-  html2canvas(capture, {backgroundColor: '#251A2B', scale: 2}).then(canvas => {
+  snapshot(capture, {backgroundColor: '#251A2B', scale: 2}).then(canvas => {
     document.body.removeChild(capture);
     const link = document.createElement('a');
     const safeName = player.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase() || 'player';
@@ -3040,7 +3061,7 @@ document.getElementById('savePodiumBtn').addEventListener('click', () => {
   const poster = buildResultsPoster();
   holder.appendChild(poster);
   document.body.appendChild(holder);
-  html2canvas(poster, {backgroundColor: '#1B1420', scale: 1, width: 1080, height: 1350}).then(canvas => {
+  snapshot(poster, {backgroundColor: '#1B1420', scale: 1, width: 1080, height: 1350}).then(canvas => {
     holder.remove();
     const link = document.createElement('a');
     link.download = 'vinylle-podium.png';
@@ -3125,9 +3146,8 @@ winLengthInput.addEventListener('input', () => {
 const uiScaleInput = document.getElementById('uiScaleInput');
 const uiScaleValue = document.getElementById('uiScaleValue');
 uiScaleInput.addEventListener('input', () => {
-  const scale = parseInt(uiScaleInput.value, 10);
-  uiScaleValue.textContent = scale + '%';
-  document.documentElement.style.fontSize = (scale / 100 * 16) + 'px';
+  uiScaleValue.textContent = uiScaleInput.value + '%';
+  applyZoom();
   saveSession();
 });
 
@@ -3522,6 +3542,9 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
       lastKnownPaused = e.data.isPaused;
       lastKnownPosition = e.data.position || 0;
       lastKnownDuration = e.data.duration || 0;
+      if(awaitingSound && !e.data.isPaused && lastKnownPosition > soundFromMs && lastKnownPosition < soundFromMs + 4000){
+        setPlayingVisual(true);
+      }
       // The clip is measured in song time, not wall time: it ends when the
       // song itself reaches clipEndMs. Spotify can take a few seconds to
       // buffer after "play", and a stopwatch started on the click would eat
@@ -3582,7 +3605,7 @@ scrubPlayBtn.addEventListener('click', () => {
     const resumeAtSeconds = Math.floor(pausedAtMs / 1000);
     controller.loadUri(currentCard.uri, false, resumeAtSeconds);
     controller.play();
-    setPlayingVisual(true);
+    cueNeedle(resumeAtSeconds * 1000);
     clearTimeout(timerSyncTimeout);
     timerSyncTimeout = setTimeout(() => resumeCountdown(), TIMER_SYNC_DELAY);
   }else{
@@ -3620,7 +3643,16 @@ continueBtn.addEventListener('click', () => {
   }
 });
 
+// Like a real deck: the needle drops first (cueNeedle), the record only
+// spins once Spotify's song position is actually moving, and the needle
+// lifts again on stop, clip end or reveal.
+let awaitingSound = false;
+let soundFromMs = 0;
+let soundFallback = null;
+
 function setPlayingVisual(isPlaying){
+  awaitingSound = false;
+  clearTimeout(soundFallback);
   if(isPlaying) releaseCoast();
   else if(vinyl.classList.contains('spinning')) coastToStop();
   vinyl.classList.toggle('spinning', isPlaying);
@@ -3628,6 +3660,18 @@ function setPlayingVisual(isPlaying){
   audioEngine.classList.toggle('playing', isPlaying);
   syncStage();
   broadcastState();
+}
+
+function cueNeedle(fromMs){
+  if(vinyl.classList.contains('spinning')) coastToStop();
+  vinyl.classList.remove('spinning');
+  tonearm.classList.add('down');
+  awaitingSound = true;
+  soundFromMs = fromMs;
+  clearTimeout(soundFallback);
+  // If Spotify never reports the song moving, spin anyway rather than hang.
+  soundFallback = setTimeout(() => { if(awaitingSound) setPlayingVisual(true); }, 12000);
+  syncStage();
 }
 
 let lastStartMs = 0;
@@ -3647,7 +3691,7 @@ function playSnippet(useNewPoint, overrideStartMs){
   clipEndMs = untimedMode ? 0 : (startAtSeconds + CLIP_SECONDS) * 1000;
   controller.loadUri(currentCard.uri, false, startAtSeconds);
   controller.play();
-  setPlayingVisual(true);
+  cueNeedle(startAtSeconds * 1000);
   if(untimedMode){
     timerLine.textContent = '∞';
     clipBar.style.transition = 'none';
@@ -3726,6 +3770,8 @@ function refreshNowYearDisplay(){
 
 revealBtn.addEventListener('click', () => {
   if(!currentCard) return;
+  // Lifting the needle on reveal, as on a real deck.
+  if(awaitingSound || vinyl.classList.contains('spinning')) stopPlayback();
   revealed = true;
   currentCard.revealedOnce = true;
   setDeckLabel(currentCard);
@@ -3750,7 +3796,7 @@ revealBtn.addEventListener('click', () => {
   renderScoreboard();
 });
 
-stopBtn.addEventListener('click', () => {
+function stopPlayback(){
   clearTimeout(snippetTimer);
   clearInterval(countdownInterval);
   clearTimeout(countdownStartFallback);
@@ -3760,7 +3806,8 @@ stopBtn.addEventListener('click', () => {
   pausedAtMs = lastKnownPosition;
   if(controller) controller.pause();
   setPlayingVisual(false);
-});
+}
+stopBtn.addEventListener('click', stopPlayback);
 
 document.querySelectorAll('.footer-link').forEach(link => {
   link.addEventListener('click', (e) => e.preventDefault());
@@ -4309,7 +4356,7 @@ function syncStage(){
     nowTitle.textContent = playlists.length ? 'Ready when you are' : 'Load a playlist to start';
     nowArtist.textContent = playlists.length ? 'Drop the needle to play a mystery record.' : 'Open the Spotify pill in the top bar.';
   }else if(!revealed){
-    stageStateEl.textContent = playing ? 'Now playing' : 'Mystery record';
+    stageStateEl.textContent = playing ? 'Now playing' : (awaitingSound ? 'Dropping the needle…' : 'Mystery record');
     nowTitle.textContent = 'Mystery record';
     nowArtist.textContent = 'Where does it fit in your timeline?';
   }else{
@@ -4442,7 +4489,7 @@ function renderStandings(){
 // The bar's height shifts with the join chip, wrapping, and the UI scale.
 const topbarEl = document.getElementById('topbar');
 function alignMenuTrigger(){
-  const h = topbarEl.getBoundingClientRect().height;
+  const h = topbarEl.offsetHeight; // layout px — unaffected by the page zoom
   menuTrigger.style.top = Math.max(6, Math.round((h - menuHamburger.offsetHeight) / 2)) + 'px';
 }
 if(window.ResizeObserver) new ResizeObserver(alignMenuTrigger).observe(topbarEl);
