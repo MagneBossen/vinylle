@@ -2,6 +2,7 @@ const path = require('path');
 const http = require('http');
 const os = require('os');
 const express = require('express');
+const compression = require('compression');
 const QRCode = require('qrcode');
 const { Server } = require('socket.io');
 const L = require('./lobbies');
@@ -14,6 +15,8 @@ const app = express();
 // this, req.protocol reports "http" and every share link and QR would point at
 // an insecure URL on a site that's actually served over https.
 app.set('trust proxy', true);
+// Both pages are single large HTML files.
+app.use(compression());
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
 
@@ -52,7 +55,7 @@ function shareOrigin(req){
 
 app.get('/', (req, res) => res.sendFile(path.join(ROOT, 'index.html')));
 app.get('/player', (req, res) => res.sendFile(path.join(ROOT, 'player.html')));
-app.use('/images', express.static(path.join(ROOT, 'images')));
+app.use('/images', express.static(path.join(ROOT, 'images'), { maxAge: '1d' }));
 
 app.get('/health', (req, res) => res.json({ ok: true, lobbies: L.count() }));
 
@@ -61,6 +64,10 @@ app.get('/health', (req, res) => res.json({ ok: true, lobbies: L.count() }));
 app.get('/share-origin', (req, res) => {
   res.json({ origin: shareOrigin(req), lan: !!LAN_IP });
 });
+
+// A lobby's QR never changes and the DJ page asks for it repeatedly (join
+// screen, corner chip, every Show QR), so render it once per lobby.
+const qrCache = new Map(); // code -> Map(url -> svg)
 
 // QR for a live lobby. Takes only a code and builds the URL server-side, so
 // this can't be pointed at an arbitrary destination.
@@ -72,13 +79,25 @@ app.get('/qr/:code.svg', async (req, res) => {
   if(!origin) return res.status(503).type('text/plain').send('no reachable address');
 
   try{
-    const svg = await QRCode.toString(origin + '/player?code=' + lobby.code, {
-      type: 'svg',
-      errorCorrectionLevel: 'M',
-      margin: 1,
-      color: { dark: '#241A0B', light: '#F3EADD' }
-    });
-    res.type('image/svg+xml').set('Cache-Control', 'no-store').send(svg);
+    const url = origin + '/player?code=' + lobby.code;
+    // The idle sweep in lobbies.js bypasses closeLobby; prune its leftovers.
+    for(const code of qrCache.keys()){
+      if(!L.getLobby(code)) qrCache.delete(code);
+    }
+    let forLobby = qrCache.get(lobby.code);
+    if(!forLobby){ forLobby = new Map(); qrCache.set(lobby.code, forLobby); }
+    let svg = forLobby.get(url);
+    if(!svg){
+      svg = await QRCode.toString(url, {
+        type: 'svg',
+        errorCorrectionLevel: 'M',
+        margin: 1,
+        color: { dark: '#241A0B', light: '#F3EADD' }
+      });
+      forLobby.set(url, svg);
+    }
+    // Codes are never reused while a lobby is live, so the browser can keep it.
+    res.type('image/svg+xml').set('Cache-Control', 'private, max-age=3600').send(svg);
   }catch(err){
     res.status(500).type('text/plain').send('qr failed');
   }
@@ -126,6 +145,7 @@ function closeLobby(lobby, reason){
     const s = io.sockets.sockets.get(socketId);
     if(s) s.leave('phones:' + lobby.code);
   }
+  qrCache.delete(lobby.code);
   L.endLobby(lobby.code);
 }
 

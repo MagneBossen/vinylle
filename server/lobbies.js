@@ -97,7 +97,7 @@ function roster(lobby){
   }));
 }
 
-// The DJ went away. Hold the lobby open for five minutes before pulling the plug.
+// The DJ went away. Hold the lobby open for DJ_GRACE_MS before pulling the plug.
 function startGrace(lobby, onExpire){
   clearGrace(lobby);
   lobby.djSocketId = null;

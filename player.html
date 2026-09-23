@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="icon" href="/images/vinylle-logo.png" type="image/png">
+  <link rel="icon" href="/images/favicon-64.png" type="image/png" sizes="64x64">
+  <link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
 <meta charset="UTF-8">
 <title>Vinyl'le — player</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -780,6 +781,7 @@ socket.on('join:result', (res) => {
   }
   joined = true;
   seenLastAdded = undefined; // no toast for cards we already had
+  renderKeys = {};            // fresh screen, draw every section
   myName = res.name || myName;
   rememberCode(lobbyCode);
   localStorage.setItem('vl_last_name', myName);
@@ -1007,6 +1009,7 @@ document.querySelectorAll('[data-tlview]').forEach(b => b.addEventListener('clic
   try{ localStorage.setItem('vl_tl_view', tlView); }catch(e){}
   syncTlToggle();
   tlScrolledTo = null;
+  renderKeys.timeline = timelineKey();
   renderMyTimeline();
 }));
 syncTlToggle();
@@ -1033,7 +1036,7 @@ function buildCardGap(months, tight){
 function renderMyTimeline(){
   const holder = document.getElementById('myTimeline');
   const countEl = document.getElementById('myCount');
-  // State syncs re-render this constantly — keep the swipe position.
+  // Keep the swipe position across re-renders.
   const keepScroll = holder.scrollLeft;
   holder.className = tlView === 'cards' ? 'sleeves' : 'spine';
   holder.innerHTML = '';
@@ -1222,12 +1225,36 @@ function renderBanners(){
   }
 }
 
+// Each section redraws only when the data it shows changed, so unrelated syncs
+// (a play/pause, someone else's card) don't replay its slide-in animations.
+let renderKeys = {};
+function renderIfChanged(name, key, fn){
+  if(renderKeys[name] === key) return;
+  renderKeys[name] = key;
+  fn();
+}
+
+function nowKey(){
+  const s = lastState;
+  return JSON.stringify([s && s.currentCard, !!(s && s.playing), !!(s && s.expertMode)]);
+}
+
+function timelineKey(){
+  const mine = me();
+  return JSON.stringify([tlView, !!(lastState && lastState.expertMode), mine && mine.lastAddedId, mine && mine.timeline]);
+}
+
+function leaderboardKey(){
+  const s = lastState;
+  return JSON.stringify([deviceId, s && s.winLength, s && s.players && s.players.map(p => [p.name, p.deviceId, p.online, p.timeline])]);
+}
+
 function render(){
   renderBanners();
   renderMe();
-  renderNow();
-  renderMyTimeline();
-  renderLeaderboard();
+  renderIfChanged('now', nowKey(), renderNow);
+  renderIfChanged('timeline', timelineKey(), renderMyTimeline);
+  renderIfChanged('leaderboard', leaderboardKey(), renderLeaderboard);
 }
 
 // ── DJ presence ─────────────────────────────────────────────────────────

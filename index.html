@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="icon" href="/images/vinylle-logo.png" type="image/png">
+  <link rel="icon" href="/images/favicon-64.png" type="image/png" sizes="64x64">
+  <link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
 <meta charset="UTF-8">
 <title>Vinyl'le — music timeline game</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -864,7 +865,7 @@
   .conn-pill.error .conn-dot{background:var(--red);}
 
   /* ════════════════════════════════════════════════════════════════════
-     Redesign — the stage, the records drawer, sleeves, atmosphere.
+     The stage, records drawer, sleeves, atmosphere.
      Everything below overrides the base rules above.
      ════════════════════════════════════════════════════════════════════ */
   :root{
@@ -884,11 +885,12 @@
       var(--bg);
     background-attachment:fixed;
   }
-  /* Film grain + vignette. Pointer-transparent, sits over everything but the
-     overlays, so the flat plum reads as a dim room. */
+  /* Film grain + vignette over everything but the overlays, so the flat plum
+     reads as a dim room. Plain alpha, not mix-blend-mode — a full-screen blend
+     layer gets re-composited on every frame the record spins. */
   body::before{
-    content:'';position:fixed;inset:0;pointer-events:none;z-index:1;opacity:.06;mix-blend-mode:overlay;
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    content:'';position:fixed;inset:0;pointer-events:none;z-index:1;opacity:.025;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1.6 0 0 0 -.3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
   body::after{
     content:'';position:fixed;inset:0;pointer-events:none;z-index:1;
@@ -1045,13 +1047,11 @@
   }
   .ibtn:hover{color:var(--gold);border-color:var(--gold-dim);background:var(--surface-2);}
   .ibtn svg{width:18px;height:18px;}
-  /* The ring and the live dot already say this, so the timer row is hidden —
-     but kept rendered: the Spotify iframe lives in it and the ring reads the bar. */
+  /* Hidden (the ring and live dot show this) but still rendered: the Spotify
+     iframe lives in the timer row, and the ring reads the bar's width. */
   .clip-timer{position:absolute;left:0;bottom:0;margin:0;opacity:0;pointer-events:none;z-index:-1;}
   .tt .audio-engine{position:absolute;left:50%;top:50%;margin:-13px 0 0 -13px;pointer-events:none;}
   .clip-timer-num{font-size:1rem;min-width:0;text-align:left;}
-  /* The bar still drives the timing maths (and the ring copies it), so it
-     stays rendered — just out of sight. */
   .clip-timer-track{position:absolute;width:180px;opacity:0;pointer-events:none;}
   .give-row{margin-top:1.3rem;animation:yearIn .35s .6s both;}
   .give-label{font-family:'IBM Plex Mono',monospace;font-size:.64rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem;}
@@ -1687,7 +1687,7 @@
   </div>
 
   <footer class="page-foot">
-    <p style="color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:.72rem; margin:0;">Vinyl'le — v13.2.3</p>
+    <p style="color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:.72rem; margin:0;">Vinyl'le — v14.0.1</p>
     <p style="color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:.65rem; margin-top:.3rem; opacity:.7;">Vibe coded by MB</p>
     <p style="font-family:'IBM Plex Mono',monospace; font-size:.7rem; margin-top:.6rem; opacity:.7;">
       <a href="#" class="footer-link">Feedback</a> · <a href="#" class="footer-link">Reach out</a> · <a href="#" class="footer-link">Buy me a coffee</a>
@@ -1776,7 +1776,6 @@ https://open.spotify.com/playlist/yyyyyyyy"></textarea>
   </div>
 </aside>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
 <script src="/socket.io/socket.io.js"></script>
 <script>
@@ -1810,7 +1809,22 @@ let revealAllNames = false;
 let loadedPlaylistIds = new Set();
 let players = [];
 
+// The saved state holds every track of every playlist (hundreds of KB) and one
+// click can save several times, so writes are coalesced; pagehide flushes.
+let saveQueued = false;
 function saveSession(){
+  // Every state change already funnels through here, so this is the one place
+  // the phones need to be told about.
+  broadcastState();
+  if(saveQueued) return;
+  saveQueued = true;
+  setTimeout(flushSession, 0);
+}
+window.addEventListener('pagehide', flushSession);
+
+function flushSession(){
+  if(!saveQueued) return;
+  saveQueued = false;
   try{
     const state = {
       playlists: playlists.map(p => ({name: p.name, tracks: p.tracks, enabled: p.enabled, id: p.id, expanded: p.expanded})),
@@ -1832,9 +1846,6 @@ function saveSession(){
     };
     localStorage.setItem('bs_session', JSON.stringify(state));
   }catch(e){ console.error('saveSession failed:', e); }
-  // Every state change already funnels through here, so this is the one place
-  // the phones need to be told about.
-  broadcastState();
 }
 
 function loadSession(){
@@ -2000,10 +2011,35 @@ function applyZoom(){
 }
 window.addEventListener('resize', applyZoom);
 applyZoom();
+// html2canvas is ~200 KB and only the "save as image" buttons use it, so it's
+// fetched on the first export instead of holding up every page load.
+let html2canvasLoading = null;
+function loadHtml2canvas(){
+  if(window.html2canvas) return Promise.resolve(window.html2canvas);
+  if(!html2canvasLoading){
+    html2canvasLoading = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+      s.onload = () => resolve(window.html2canvas);
+      s.onerror = () => {
+        html2canvasLoading = null; // let the next click try again
+        s.remove();
+        reject(new Error('html2canvas failed to load'));
+      };
+      document.head.appendChild(s);
+    });
+  }
+  return html2canvasLoading;
+}
 // Exports are laid out at fixed pixel sizes, so snapshot them un-zoomed.
 function snapshot(el, opts){
-  document.documentElement.style.zoom = 1;
-  return html2canvas(el, opts).finally(applyZoom);
+  return loadHtml2canvas().then(h2c => {
+    document.documentElement.style.zoom = 1;
+    return h2c(el, opts).finally(applyZoom);
+  }, err => {
+    alert('Image export library failed to load — check your connection and try again.');
+    throw err;
+  });
 }
 
 const vinyl = document.getElementById('vinylSvg');
@@ -2270,8 +2306,22 @@ function refreshStatus(){
     : '';
 }
 
+// Thousands of rows in a usually-closed drawer tab: while hidden, just mark it
+// stale and build it when the tab is shown.
+let tracklistStale = false;
+function tracklistVisible(){
+  const panel = tracklistEl.closest('.dr-panel');
+  return document.getElementById('recordsDrawer').classList.contains('open') && !(panel && panel.hidden);
+}
+
 function renderTracklist(){
   queueMicrotask(renderCrates);
+  if(!tracklistVisible()){
+    tracklistStale = true;
+    saveSession();
+    return;
+  }
+  tracklistStale = false;
   tracklistEl.innerHTML = '';
   if(playlists.length === 0){
     tracklistEl.innerHTML = '<div class="empty">Build a deck above to see your tracks here.</div>';
@@ -2329,8 +2379,8 @@ function renderTracklist(){
         : 'in the deck';
       li.innerHTML = `
         <span class="num">${String(i+1).padStart(2,'0')}</span>
-        <span class="tname ${showName ? '' : 'pending'}" title="${showName ? escapeHtml(nameText) : ''}">${nameText}</span>
-        <span class="tyear">${showName ? card.year : ''}</span>
+        <span class="tname ${showName ? '' : 'pending'}" title="${showName ? escapeHtml(nameText) : ''}">${escapeHtml(nameText)}</span>
+        <span class="tyear">${showName ? escapeHtml(String(card.year)) : ''}</span>
         <span class="badge ${card.revealedOnce ? 'drawn' : ''}">${card.revealedOnce ? 'drawn' : 'deck'}</span>
       `;
       trackList.appendChild(li);
@@ -2925,10 +2975,6 @@ function buildStaticVinylCard(entry){
 }
 
 function saveTimelineAsImage(player){
-  if(typeof html2canvas === 'undefined'){
-    alert('Image export library failed to load — check your connection and try again.');
-    return;
-  }
   const capture = document.createElement('div');
   capture.className = 'export';
   capture.style.cssText = 'position:fixed;left:-99999px;top:0;background:#251A2B;padding:2.5rem 2rem;display:inline-block;';
@@ -3080,10 +3126,6 @@ function buildResultsPoster(){
 }
 
 document.getElementById('savePodiumBtn').addEventListener('click', () => {
-  if(typeof html2canvas === 'undefined'){
-    alert('Image export library failed to load — check your connection and try again.');
-    return;
-  }
   const holder = document.createElement('div');
   holder.style.cssText = 'position:fixed;left:-99999px;top:0;';
   const poster = buildResultsPoster();
@@ -3620,9 +3662,8 @@ scrubSlider.addEventListener('touchstart', () => isScrubbing = true);
 
 scrubPlayBtn.addEventListener('click', () => {
   if(!controller || !currentCard) return;
-  // Decide from our own state, not Spotify's last report: a late "playing"
-  // update right after a pause used to flip it back, so the next Space
-  // paused again instead of resuming.
+  // Decide from our own state, not Spotify's last report — a late "playing"
+  // update right after a pause would make the next Space pause again.
   const running = awaitingSound || vinyl.classList.contains('spinning');
   if(!running){
     // Resume only within what's left of the clip; once it's used up Space
@@ -3851,12 +3892,9 @@ document.addEventListener('keydown', (e) => {
 });
 
 /* ────────────────────────────────────────────────────────────────────────
-   Multiplayer lobby — DJ side.
-
-   This screen stays the authority on game state exactly as it always was.
-   The server is only a relay: we push the whole state blob whenever anything
-   changes, and it fans that out to the phones. Nothing below can change the
-   game — it only reads it, plus handles players claiming a name.
+   Multiplayer lobby — DJ side. This screen is the authority on game state;
+   the server just relays the state blob to the phones. Nothing below changes
+   the game except players claiming a name.
    ──────────────────────────────────────────────────────────────────────── */
 
 const roleOverlay = document.getElementById('roleOverlay');
@@ -3933,8 +3971,7 @@ function buildStateBlob(){
   };
 }
 
-// renderScoreboard() can fire several times in one interaction; coalesce so we
-// send one blob per frame instead of four.
+// One interaction can trigger several syncs; send a single blob.
 function broadcastState(){
   if(!lobbySocket || !lobbyCode || broadcastQueued) return;
   broadcastQueued = true;
@@ -3982,7 +4019,7 @@ function renderLobbySummary(){
   joinChipCount.textContent = phones + (awayCount > 0 ? ' · ' + awayCount + ' away' : '');
   const qrPath = '/qr/' + lobbyCode + '.svg';
   if(!joinChipQr.src || !joinChipQr.src.includes(qrPath)){
-    joinChipQr.src = qrPath + '?t=' + Date.now();
+    joinChipQr.src = qrPath;
   }
   joinChipQr.hidden = false;
 }
@@ -4034,7 +4071,7 @@ function closeQr(){
 }
 
 function openQr(){
-  lobbyQrImg.src = '/qr/' + lobbyCode + '.svg?t=' + Date.now();
+  lobbyQrImg.src = '/qr/' + lobbyCode + '.svg';
   lobbyQrUrlEl.textContent = playerLink();
   lobbyQrEl.classList.add('open');
   qrLobbyBtn.textContent = 'Hide QR';
@@ -4352,6 +4389,7 @@ const cratesMeta = document.getElementById('cratesMeta');
 function setStageMode(mode){
   stageEl.dataset.mode = mode;
   syncLobbyHint();
+  wakeRing(); // the ring can't be measured while the deck is hidden
 }
 startGameBtn.addEventListener('click', () => setStageMode('deck'));
 joinChip.addEventListener('click', () => setStageMode(stageEl.dataset.mode === 'lobby' ? 'deck' : 'lobby'));
@@ -4373,23 +4411,29 @@ function heroTarget(){
 }
 heroBtn.addEventListener('click', () => heroTarget().click());
 
+// Writing identical text still counts as a mutation, which re-runs the ticker
+// fit (a forced layout) and can restart a running ticker.
+function setText(el, text){
+  if(el.textContent !== text) el.textContent = text;
+}
+
 function syncStage(){
   const target = heroTarget();
-  heroLabel.textContent = target === revealBtn ? 'Reveal' : (currentCard ? 'Next record' : 'Drop the needle');
+  setText(heroLabel, target === revealBtn ? 'Reveal' : (currentCard ? 'Next record' : 'Drop the needle'));
   heroBtn.disabled = target.disabled;
   const playing = vinyl.classList.contains('spinning');
   deckEl.classList.toggle('playing', playing);
   turntableEl.classList.toggle('revealed', !!(currentCard && revealed));
   if(!currentCard){
-    stageStateEl.textContent = playlists.length ? 'Ready' : 'No records loaded';
-    nowTitle.textContent = playlists.length ? 'Ready when you are' : 'Load a playlist to start';
-    nowArtist.textContent = playlists.length ? 'Drop the needle to play a mystery record.' : 'Open the Spotify pill in the top bar.';
+    setText(stageStateEl, playlists.length ? 'Ready' : 'No records loaded');
+    setText(nowTitle, playlists.length ? 'Ready when you are' : 'Load a playlist to start');
+    setText(nowArtist, playlists.length ? 'Drop the needle to play a mystery record.' : 'Open the Spotify pill in the top bar.');
   }else if(!revealed){
-    stageStateEl.textContent = playing ? 'Now playing' : (awaitingSound ? 'Dropping the needle…' : 'Mystery record');
-    nowTitle.textContent = 'Mystery record';
-    nowArtist.textContent = 'Where does it fit in your timeline?';
+    setText(stageStateEl, playing ? 'Now playing' : (awaitingSound ? 'Dropping the needle…' : 'Mystery record'));
+    setText(nowTitle, 'Mystery record');
+    setText(nowArtist, 'Where does it fit in your timeline?');
   }else{
-    stageStateEl.textContent = 'Revealed' + (currentPlaylistName ? ' · ' + currentPlaylistName : '');
+    setText(stageStateEl, 'Revealed' + (currentPlaylistName ? ' · ' + currentPlaylistName : ''));
   }
 }
 new MutationObserver(syncStage).observe(drawBtn, { attributes: true, attributeFilter: ['disabled'] });
@@ -4429,18 +4473,41 @@ function fitTicker(span){
 window.addEventListener('resize', () => { fitTicker(nowTitle); fitTicker(nowArtist); });
 document.fonts && document.fonts.ready.then(() => { fitTicker(nowTitle); fitTicker(nowArtist); });
 
-// The ring copies the (invisible) clip bar every frame, so every code path
-// that drives the bar — countdown, pause, resume, vibe mode — drives the ring.
+// The ring copies the (invisible) clip bar, so every code path that drives the
+// bar drives the ring. It only runs while the bar moves: a style change wakes
+// it, and it sleeps once the bar has sat still for RING_IDLE_FRAMES.
 const RING_C = 1118.4;
+const RING_IDLE_FRAMES = 20;
 const clipTrack = clipBar.parentElement;
-(function ringLoop(){
+let ringRunning = false;
+let ringStill = 0;
+let ringLastFrac = -1;
+function ringLoop(){
   const w = clipTrack.getBoundingClientRect().width;
   if(w > 0){
     const frac = Math.max(0, Math.min(1, clipBar.getBoundingClientRect().width / w));
+    ringStill = Math.abs(frac - ringLastFrac) < 1e-4 ? ringStill + 1 : 0;
+    ringLastFrac = frac;
     ringProg.style.strokeDashoffset = (RING_C * (1 - frac)).toFixed(1);
+  }else{
+    ringStill++;
   }
+  // A running transition counts as moving even if this frame measured the same.
+  const moving = clipBar.getAnimations && clipBar.getAnimations().some(a => a.playState === 'running');
+  if(ringStill >= RING_IDLE_FRAMES && !moving){ ringRunning = false; return; }
   requestAnimationFrame(ringLoop);
-})();
+}
+function wakeRing(){
+  ringStill = 0;
+  if(ringRunning) return;
+  ringRunning = true;
+  requestAnimationFrame(ringLoop);
+}
+new MutationObserver(wakeRing).observe(clipBar, { attributes: true, attributeFilter: ['style', 'class'] });
+window.addEventListener('resize', wakeRing);
+// Frames stop while the tab is in the background; catch up when it's back.
+document.addEventListener('visibilitychange', wakeRing);
+wakeRing();
 
 // Front of the label is "?", the back carries the year; revealing flips it.
 function setDeckLabel(card){
@@ -4513,9 +4580,8 @@ function renderStandings(){
   }
 }
 
-// The hamburger is position:fixed (so it floats above the menu panel), so it
-// can't sit in the bar's flow — centre it on the bar by measurement instead.
-// The bar's height shifts with the join chip, wrapping, and the UI scale.
+// The hamburger is position:fixed (to float above the menu panel), so centre
+// it on the bar by measurement; the bar's height varies with chip, wrap, scale.
 const topbarEl = document.getElementById('topbar');
 function alignMenuTrigger(){
   const h = topbarEl.offsetHeight; // layout px — unaffected by the page zoom
@@ -4666,12 +4732,14 @@ function buildPips(count, target){
 function selectRecordsPanel(name){
   document.querySelectorAll('#recordsDrawer .seg button').forEach(b => b.classList.toggle('on', b.dataset.panel === name));
   document.querySelectorAll('#recordsDrawer .dr-panel').forEach(p => { p.hidden = p.dataset.panel !== name; });
+  if(tracklistStale && tracklistVisible()) renderTracklist();
 }
 function openRecords(panel){
   if(panel) selectRecordsPanel(panel);
   recordsDrawer.classList.add('open');
   drawerScrim.classList.add('open');
   menuTrigger.classList.add('hidden');
+  if(tracklistStale && tracklistVisible()) renderTracklist();
 }
 function closeRecords(){
   recordsDrawer.classList.remove('open');
