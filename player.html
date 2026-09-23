@@ -229,6 +229,9 @@
   .banner.warn{background:rgba(179,58,58,.12);border:1px solid var(--red);color:var(--paper);}
   .banner.info{background:var(--surface-2);border:1px solid var(--line);color:var(--muted);}
   .banner strong{font-family:'IBM Plex Mono',monospace;color:var(--gold);}
+  .banner.chaos{display:flex;flex-direction:column;gap:.2rem;background:rgba(212,162,78,.08);border:1px solid var(--gold-dim);color:var(--muted);}
+  .banner.chaos .k{font-family:'IBM Plex Mono',monospace;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);}
+  .banner.chaos b{font-family:'Fraunces',serif;font-size:1.1rem;color:var(--paper);}
 
   .overlay{
     position:fixed;inset:0;background:rgba(12,8,15,.92);
@@ -831,8 +834,9 @@ function me(){
   return lastState.players.find(p => p.deviceId === deviceId) || null;
 }
 
+// A card won in a double-coins round carries 2.
 function bonusCount(player){
-  return (player.timeline || []).filter(e => e.bonus).length;
+  return (player.timeline || []).reduce((sum, e) => sum + (e.bonus ? (e.coins || 1) : 0), 0);
 }
 
 function playerGaps(player){
@@ -1221,6 +1225,20 @@ function renderBanners(){
     const b = document.createElement('div');
     b.className = 'banner info';
     b.textContent = 'The DJ has not put you on the board yet.';
+    holder.appendChild(b);
+  }
+  const chaos = lastState && lastState.chaos;
+  if(chaos){
+    const b = document.createElement('div');
+    b.className = 'banner chaos';
+    const k = document.createElement('span');
+    k.className = 'k';
+    k.textContent = 'Chaos · round ' + chaos.round + (chaos.pending ? ' · up next' : ' · song ' + Math.max(1, chaos.song) + ' of ' + chaos.of);
+    const t = document.createElement('b');
+    t.textContent = chaos.title;
+    const d = document.createElement('span');
+    d.textContent = chaos.desc;
+    b.append(k, t, d);
     holder.appendChild(b);
   }
 }

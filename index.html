@@ -1025,7 +1025,23 @@
     font-family:'IBM Plex Mono',monospace;font-size:clamp(2.4rem,calc(5 * var(--vw, 1vw)),3.4rem);color:var(--gold);
     margin-top:.4rem;line-height:1;height:1.05em;white-space:nowrap;
   }
-  .readout .year:empty::before{content:'????';color:var(--line);letter-spacing:.04em;}
+  /* Mystery year: four empty slots, echoing the join-code boxes. 0.875 × the
+     year's font at 1.2em tall = the year's 1.05em, so the hero button doesn't
+     move on reveal. */
+  .readout .year:empty{display:none;}
+  .year-slots{display:none;gap:.45rem;margin-top:.4rem;height:1.2em;font-size:clamp(2.1rem,calc(4.375 * var(--vw, 1vw)),2.975rem);}
+  .readout .year:empty + .year-slots{display:flex;}
+  .year-slots i{
+    width:.95em;display:grid;place-items:center;font-style:normal;
+    font-family:'IBM Plex Mono',monospace;color:var(--gold-dim);
+    border:1px dashed rgba(212,162,78,.4);border-radius:12px;background:rgba(212,162,78,.035);
+  }
+  .year-slots i::before{content:'?';opacity:.55;}
+  .deck.playing .year-slots i{animation:slotPulse 1.6s ease-in-out infinite;}
+  .deck.playing .year-slots i:nth-child(2){animation-delay:.15s;}
+  .deck.playing .year-slots i:nth-child(3){animation-delay:.3s;}
+  .deck.playing .year-slots i:nth-child(4){animation-delay:.45s;}
+  @keyframes slotPulse{50%{border-color:var(--gold);background:rgba(212,162,78,.1);}}
   .readout .year:not(:empty){animation:yearIn .45s .4s both cubic-bezier(.3,1.3,.5,1);}
   .readout .year.with-month{display:inline-flex;gap:.25em;align-items:baseline;}
   .readout .year.with-month span:first-child{font-size:.45em;color:var(--gold-dim);text-transform:uppercase;letter-spacing:.1em;}
@@ -1076,11 +1092,41 @@
   input[type="range"]{accent-color:var(--gold);}
   .st-more{font-family:'IBM Plex Mono',monospace;font-size:.66rem;color:var(--muted);text-align:center;margin:.5rem 0 0;}
 
+  /* ── chaos mode: round chip in the readout + the card announcement ── */
+  .chaos-chip{
+    display:flex;flex-direction:column;gap:.15rem;margin:0 0 1rem;padding:.6rem .85rem;
+    border:1px solid var(--gold-dim);border-radius:12px;background:rgba(212,162,78,.07);
+  }
+  .chaos-chip .k{font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);}
+  .chaos-chip b{font-family:'Fraunces',serif;font-weight:600;font-size:1.05rem;color:var(--paper);}
+  .chaos-chip .d{font-size:.8rem;color:var(--muted);line-height:1.4;}
+  .chaos-announce{
+    position:absolute;inset:0;z-index:5;border-radius:inherit;
+    display:grid;place-items:center;padding:2rem;text-align:center;
+    background:radial-gradient(circle at 50% 42%,rgba(212,162,78,.14),transparent 60%),rgba(22,16,26,.94);
+  }
+  .chaos-card{
+    max-width:540px;padding:2.2rem 2.4rem 2rem;border:1px solid var(--gold-dim);border-radius:20px;
+    background:linear-gradient(160deg,rgba(212,162,78,.13),rgba(37,26,43,.92) 55%);
+    box-shadow:0 30px 60px rgba(0,0,0,.5);
+    animation:chaosFlip .6s cubic-bezier(.3,1.3,.5,1) both;
+  }
+  @keyframes chaosFlip{from{opacity:0;transform:perspective(900px) rotateY(80deg) scale(.9);}}
+  .chaos-card .k{font-family:'IBM Plex Mono',monospace;font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);}
+  .chaos-card h2{font-family:'Fraunces',serif;font-weight:700;font-size:clamp(2.2rem,calc(4.6 * var(--vw, 1vw)),3.4rem);line-height:1.05;margin:.6rem 0 .7rem;color:var(--paper);letter-spacing:-.01em;}
+  .chaos-card p{font-size:1.1rem;line-height:1.5;color:var(--muted);margin:0 auto;max-width:30em;}
+  .chaos-card .len{display:block;margin:1.1rem 0 1.5rem;font-family:'IBM Plex Mono',monospace;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-dim);}
+
   /* ── standings rail ── */
+  /* At least as tall as the stage in its mystery-record state: the deck's
+     420px min-height + 2rem padding top and bottom + border. Fixed, so it
+     doesn't grow along with the stage when the give chips appear. */
   .rail{
+    display:flex;flex-direction:column;min-height:calc(420px + 4rem + 2px);
     background:rgba(37,26,43,.72);border:1px solid var(--line);border-radius:18px;
     padding:1.2rem 1.2rem .9rem;position:sticky;top:6rem;
   }
+  #standings{flex:1;}
   .rail-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:.8rem;}
   .rail-h h3{font-family:'IBM Plex Mono',monospace;font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin:0;font-weight:500;}
   .rail-h span{font-family:'IBM Plex Mono',monospace;font-size:.66rem;color:var(--muted);}
@@ -1497,6 +1543,15 @@
           <button class="sb-view-btn expert-mode-btn" data-expertmode="on">On</button>
         </div>
       </div>
+      <div class="menu-setting-row" style="justify-content:space-between;">
+        <span class="field-label" style="margin:0;">Game mode</span>
+        <div class="filter-toggle">
+          <span class="toggle-slider"></span>
+          <button class="sb-view-btn active game-mode-btn" data-gamemode="normal">Normal</button>
+          <button class="sb-view-btn game-mode-btn" data-gamemode="chaos">Chaos</button>
+        </div>
+      </div>
+      <p class="hint">Chaos draws a random rule card each round — one song per player — like double coins, guess the month or a speed round.</p>
     </div>
 
     <div id="rulesView" style="display:none;">
@@ -1522,6 +1577,9 @@
 
       <h3 class="rules-h3-sub">Teams</h3>
       <p class="hint" style="margin:0 0 .5rem;">Two or more players share one timeline slot on the scoreboard, against a team of equal size and/or skill, instead of playing individually — useful for uneven group sizes or mixed skill levels.</p>
+
+      <h3 class="rules-h3-sub">Chaos</h3>
+      <p class="hint" style="margin:0 0 .5rem;">Turn on under Settings → Game mode. Each round (one song per player) starts with a random rule card that applies to everyone: double coins, guess the month, within X years of the year, everyone can steal, swap a won card for an opponent's, a speed round with short clips, or a playlist round where every song comes from one of your loaded playlists (an '80s playlist makes it a decade round). The DJ judges the spoken ones just like a normal placement; double coins, the month, clip length and the playlist are handled by the app.</p>
       </div>
     </div>
 
@@ -1581,6 +1639,15 @@
 <main class="stage-wrap">
   <div class="stage" id="stage" data-mode="lobby">
     <div class="stage-main">
+      <div class="chaos-announce" id="chaosAnnounce" hidden>
+        <div class="chaos-card">
+          <span class="k" id="chaosAnnounceKicker"></span>
+          <h2 id="chaosAnnounceTitle"></h2>
+          <p id="chaosAnnounceDesc"></p>
+          <span class="len" id="chaosAnnounceLen"></span>
+          <button class="hero-btn" id="chaosStartBtn">Start round <kbd>↵</kbd></button>
+        </div>
+      </div>
 
       <section class="lobby-hero" id="lobbyCard">
         <div>
@@ -1631,10 +1698,12 @@
         </div>
 
         <div class="readout">
+          <div class="chaos-chip" id="chaosChip" hidden><span class="k" id="chaosChipKicker"></span><b id="chaosChipTitle"></b><span class="d" id="chaosChipDesc"></span></div>
           <div class="state-line"><span class="live-dot"></span><span id="stageState">Ready</span></div>
           <div class="title ticker"><span id="nowTitle">—</span></div>
           <div class="sub ticker"><span id="nowArtist"></span></div>
           <div class="year" id="nowYear"></div>
+          <div class="year-slots" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
 
           <div class="deck-controls">
             <button class="hero-btn" id="heroBtn" disabled><span id="heroLabel">Drop the needle</span> <kbd>↵</kbd></button>
@@ -1805,6 +1874,9 @@ function showConfirm(message){
 }
 
 let playlists = [];
+// 'normal' | 'chaos'. In chaos, `chaos` holds the current round's rule card.
+let gameMode = 'normal';
+let chaos = null;
 let revealAllNames = false;
 let loadedPlaylistIds = new Set();
 let players = [];
@@ -1842,7 +1914,9 @@ function flushSession(){
       clipSeconds: CLIP_SECONDS,
       winLength: WIN_LENGTH,
       uiScale: parseInt(uiScaleInput.value, 10),
-      expertMode: expertMode
+      expertMode: expertMode,
+      gameMode: gameMode,
+      chaos: chaos
     };
     localStorage.setItem('bs_session', JSON.stringify(state));
   }catch(e){ console.error('saveSession failed:', e); }
@@ -1887,6 +1961,11 @@ function loadSession(){
       document.querySelectorAll('.expert-mode-btn').forEach(b => {
         b.classList.toggle('active', b.dataset.expertmode === (expertMode ? 'on' : 'off'));
       });
+    }
+    if(state.gameMode === 'chaos' || state.gameMode === 'normal'){
+      gameMode = state.gameMode;
+      chaos = gameMode === 'chaos' ? (state.chaos || null) : null;
+      syncGameModeButtons();
     }
     if(playlists.length > 0){
       reloadBtn.disabled = false;
@@ -2422,8 +2501,28 @@ function medalSVG(rank){
   return '<svg viewBox="0 0 44 44"><circle cx="22" cy="22" r="19" fill="' + fills[rank] + '" stroke="' + rings[rank] + '" stroke-width="2"/><circle cx="22" cy="22" r="11" fill="none" stroke="#241A0B" stroke-width="1.6"/></svg>';
 }
 
+// Coins a card carries: 0, 1, or 2 when it was won in a double-coins round.
+function coinValue(entry){
+  return entry.bonus ? (entry.coins || 1) : 0;
+}
+
 function bonusCount(player){
-  return player.timeline.filter(e => e.bonus).length;
+  return player.timeline.reduce((sum, e) => sum + coinValue(e), 0);
+}
+
+function toggleCoin(entry){
+  const before = coinValue(entry);
+  entry.bonus = !entry.bonus;
+  if(entry.bonus) entry.coins = chaosCoinValue();
+  else delete entry.coins;
+  const diff = coinValue(entry) - before;
+  statsCoinsWon = Math.max(0, statsCoinsWon + diff);
+  sessionCoinsWon = Math.max(0, sessionCoinsWon + diff);
+}
+
+function uncountCoins(entry){
+  statsCoinsWon = Math.max(0, statsCoinsWon - coinValue(entry));
+  sessionCoinsWon = Math.max(0, sessionCoinsWon - coinValue(entry));
 }
 
 function playerGaps(player){
@@ -2638,9 +2737,7 @@ function renderScoreboard(){
         bonusToggle.title = entry.bonus ? 'Remove title + artist bonus' : 'Mark title + artist guessed correctly (bonus point)';
         bonusToggle.addEventListener('click', (e) => {
           e.stopPropagation();
-          entry.bonus = !entry.bonus;
-          statsCoinsWon = Math.max(0, statsCoinsWon + (entry.bonus ? 1 : -1));
-          sessionCoinsWon = Math.max(0, sessionCoinsWon + (entry.bonus ? 1 : -1));
+          toggleCoin(entry);
           renderScoreboard();
         });
         card.appendChild(bonusToggle);
@@ -2656,10 +2753,7 @@ function renderScoreboard(){
           if(player.lastAdded === entry) player.lastAdded = null;
           statsCardsPlaced = Math.max(0, statsCardsPlaced - 1);
           sessionCardsPlaced = Math.max(0, sessionCardsPlaced - 1);
-          if(entry.bonus){
-            statsCoinsWon = Math.max(0, statsCoinsWon - 1);
-            sessionCoinsWon = Math.max(0, sessionCoinsWon - 1);
-          }
+          uncountCoins(entry);
           renderScoreboard();
         });
         card.appendChild(removeCardBtn);
@@ -2775,15 +2869,25 @@ document.addEventListener('keydown', (e) => {
     return;
   }
   // Tab toggles the scoreboard — the DJ opens it constantly and it's otherwise
-  // an unused key here. Still left alone while typing, so tabbing between
-  // fields (player name, playlist URLs, client id) keeps working.
+  // an unused key here. It never does the browser's focus-jumping, which only
+  // ever landed on a button and left a focus ring on it. In a text field it
+  // moves to the next/previous field instead.
   if(e.key === 'Tab'){
-    const tag = document.activeElement && document.activeElement.tagName;
-    if(tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement.isContentEditable) return;
+    e.preventDefault();
+    const a = document.activeElement;
+    if(a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.isContentEditable)){
+      // Same panel only: the closed drawer is slid off-screen, not hidden.
+      const scope = a.closest('#recordsDrawer, #scoreboardOverlay, #menuOverlay') || document;
+      const fields = Array.from(scope.querySelectorAll('input:not([type=range]):not([type=hidden]):not([type=checkbox]), textarea'))
+        .filter(f => !f.disabled && f.offsetParent !== null);
+      const i = fields.indexOf(a);
+      const next = fields[i + (e.shiftKey ? -1 : 1)];
+      if(i > -1 && next) next.focus();
+      return;
+    }
     const role = document.getElementById('roleOverlay');
     if(role && role.classList.contains('open')) return;
     if(confirmOverlay.classList.contains('open')) return;
-    e.preventDefault();
     menuTrigger.classList.remove('open');
     if(scoreboardOverlay.classList.contains('open')) closeScoreboard();
     else { closeMenu(); openScoreboard(); }
@@ -3176,7 +3280,7 @@ document.getElementById('saveRecapBtn').addEventListener('click', () => {
   }else{
     const sorted = players.slice().sort(comparePlayers);
     sorted.forEach((player, i) => {
-      const coins = player.timeline.filter(e => e.bonus).length;
+      const coins = bonusCount(player);
       lines.push((i + 1) + '. ' + player.name + ' — ' + player.timeline.length + ' cards, ' + coins + ' coins');
     });
   }
@@ -3252,16 +3356,43 @@ function appendCardYear(card, entry){
 }
 
 let expertMode = false;
+function setExpertMode(on){
+  expertMode = on;
+  document.querySelectorAll('.expert-mode-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.expertmode === (on ? 'on' : 'off'));
+  });
+  document.querySelectorAll('.expert-mode-btn').forEach(b => positionToggleSlider(b.closest('.filter-toggle')));
+  refreshNowYearDisplay();
+  renderScoreboard();
+  renderHistory();
+  if(document.getElementById('sbRecapView').style.display !== 'none') renderRecap();
+  saveSession();
+}
 document.querySelectorAll('.expert-mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => setExpertMode(btn.dataset.expertmode === 'on'));
+});
+
+function setClipSeconds(sec){
+  CLIP_SECONDS = sec;
+  clipLengthInput.value = sec;
+  clipLengthValue.textContent = sec + 's';
+  saveSession();
+}
+
+function syncGameModeButtons(){
+  document.querySelectorAll('.game-mode-btn').forEach(b => b.classList.toggle('active', b.dataset.gamemode === gameMode));
+  document.querySelectorAll('.game-mode-btn').forEach(b => positionToggleSlider(b.closest('.filter-toggle')));
+}
+document.querySelectorAll('.game-mode-btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.expert-mode-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    positionToggleSlider(btn.closest('.filter-toggle'));
-    expertMode = btn.dataset.expertmode === 'on';
-    refreshNowYearDisplay();
-    renderScoreboard();
-    renderHistory();
-    if(document.getElementById('sbRecapView').style.display !== 'none') renderRecap();
+    if(gameMode === btn.dataset.gamemode) return;
+    gameMode = btn.dataset.gamemode;
+    // Switching either way starts clean: the next draw opens round 1.
+    endChaosCard();
+    chaos = null;
+    syncGameModeButtons();
+    renderChaos();
+    syncStage();
     saveSession();
   });
 });
@@ -3359,6 +3490,9 @@ function resetDeckProgress(){
   sessionCardsPlaced = 0;
   sessionCoinsWon = 0;
   currentSessionId++;
+  endChaosCard();
+  chaos = null;
+  renderChaos();
   clearTimeout(snippetTimer);
   clearInterval(countdownInterval);
   clearTimeout(countdownStartFallback);
@@ -3793,10 +3927,19 @@ drawBtn.addEventListener('click', () => {
     deckStatus.textContent = anyEnabled ? 'deck is empty — shuffle to go again' : 'all playlists are off — toggle one on';
     return;
   }
-  const p = availablePlaylists[Math.floor(Math.random()*availablePlaylists.length)];
-  const availableTracks = p.tracks.filter(t => !t.drawn);
-  const t = availableTracks[Math.floor(Math.random()*availableTracks.length)];
+  // A new chaos round shows its card first; the next press starts the song.
+  if(chaosBeforeDraw()) return;
+  let p, t;
+  const playlistPool = chaosPlaylistPool();
+  if(playlistPool.length){
+    ({ p, t } = playlistPool[Math.floor(Math.random() * playlistPool.length)]);
+  }else{
+    p = availablePlaylists[Math.floor(Math.random()*availablePlaylists.length)];
+    const availableTracks = p.tracks.filter(t => !t.drawn);
+    t = availableTracks[Math.floor(Math.random()*availableTracks.length)];
+  }
   t.drawn = true;
+  chaosAfterDraw();
   if(currentCard){
     const wasPlaced = players.some(pl => pl.timeline.some(e => e.id === currentCard.id));
     if(!wasPlaced) sessionCardsLost++;
@@ -3960,14 +4103,23 @@ function buildStateBlob(){
         month: e.month || null,
         title: e.title || '',
         artist: e.artist || '',
-        bonus: !!e.bonus
+        bonus: !!e.bonus,
+        coins: coinValue(e)
       }))
     })),
     currentCard: card,
     revealed: revealed,
     playing: vinyl.classList.contains('spinning'),
     winLength: WIN_LENGTH,
-    expertMode: expertMode
+    expertMode: expertMode,
+    chaos: (gameMode === 'chaos' && chaos) ? {
+      round: chaos.round,
+      title: chaos.card.title,
+      desc: chaos.card.desc,
+      pending: !!chaos.pending,
+      song: chaos.len - chaos.left,
+      of: chaos.len
+    } : null
   };
 }
 
@@ -4357,6 +4509,161 @@ newLobbyBtn.addEventListener('click', async () => {
   }
 });
 
+/* ── chaos mode ───────────────────────────────────────────────────────────
+   Each round is one song per player. It opens with a random rule card that
+   applies to everyone until the round's songs are used up. Most cards are
+   judged out loud by the DJ; double coins, the month, clip length and the
+   playlist are applied here, and undone when the round ends. */
+
+const CHAOS_CARDS = [
+  { id: 'double', title: 'Double coins', desc: 'Name the title or one of the artists and win 2 gold coins instead of 1.' },
+  { id: 'month', title: 'Guess the month', desc: 'Expert mode this round: place it by year and month.' },
+  { id: 'within', title: 'Within {x} years', xs: [3, 5, 10], desc: 'Forget the timeline: say the year out loud. Within {x} years of the real one wins the card.' },
+  { id: 'steal', title: 'Everyone can steal', desc: 'Placed it wrong? The first player to call the right spot steals the card for their own timeline.' },
+  { id: 'swap', title: 'Swap', desc: "Win the card and you may swap it for any card in an opponent's timeline." },
+  { id: 'speed', title: 'Speed round', xs: [5, 10], desc: 'Every clip this round is only {x} seconds.' },
+  { id: 'playlist', title: 'Playlist round', desc: 'Every song this round is from “{playlist}”.' }
+];
+
+const chaosChip = document.getElementById('chaosChip');
+const chaosAnnounce = document.getElementById('chaosAnnounce');
+
+function chaosOn(){
+  return gameMode === 'chaos' && !!chaos;
+}
+
+function chaosActive(id){
+  return chaosOn() && !chaos.pending && chaos.card.id === id;
+}
+
+function chaosCoinValue(){
+  return chaosActive('double') ? 2 : 1;
+}
+
+function shortName(name){
+  return name.length > 20 ? name.slice(0, 20).trimEnd() + '…' : name;
+}
+
+function playlistKey(p){
+  return p.id || p.name;
+}
+
+// Playlists (that are on) with enough undrawn songs to fill a round. Needs at
+// least two in play, or "only this playlist" changes nothing.
+function chaosPlaylists(needed){
+  const live = playlists.filter(p => p.enabled && p.tracks.some(t => !t.drawn));
+  if(live.length < 2) return [];
+  return live.filter(p => p.tracks.filter(t => !t.drawn).length >= needed);
+}
+
+function pickChaosCard(len, previousId){
+  const eligible = CHAOS_CARDS.filter(c => {
+    if(c.id === previousId) return false;
+    if(c.id === 'month') return !expertMode;
+    if(c.id === 'speed') return c.xs.some(x => x < CLIP_SECONDS);
+    if(c.id === 'playlist') return chaosPlaylists(len).length > 0;
+    return true;
+  });
+  const def = eligible[Math.floor(Math.random() * eligible.length)];
+  const card = { id: def.id, title: def.title, desc: def.desc };
+  if(def.xs){
+    const xs = def.id === 'speed' ? def.xs.filter(x => x < CLIP_SECONDS) : def.xs;
+    card.x = xs[Math.floor(Math.random() * xs.length)];
+  }
+  if(def.id === 'playlist'){
+    const options = chaosPlaylists(len);
+    const pick = options[Math.floor(Math.random() * options.length)];
+    card.playlist = playlistKey(pick);
+    card.playlistName = shortName(pick.name);
+  }
+  const fill = str => str.replace('{x}', card.x).replace('{playlist}', card.playlistName);
+  card.title = fill(card.title);
+  card.desc = fill(card.desc);
+  return card;
+}
+
+// Called by Draw before it picks a song. Returns true when it put up a new
+// round's card instead, so the draw stops there.
+function chaosBeforeDraw(){
+  if(gameMode !== 'chaos') return false;
+  if(chaos && chaos.pending){
+    chaos.pending = false;
+    applyChaosCard();
+    renderChaos();
+    return false;
+  }
+  if(chaos && chaos.left > 0) return false;
+  endChaosCard();
+  const len = Math.max(1, players.length);
+  chaos = {
+    round: (chaos ? chaos.round : 0) + 1,
+    card: pickChaosCard(len, chaos && chaos.card.id),
+    len,
+    left: len,
+    pending: true,
+    saved: {}
+  };
+  renderChaos();
+  syncStage();
+  saveSession();
+  return true;
+}
+
+function chaosAfterDraw(){
+  if(!chaosOn() || chaos.pending) return;
+  chaos.left = Math.max(0, chaos.left - 1);
+  renderChaos();
+}
+
+// Songs from the playlist round's playlist that are still in the deck. Empty
+// (so a normal draw happens) if the DJ switched that playlist off meanwhile.
+function chaosPlaylistPool(){
+  if(!chaosActive('playlist')) return [];
+  const p = playlists.find(p => p.enabled && playlistKey(p) === chaos.card.playlist);
+  return p ? p.tracks.filter(t => !t.drawn).map(t => ({ p, t })) : [];
+}
+
+function applyChaosCard(){
+  if(!chaosOn()) return;
+  const card = chaos.card;
+  if(card.id === 'month' && !expertMode){
+    chaos.saved.expert = false;
+    setExpertMode(true);
+  }
+  if(card.id === 'speed'){
+    chaos.saved.clip = CLIP_SECONDS;
+    setClipSeconds(card.x);
+  }
+}
+
+// Put back whatever the current card changed.
+function endChaosCard(){
+  if(!chaos || !chaos.saved) return;
+  if(chaos.saved.expert === false) setExpertMode(false);
+  if(typeof chaos.saved.clip === 'number') setClipSeconds(chaos.saved.clip);
+  chaos.saved = {};
+}
+
+function renderChaos(){
+  const on = chaosOn();
+  chaosAnnounce.hidden = !(on && chaos.pending);
+  chaosChip.hidden = !(on && !chaos.pending);
+  if(on){
+    const c = chaos.card;
+    document.getElementById('chaosAnnounceKicker').textContent = 'Chaos card · round ' + chaos.round;
+    document.getElementById('chaosAnnounceTitle').textContent = c.title;
+    document.getElementById('chaosAnnounceDesc').textContent = c.desc;
+    document.getElementById('chaosAnnounceLen').textContent = chaos.len === 1 ? 'Lasts 1 song' : 'Lasts ' + chaos.len + ' songs — one each';
+    const played = chaos.len - chaos.left;
+    document.getElementById('chaosChipKicker').textContent = 'Chaos · round ' + chaos.round + ' · song ' + Math.max(1, played) + ' of ' + chaos.len;
+    document.getElementById('chaosChipTitle').textContent = c.title;
+    document.getElementById('chaosChipDesc').textContent = c.desc;
+  }
+  broadcastState();
+}
+
+document.getElementById('chaosStartBtn').addEventListener('click', () => heroBtn.click());
+
 /* ── the stage: hero button, ring, label flip, standings, give chips ───── */
 
 const stageEl = document.getElementById('stage');
@@ -4419,7 +4726,9 @@ function setText(el, text){
 
 function syncStage(){
   const target = heroTarget();
-  setText(heroLabel, target === revealBtn ? 'Reveal' : (currentCard ? 'Next record' : 'Drop the needle'));
+  setText(heroLabel, target === revealBtn ? 'Reveal'
+    : (gameMode === 'chaos' && chaos && chaos.pending) ? 'Start round'
+    : (currentCard ? 'Next record' : 'Drop the needle'));
   heroBtn.disabled = target.disabled;
   const playing = vinyl.classList.contains('spinning');
   deckEl.classList.toggle('playing', playing);
@@ -4623,12 +4932,10 @@ function renderGive(){
   const extra = document.createElement('button');
   extra.className = 'give muted';
   if(owner){
-    extra.innerHTML = '<span style="display:inline-flex;align-items:center;gap:.35rem;">' + COIN_SVG + (ownerEntry.bonus ? 'coin ✓' : '+ coin') + '</span>';
+    extra.innerHTML = '<span style="display:inline-flex;align-items:center;gap:.35rem;">' + COIN_SVG + (ownerEntry.bonus ? (coinValue(ownerEntry) > 1 ? coinValue(ownerEntry) + ' coins ✓' : 'coin ✓') : (chaosCoinValue() > 1 ? '+ 2 coins' : '+ coin')) + '</span>';
     extra.title = 'Title + artist guessed too (gold coin)';
     extra.addEventListener('click', () => {
-      ownerEntry.bonus = !ownerEntry.bonus;
-      statsCoinsWon = Math.max(0, statsCoinsWon + (ownerEntry.bonus ? 1 : -1));
-      sessionCoinsWon = Math.max(0, sessionCoinsWon + (ownerEntry.bonus ? 1 : -1));
+      toggleCoin(ownerEntry);
       renderScoreboard();
     });
   }else{
@@ -4646,10 +4953,7 @@ function takeCardBack(player, entry){
   if(player.lastAdded === entry) player.lastAdded = null;
   statsCardsPlaced = Math.max(0, statsCardsPlaced - 1);
   sessionCardsPlaced = Math.max(0, sessionCardsPlaced - 1);
-  if(entry.bonus){
-    statsCoinsWon = Math.max(0, statsCoinsWon - 1);
-    sessionCoinsWon = Math.max(0, sessionCoinsWon - 1);
-  }
+  uncountCoins(entry);
   renderScoreboard();
 }
 
@@ -4885,6 +5189,7 @@ document.getElementById('rolePlayerBtn').addEventListener('click', () => {
 })();
 
 loadSession();
+renderChaos();
 
 document.querySelectorAll('.sb-view-toggle').forEach(positionToggleSlider);
 document.querySelectorAll('#settingsView .filter-toggle').forEach(positionToggleSlider);
