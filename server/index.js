@@ -290,6 +290,29 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Over/under vote from a phone in the game. The DJ decides what it's worth.
+  socket.on('vote:cast', (payload) => {
+    const lobby = L.lobbyForPhone(socket.id);
+    if(!lobby || !payload) return;
+    toDj(lobby, 'player:vote', {
+      deviceId: socket.data.deviceId,
+      voteId: payload.voteId,
+      choice: payload.choice
+    });
+  });
+
+  // Betster bet from a phone. The DJ checks it against the player's coins.
+  socket.on('bet:place', (payload) => {
+    const lobby = L.lobbyForPhone(socket.id);
+    if(!lobby || !payload) return;
+    toDj(lobby, 'player:bet', {
+      deviceId: socket.data.deviceId,
+      betId: payload.betId,
+      pick: payload.pick,
+      amount: payload.amount
+    });
+  });
+
   // --- Teardown ------------------------------------------------------------
 
   socket.on('disconnect', () => {
