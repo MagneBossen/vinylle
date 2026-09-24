@@ -246,6 +246,16 @@
   .bet-picks button{padding:.8rem .3rem;font-size:.9rem;font-weight:600;line-height:1.25;}
   .bet-picks button small{display:block;font-family:'IBM Plex Mono',monospace;font-weight:400;font-size:.7rem;opacity:.75;}
   .bet-picks button.on{background:var(--gold);border-color:var(--gold);color:#241A0B;}
+  .shop-card{text-align:left;}
+  .shop-card .k{text-align:center;}
+  .shop-row{display:grid;grid-template-columns:1fr auto;gap:.2rem .7rem;align-items:center;padding:.7rem 0;border-top:1px solid var(--line);}
+  .shop-row:first-of-type{border-top:none;}
+  .shop-row .n{font-family:'Fraunces',serif;font-weight:600;font-size:1rem;}
+  .shop-row .n small{font-family:'IBM Plex Mono',monospace;font-weight:400;font-size:.7rem;color:var(--gold);margin-left:.35rem;}
+  .shop-row .d{grid-column:1;font-size:.75rem;color:var(--muted);line-height:1.35;}
+  .shop-row .why{grid-column:1;font-size:.7rem;color:var(--gold-dim);}
+  .shop-row select{grid-column:1;max-width:100%;font:inherit;font-size:.85rem;padding:.45rem .6rem;background:var(--surface-2);color:var(--paper);border:1px solid var(--line);border-radius:8px;}
+  .shop-row button{grid-column:2;grid-row:1 / span 3;padding:.6rem .9rem;}
   .banner.chaos{display:flex;flex-direction:column;gap:.2rem;background:rgba(212,162,78,.08);border:1px solid var(--gold-dim);color:var(--muted);}
   .banner.chaos .k{font-family:'IBM Plex Mono',monospace;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);}
   .banner.chaos b{font-family:'Fraunces',serif;font-size:1.1rem;color:var(--paper);}
@@ -529,6 +539,7 @@
       <div class="game-col">
         <div class="vote-card" id="voteCard" hidden></div>
         <div class="vote-card" id="betCard" hidden></div>
+        <div class="vote-card shop-card" id="shopCard" hidden></div>
 
         <div class="now-card" id="nowCard">
           <div class="rec mini-rec" id="miniRec" aria-hidden="true"><span id="miniLabel">?</span></div>
@@ -1250,6 +1261,20 @@ function renderBanners(){
     b.textContent = 'The DJ has not put you on the board yet.';
     holder.appendChild(b);
   }
+  if(lastState && lastState.hint){
+    const b = document.createElement('div');
+    b.className = 'banner info';
+    b.textContent = "Hint: it's from the " + lastState.hint + '.';
+    holder.appendChild(b);
+  }
+  const mineNow = me();
+  const traps = (lastState && lastState.shop && lastState.shop.traps) || [];
+  if(mineNow && traps.includes(mineNow.name)){
+    const b = document.createElement('div');
+    b.className = 'banner warn';
+    b.textContent = "Someone set a speed trap for you — your next song is a 5-second clip.";
+    holder.appendChild(b);
+  }
   const chaos = lastState && lastState.chaos;
   if(chaos){
     const b = document.createElement('div');
@@ -1336,12 +1361,7 @@ function renderVote(){
       btn.addEventListener('click', () => castVote(choice));
       btns.appendChild(btn);
     });
-    const s = document.createElement('div');
-    s.className = 's';
-    const counted = (v.voted || []).includes(deviceId);
-    s.textContent = (counted ? 'Vote in ✓ — you can change it until the reveal. ' : '') +
-      (hard ? 'Wrong or no vote = −1 gold coin.' : 'Right = +1 gold coin.');
-    box.append(q, btns, s);
+    box.append(q, btns);
     return;
   }
 
@@ -1479,8 +1499,136 @@ function renderBet(){
   add('s', res.amount + ' on ' + betLabel(res.pick) + ' for ' + r.turn + "'s turn.");
 }
 
+// Coin shop: the same items and rules as the DJ screen (which has the final
+// say). Picks for "who" / "which card" survive re-renders.
+const SHOP_ITEMS = [
+  { id: 'new', name: 'New song', price: 1, desc: 'Swap this song for a new one.' },
+  { id: 'hint', name: 'Hint', price: 2, desc: 'Show the decade on screen.' },
+  { id: 'pass', name: 'Pass it on', price: 2, desc: 'Another player has to place it. Wrong = they pay you 1 coin.', target: 'player' },
+  { id: 'trap', name: 'Speed trap', price: 2, desc: "Another player's next song is a 5-second clip.", target: 'player' },
+  { id: 'buy', name: 'Buy the card', price: 3, desc: 'Placed it wrong? Keep the card anyway.' },
+  { id: 'steal', name: 'Steal', price: 5, desc: "Take a card from another player's timeline. Skips your song.", target: 'card' }
+];
+const shopPicks = {};
+
+function shopWhyNot(item, pick){
+  const sh = lastState.shop;
+  const mine = me();
+  if(myCoins() < item.price) return 'Needs ' + item.price + ' coins';
+  const isTurn = sh.turn === mine.name;
+  if(item.id === 'trap'){
+    if(!pick) return 'Pick a player';
+    if((sh.traps || []).includes(pick)) return pick + ' is already trapped';
+    return null;
+  }
+  if(!isTurn) return 'On your own turn';
+  if(item.id === 'buy'){
+    if(sh.phase !== 'after') return 'After the reveal';
+    if(sh.owned) return 'Someone already has the card';
+    return null;
+  }
+  if(sh.phase !== 'before') return 'Before the reveal';
+  if(item.id === 'hint' && sh.hint) return 'Hint already shown';
+  if(item.id === 'pass'){
+    if(sh.passed) return 'Already passed on';
+    if(!pick) return 'Pick who gets it';
+  }
+  if(item.id === 'steal' && !pick) return 'Pick a card to steal';
+  return null;
+}
+
+function shopKey(){
+  const s = lastState;
+  return JSON.stringify([s && s.shop, me() && me().name, myCoins(), s && s.players && s.players.map(p => [p.name, p.timeline]), shopPicks]);
+}
+
+function renderShop(){
+  const box = document.getElementById('shopCard');
+  const sh = lastState && lastState.shop;
+  const mine = me();
+  box.textContent = '';
+  if(!sh || !mine){ box.hidden = true; return; }
+  box.hidden = false;
+  const k = document.createElement('div');
+  k.className = 'k';
+  k.textContent = 'Coin shop · you have ' + myCoins() + ' coin' + (myCoins() === 1 ? '' : 's');
+  box.appendChild(k);
+  const others = (lastState.players || []).filter(p => p.name !== mine.name);
+  SHOP_ITEMS.forEach(item => {
+    const row = document.createElement('div');
+    row.className = 'shop-row';
+    const n = document.createElement('div');
+    n.className = 'n';
+    n.textContent = item.name;
+    const price = document.createElement('small');
+    price.textContent = item.price + (item.price === 1 ? ' coin' : ' coins');
+    n.appendChild(price);
+    const d = document.createElement('div');
+    d.className = 'd';
+    d.textContent = item.desc;
+    row.append(n, d);
+    if(item.target){
+      const sel = document.createElement('select');
+      const blank = document.createElement('option');
+      blank.value = '';
+      blank.textContent = item.target === 'card' ? 'Pick a card…' : 'Pick a player…';
+      sel.appendChild(blank);
+      others.forEach(p => {
+        if(item.target === 'card'){
+          (p.timeline || []).forEach(e => {
+            const o = document.createElement('option');
+            o.value = p.name + '|' + e.id;
+            o.textContent = p.name + ' — ' + e.year + (e.title ? ' · ' + e.title : '');
+            sel.appendChild(o);
+          });
+        }else{
+          const o = document.createElement('option');
+          o.value = o.textContent = p.name;
+          sel.appendChild(o);
+        }
+      });
+      sel.value = shopPicks[item.id] || '';
+      if(sel.value !== (shopPicks[item.id] || '')) shopPicks[item.id] = '';
+      sel.addEventListener('change', () => {
+        shopPicks[item.id] = sel.value;
+        renderIfChanged('shop', shopKey(), renderShop);
+      });
+      row.appendChild(sel);
+    }
+    const pick = shopPicks[item.id] || '';
+    const why = shopWhyNot(item, item.target === 'card' ? pick : pick);
+    if(why){
+      const w = document.createElement('div');
+      w.className = 'why';
+      w.textContent = why;
+      row.appendChild(w);
+    }
+    const buy = document.createElement('button');
+    buy.type = 'button';
+    buy.className = 'primary';
+    buy.textContent = 'Buy';
+    buy.disabled = !!why;
+    buy.addEventListener('click', () => {
+      const payload = { item: item.id };
+      if(item.target === 'card'){
+        const [target, cardId] = pick.split('|');
+        payload.target = target;
+        payload.cardId = cardId;
+      }else if(item.target){
+        payload.target = pick;
+      }
+      socket.emit('shop:buy', payload);
+      shopPicks[item.id] = '';
+      buy.disabled = true;
+    });
+    row.appendChild(buy);
+    box.appendChild(row);
+  });
+}
+
 function render(){
   renderBanners();
+  renderIfChanged('shop', shopKey(), renderShop);
   renderIfChanged('vote', voteKey(), renderVote);
   renderIfChanged('bet', betKey(), renderBet);
   renderMe();

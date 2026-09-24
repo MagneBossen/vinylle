@@ -1032,6 +1032,7 @@
   .readout .year:empty,.readout .year.with-month:empty{display:none;}
   .year-slots{display:none;gap:.45rem;margin-top:.4rem;height:1.2em;font-size:clamp(2.1rem,calc(4.375 * var(--vw, 1vw)),2.975rem);}
   .readout .year:empty + .year-slots{display:flex;}
+  .deck.skipped .year-slots{display:none !important;}
   .year-slots i{
     width:.95em;display:grid;place-items:center;font-style:normal;
     font-family:'IBM Plex Mono',monospace;color:var(--gold-dim);
@@ -1103,15 +1104,23 @@
   .chaos-chip .d{font-size:.8rem;color:var(--muted);line-height:1.4;}
   .chaos-chip .v{margin-top:.1rem;font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--gold);line-height:1.45;}
   .chaos-chip .v b{font-family:'Fraunces',serif;font-weight:700;font-size:1.25rem;color:var(--paper);}
-  /* Whose turn it is: click to hand the turn to the next player. */
-  .turn-line{
-    display:inline-flex;align-items:center;gap:.5rem;margin:0 0 .8rem;padding:.3rem .75rem;
-    border:1px solid var(--line);border-radius:999px;background:var(--surface);
-    font-family:'Fraunces',serif;font-weight:600;font-size:1rem;color:var(--paper);
-  }
-  .turn-line .k{font-family:'IBM Plex Mono',monospace;font-weight:400;font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);}
-  .turn-line:hover{border-color:var(--gold-dim);}
+  /* Standings rows can be clicked to hand someone the turn. */
+  .st.pickable{cursor:pointer;}
+  .st.pickable:hover .st-nm span{color:var(--gold);}
   .shop-btn{margin-top:.8rem;display:inline-flex;align-items:center;gap:.4rem;font-size:.85rem;}
+  .shop-box{max-width:540px;text-align:left;max-height:calc(100vh / var(--z, 1) - 3rem);overflow:auto;}
+  .shop-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:.9rem;}
+  .shop-head h2{font-family:'Fraunces',serif;font-size:1.7rem;margin:0;}
+  .shop-buyer{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;font-size:.85rem;color:var(--muted);margin-bottom:.6rem;}
+  .shop-buyer b{color:var(--gold);font-family:'IBM Plex Mono',monospace;font-weight:500;}
+  .shop-item{display:grid;grid-template-columns:1fr auto;gap:.25rem .9rem;align-items:center;padding:.8rem 0;border-top:1px solid var(--line);}
+  .shop-item .n{font-family:'Fraunces',serif;font-weight:600;font-size:1.05rem;}
+  .shop-item .n small{font-family:'IBM Plex Mono',monospace;font-weight:400;font-size:.72rem;color:var(--gold);margin-left:.4rem;}
+  .shop-item .d{grid-column:1;font-size:.8rem;color:var(--muted);line-height:1.4;}
+  .shop-item .why{grid-column:1;font-size:.72rem;color:var(--gold-dim);}
+  .shop-item select,.shop-buyer select{font:inherit;font-size:.85rem;padding:.4rem .6rem;background:var(--surface-2);color:var(--paper);border:1px solid var(--line);border-radius:8px;}
+  .shop-item select{grid-column:1;justify-self:start;max-width:100%;}
+  .shop-item .buy{grid-column:2;grid-row:1 / span 3;}
   .st-turn{font-family:'IBM Plex Mono',monospace;font-size:.55rem;color:var(--ink);background:var(--gold);border-radius:20px;padding:.05rem .4rem;}
   .chaos-announce{
     position:absolute;inset:0;z-index:5;border-radius:inherit;
@@ -1514,6 +1523,14 @@
   </div>
 </div>
 
+<div class="confirm-overlay" id="shopOverlay">
+  <div class="confirm-box shop-box">
+    <div class="shop-head"><h2>Coin shop</h2><button class="dr-x" id="shopClose" aria-label="Close">✕</button></div>
+    <label class="shop-buyer">Buying for <select id="shopBuyer"></select> <b id="shopCoins"></b></label>
+    <div id="shopItems"></div>
+  </div>
+</div>
+
 <div class="confirm-overlay" id="confirmOverlay">
   <div class="confirm-box">
     <p id="confirmMessage"></p>
@@ -1574,6 +1591,15 @@
         </div>
       </div>
       <p class="hint">Every so often (at least once every 10 songs) everyone votes on their phone: is it from before or after the year on screen? Right = +1 gold coin. Needs phones in the game.</p>
+      <div class="menu-setting-row" style="justify-content:space-between;">
+        <span class="field-label" style="margin:0;">Coin shop (every round)</span>
+        <div class="filter-toggle">
+          <span class="toggle-slider"></span>
+          <button class="sb-view-btn active shopset-btn" data-shopset="off">Off</button>
+          <button class="sb-view-btn shopset-btn" data-shopset="on">On</button>
+        </div>
+      </div>
+      <p class="hint">Players spend gold coins on their phone (or the DJ buys for them): a new song, a hint, pass it on, a speed trap, buy the card or steal one. Off, it only opens in chaos mode's coin shop rounds.</p>
     </div>
 
     <div id="rulesView" style="display:none;">
@@ -1601,7 +1627,7 @@
       <p class="hint" style="margin:0 0 .5rem;">Two or more players share one timeline slot on the scoreboard, against a team of equal size and/or skill, instead of playing individually — useful for uneven group sizes or mixed skill levels.</p>
 
       <h3 class="rules-h3-sub">Chaos</h3>
-      <p class="hint" style="margin:0 0 .5rem;">Turn on under Settings → Game mode. Each round (one song per player) starts with a random rule card that applies to everyone: double coins, guess the month, within X years of the year, everyone can steal, swap a won card for an opponent's, a speed round with short clips, a playlist round where every song comes from one of your loaded playlists (an '80s playlist makes it a decade round), double or nothing (wrong = lose your most recently won card), a coin shop (1 coin swaps a hard song), catch-up (a missed card goes to last place), sing-along (card + coin), or betster (everyone bets coins on each turn from their phone; right ×2, right + coin ×3, wrong ×2). Separately, over/under pop-ups can be switched on in Settings in any mode. The DJ judges the spoken ones just like a normal placement; double coins, the month, clip length and the playlist are handled by the app.</p>
+      <p class="hint" style="margin:0 0 .5rem;">Turn on under Settings → Game mode. Each round (one song per player) starts with a random rule card that applies to everyone: double coins, guess the month, within X years of the year, swap a won card for an opponent's, a speed round with short clips, a playlist round where every song comes from one of your loaded playlists (an '80s playlist makes it a decade round), double or nothing (wrong = lose your most recently won card), a coin shop (1 coin swaps a hard song), catch-up (a missed card goes to last place), sing-along (card + coin), or betster (everyone bets coins on each turn from their phone; right ×2, right + coin ×3, wrong ×2). Separately, over/under pop-ups can be switched on in Settings in any mode. The DJ judges the spoken ones just like a normal placement; double coins, the month, clip length and the playlist are handled by the app.</p>
       </div>
     </div>
 
@@ -1723,7 +1749,7 @@
           <div class="chaos-chip" id="chaosChip" hidden><span class="k" id="chaosChipKicker"></span><b id="chaosChipTitle"></b><span class="d" id="chaosChipDesc"></span></div>
           <div class="chaos-chip" id="ouBox" hidden><span class="k" id="ouKicker"></span><span class="v" id="ouLine"></span></div>
           <div class="chaos-chip" id="betBox" hidden><span class="k" id="betKicker"></span><span class="v" id="betLine"></span></div>
-          <button class="turn-line" id="turnLine" hidden title="Click to give the turn to the next player"><span class="k">Turn</span><span id="turnName"></span></button>
+          <div class="chaos-chip" id="hintBox" hidden><span class="k">Hint</span><span class="v" id="hintLine"></span></div>
           <div class="state-line"><span class="live-dot"></span><span id="stageState">Ready</span></div>
           <div class="title ticker"><span id="nowTitle">—</span></div>
           <div class="sub ticker"><span id="nowArtist"></span></div>
@@ -1917,6 +1943,10 @@ let song = null;
 let awaitingStart = false;
 // Last settled bets, so phones can show how theirs went.
 let lastBetResults = null;
+// Coin shop open in every round (a setting), and pending speed traps:
+// { victimName: buyerName } — their next turn is a 5-second clip.
+let shopEnabled = false;
+let speedTraps = {};
 let revealAllNames = false;
 let loadedPlaylistIds = new Set();
 let players = [];
@@ -1959,7 +1989,9 @@ function flushSession(){
       chaos: chaos,
       turnName: turnName,
       ouEnabled: ouEnabled,
-      ouSince: ouSince
+      ouSince: ouSince,
+      shopEnabled: shopEnabled,
+      speedTraps: speedTraps
     };
     localStorage.setItem('bs_session', JSON.stringify(state));
   }catch(e){ console.error('saveSession failed:', e); }
@@ -2006,6 +2038,11 @@ function loadSession(){
       });
     }
     if(typeof state.turnName === 'string') turnName = state.turnName;
+    if(state.speedTraps && typeof state.speedTraps === 'object') speedTraps = state.speedTraps;
+    if(typeof state.shopEnabled === 'boolean'){
+      shopEnabled = state.shopEnabled;
+      syncShopSetButtons();
+    }
     if(typeof state.ouSince === 'number') ouSince = state.ouSince;
     if(typeof state.ouEnabled === 'boolean'){
       ouEnabled = state.ouEnabled;
@@ -2086,7 +2123,7 @@ function runClip(leftMs){
   remainingSeconds = Math.ceil(leftMs / 1000);
   timerLine.textContent = remainingSeconds + 's';
   clipBar.style.transition = 'none';
-  clipBar.style.width = Math.min(100, leftMs / (CLIP_SECONDS * 1000) * 100) + '%';
+  clipBar.style.width = Math.min(100, leftMs / (clipSeconds() * 1000) * 100) + '%';
   void clipBar.offsetWidth;
   clipBar.style.transition = 'width ' + (leftMs / 1000) + 's linear';
   clipBar.style.width = '0%';
@@ -2220,6 +2257,11 @@ let countdownStartFallback = null;
 let timerSyncTimeout = null;
 let untimedMode = false;
 let CLIP_SECONDS = 30;
+const SPEED_TRAP_SECONDS = 5;
+// The clip for the current song: the setting, unless a speed trap cut it short.
+function clipSeconds(){
+  return (song && song.trap) ? Math.min(SPEED_TRAP_SECONDS, CLIP_SECONDS) : CLIP_SECONDS;
+}
 const TIMER_SYNC_DELAY = 800;
 
 function fmtMs(ms){
@@ -2615,7 +2657,7 @@ function renderScoreboard(){
   const sorted = players.slice().sort(comparePlayers);
   const leader = sorted[0];
   const leaderLen = leader.timeline.length;
-  const canAdd = revealed && currentCard && currentCard.year && !isNaN(parseInt(currentCard.year, 10));
+  const canAdd = revealed && currentCard && currentCard.year && !isNaN(parseInt(currentCard.year, 10)) && !(song && song.event);
 
   players.forEach((player) => {
     const isTrueLeader = comparePlayers(player, leader) === 0;
@@ -3436,6 +3478,19 @@ function setClipSeconds(sec){
   saveSession();
 }
 
+function syncShopSetButtons(){
+  document.querySelectorAll('.shopset-btn').forEach(b => b.classList.toggle('active', b.dataset.shopset === (shopEnabled ? 'on' : 'off')));
+  document.querySelectorAll('.shopset-btn').forEach(b => positionToggleSlider(b.closest('.filter-toggle')));
+}
+document.querySelectorAll('.shopset-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    shopEnabled = btn.dataset.shopset === 'on';
+    syncShopSetButtons();
+    renderShopButton();
+    saveSession();
+  });
+});
+
 function syncOuButtons(){
   document.querySelectorAll('.ou-btn').forEach(b => b.classList.toggle('active', b.dataset.ou === (ouEnabled ? 'on' : 'off')));
   document.querySelectorAll('.ou-btn').forEach(b => positionToggleSlider(b.closest('.filter-toggle')));
@@ -3567,6 +3622,7 @@ function resetDeckProgress(){
   awaitingStart = false;
   lastBetResults = null;
   turnName = null;
+  speedTraps = {};
   renderChaos();
   clearTimeout(snippetTimer);
   clearInterval(countdownInterval);
@@ -3842,7 +3898,7 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
         const left = clipEndMs - lastKnownPosition;
         if(left <= 0){
           endClip();
-        }else if(lastKnownPosition >= clipEndMs - CLIP_SECONDS * 1000){
+        }else if(lastKnownPosition >= clipEndMs - clipSeconds() * 1000){
           // Re-aim the stop at the real song position on every update, and
           // put the ring back in step if buffering let it drift.
           clearTimeout(snippetTimer);
@@ -3920,7 +3976,7 @@ continueBtn.addEventListener('click', () => {
     clipBar.style.transition = 'none';
     clipBar.style.width = '100%';
   }else{
-    timerLine.textContent = CLIP_SECONDS + 's';
+    timerLine.textContent = clipSeconds() + 's';
     clipBar.style.transition = 'none';
     clipBar.style.width = '100%';
   }
@@ -3977,7 +4033,7 @@ function playSnippet(useNewPoint, overrideStartMs){
     lastStartMs = (15 + Math.random()*30) * 1000;
   }
   const startAtSeconds = Math.floor(lastStartMs / 1000);
-  clipEndMs = untimedMode ? 0 : (startAtSeconds + CLIP_SECONDS) * 1000;
+  clipEndMs = untimedMode ? 0 : (startAtSeconds + clipSeconds()) * 1000;
   controller.loadUri(currentCard.uri, false, startAtSeconds);
   controller.play();
   cueNeedle(startAtSeconds * 1000);
@@ -3987,7 +4043,7 @@ function playSnippet(useNewPoint, overrideStartMs){
     clipBar.style.width = '100%';
     return;
   }
-  timerLine.textContent = CLIP_SECONDS + 's';
+  timerLine.textContent = clipSeconds() + 's';
   freezeClipBar();
   clipBar.style.width = '100%';
   pendingCountdownStart = true;
@@ -4012,9 +4068,12 @@ drawBtn.addEventListener('click', () => {
   if(chaosBeforeDraw()) return;
   const { p, t } = pickTrack();
   t.drawn = true;
-  chaosAfterDraw();
-  startVote(t);
-  if(currentCard){
+  // An over/under pop-up is a bonus song: it doesn't use up anyone's turn or
+  // a song of the chaos round.
+  const ouStakes = rollOverUnder(t);
+  if(!ouStakes) chaosAfterDraw();
+  startVote(t, ouStakes);
+  if(currentCard && !(song && song.event)){
     const wasPlaced = players.some(pl => pl.timeline.some(e => e.id === currentCard.id));
     if(!wasPlaced) sessionCardsLost++;
   }
@@ -4022,15 +4081,19 @@ drawBtn.addEventListener('click', () => {
     pl.timeline.forEach(entry => { entry.locked = true; });
     pl.lastAdded = null;
   });
-  advanceTurn();
+  if(!ouStakes) advanceTurn();
   showTrack(p, t);
-  song = {
+  song = ouStakes ? { id: t.id, event: true, settled: false } : {
     id: t.id,
     turn: turnName,
-    don: chaosActive('don'),
     bets: chaosActive('betster') ? { id: t.id + ':' + Date.now(), open: true, placed: {} } : null,
     settled: false
   };
+  if(!ouStakes && speedTraps[turnName]){
+    song.trap = true;
+    lobbyToast(turnName + ' walked into ' + speedTraps[turnName] + "'s speed trap — " + SPEED_TRAP_SECONDS + ' seconds!');
+    delete speedTraps[turnName];
+  }
   // Betster: load it but wait for Start, so everyone can bet first.
   awaitingStart = !!song.bets;
   renderTracklist();
@@ -4225,7 +4288,7 @@ function buildStateBlob(){
       song: chaos.len - chaos.left,
       of: chaos.len
     } : null,
-    turn: currentCard ? turnName : null,
+    turn: turnActive() ? turnName : null,
     bets: (song && song.bets && !song.settled) ? {
       id: song.bets.id,
       turn: song.turn,
@@ -4233,6 +4296,15 @@ function buildStateBlob(){
       placed: song.bets.placed
     } : null,
     betResults: lastBetResults,
+    shop: shopOpen() ? {
+      phase: shopPhase(),
+      turn: turnActive() ? turnName : null,
+      owned: !!(revealed && shopOwner()),
+      hint: (song && song.hint) || null,
+      passed: !!(song && song.passedFrom),
+      traps: Object.keys(speedTraps)
+    } : null,
+    hint: (song && song.hint && !revealed) ? song.hint : null,
     vote: vote ? {
       id: vote.id,
       pivot: vote.pivot,
@@ -4530,6 +4602,7 @@ function hostLobby(){
   lobbySocket.on('player:join-request', handleJoinRequest);
 
   lobbySocket.on('player:bet', placeBet);
+  lobbySocket.on('player:buy', phoneBuy);
 
   lobbySocket.on('player:vote', (payload) => {
     if(!vote || !vote.open || !payload || payload.voteId !== vote.id) return;
@@ -4655,12 +4728,11 @@ const CHAOS_CARDS = [
   // Stands in for 'month' when expert mode is already on: the easy round.
   { id: 'nomonth', title: 'Year only', desc: 'Expert mode is off this round: just the year counts, not the month.' },
   { id: 'within', title: 'Within {x} years', xs: [3, 5, 10], desc: 'Forget the timeline: say the year out loud. Within {x} years of the real one wins the card.' },
-  { id: 'steal', title: 'Everyone can steal', desc: 'Placed it wrong? The first player to call the right spot steals the card for their own timeline.' },
   { id: 'swap', title: 'Swap', desc: "Win the card and you may swap it for any card in an opponent's timeline." },
   { id: 'speed', title: 'Speed round', xs: [5, 10], desc: 'Every clip this round is only {x} seconds.' },
   { id: 'playlist', title: 'Playlist round', desc: 'Every song this round is from “{playlist}”.' },
   { id: 'don', title: 'Double or nothing', desc: 'Get it right and win the card. Get it wrong and lose your most recently won card.' },
-  { id: 'shop', title: 'Coin shop', desc: 'Stuck on a hard one? Pay 1 gold coin to swap it for a new song.' },
+  { id: 'shop', title: 'Coin shop', desc: 'The shop is open: spend gold coins on a new song, a hint, passing it on, a speed trap, buying the card or a steal.' },
   { id: 'catchup', title: 'Catch-up', desc: "Get it wrong and the card goes to whoever is last in the standings — unless it's their own turn." },
   { id: 'sing', title: 'Sing-along', desc: "Sing along to it and win the card plus a gold coin. Can't? Play it as normal." },
   { id: 'betster', title: 'Betster', desc: 'Before each song starts, bet gold coins on your phone: right ×2, right + coin ×3, wrong ×2. Lose and you lose your bet.' }
@@ -4697,10 +4769,21 @@ function chaosPlaylists(needed){
   return live.filter(p => p.tracks.filter(t => !t.drawn).length >= needed);
 }
 
-function pickChaosCard(len, previousId, usedPlaylists){
+// 'month' and 'nomonth' are one card in the bag: whichever fits expert mode.
+const chaosSlot = id => id === 'nomonth' ? 'month' : id;
+
+// Cards come from a shuffled bag: each one is played once before any comes
+// back, so a long night sees all of them. A card that can't be played right
+// now (no phones for betster, one playlist) stays in the bag for later. On
+// top of that, the last two cards never come straight back — not even
+// across a reshuffle — so any card is at least three rounds apart.
+const CHAOS_SPACING = 2;
+
+function pickChaosCard(len, recent, usedPlaylists, bag){
   usedPlaylists = (usedPlaylists || []).slice();
-  const eligible = CHAOS_CARDS.filter(c => {
-    if(c.id === previousId) return false;
+  bag = (bag || []).slice();
+  recent = (recent || []).slice(-CHAOS_SPACING);
+  const allowed = CHAOS_CARDS.filter(c => {
     if(c.id === 'month') return !expertMode;
     if(c.id === 'nomonth') return expertMode;
     if(c.id === 'speed') return c.xs.some(x => x < CLIP_SECONDS);
@@ -4710,7 +4793,17 @@ function pickChaosCard(len, previousId, usedPlaylists){
     if(c.id === 'betster') return players.some(p => p.deviceId && p.online);
     return true;
   });
+  // Only relax the spacing if nothing else is playable at all.
+  const spaced = allowed.filter(c => !recent.includes(chaosSlot(c.id)));
+  const playable = spaced.length ? spaced : allowed;
+  let eligible = playable.filter(c => bag.includes(chaosSlot(c.id)));
+  if(!eligible.length){
+    bag = Array.from(new Set(CHAOS_CARDS.map(c => chaosSlot(c.id))));
+    eligible = playable;
+  }
   const def = eligible[Math.floor(Math.random() * eligible.length)];
+  bag = bag.filter(id => id !== chaosSlot(def.id));
+  recent = recent.concat(chaosSlot(def.id)).slice(-CHAOS_SPACING);
   const card = { id: def.id, title: def.title, desc: def.desc };
   if(def.xs){
     const xs = def.id === 'speed' ? def.xs.filter(x => x < CLIP_SECONDS) : def.xs;
@@ -4734,7 +4827,7 @@ function pickChaosCard(len, previousId, usedPlaylists){
   const fill = str => str.replace('{x}', card.x).replace('{playlist}', card.playlistName);
   card.title = fill(card.title);
   card.desc = fill(card.desc);
-  return { card, usedPlaylists };
+  return { card, usedPlaylists, bag, recent };
 }
 
 // Called by Draw before it picks a song. Returns true when it put up a new
@@ -4750,11 +4843,15 @@ function chaosBeforeDraw(){
   if(chaos && chaos.left > 0) return false;
   endChaosCard();
   const len = Math.max(1, players.length);
-  const card = pickChaosCard(len, chaos && chaos.card.id, chaos && chaos.usedPlaylists);
+  // Older saves only kept the last card, not the last two.
+  const recent = chaos ? (chaos.recent || [chaosSlot(chaos.card.id)]) : [];
+  const card = pickChaosCard(len, recent, chaos && chaos.usedPlaylists, chaos && chaos.bag);
   chaos = {
     round: (chaos ? chaos.round : 0) + 1,
     card: card.card,
     usedPlaylists: card.usedPlaylists,
+    bag: card.bag,
+    recent: card.recent,
     len,
     left: len,
     pending: true,
@@ -4831,31 +4928,56 @@ document.getElementById('chaosStartBtn').addEventListener('click', () => heroBtn
 
 function advanceTurn(){
   if(!players.length){ turnName = null; return; }
-  const i = players.findIndex(p => p.name === turnName);
+  // A passed song doesn't move the rotation: carry on from whoever passed it.
+  const i = players.findIndex(p => p.name === ((song && song.passedFrom) || turnName));
   turnName = players[(i + 1) % players.length].name;
 }
 
 function renderTurn(){
-  const line = document.getElementById('turnLine');
-  const turnPlayer = players.find(p => p.name === turnName);
-  line.hidden = !(currentCard && turnPlayer);
-  if(turnPlayer) document.getElementById('turnName').textContent = turnPlayer.name + "'s turn";
-  renderShop();
+  renderShopButton();
+  renderHint();
 }
 
-document.getElementById('turnLine').addEventListener('click', () => {
-  advanceTurn();
-  if(song && !song.settled) song.turn = turnName;
+// Is this song someone's turn? Not before the first draw, and not during an
+// over/under pop-up, which everyone plays.
+function turnActive(){
+  return !!currentCard && !(song && song.event);
+}
+
+function setTurn(name){
+  turnName = name;
+  if(song && !song.settled && !song.event){
+    song.turn = name;
+    // Nobody bets on their own turn.
+    const p = players.find(p => p.name === name);
+    if(song.bets && p && p.deviceId) delete song.bets.placed[p.deviceId];
+  }
   renderScoreboard();
   renderBets();
-});
+}
 
 /* ── settling a song when the next one is drawn ─────────────────────────── */
 
+// The card a player won most recently (before this song). Cards from before
+// this was tracked have no time; the last one stands in.
+function latestCard(player){
+  const settled = player.timeline.filter(e => e.locked);
+  if(!settled.length) return null;
+  return settled.reduce((a, e) => (e.addedAt || 0) >= (a.addedAt || 0) ? e : a);
+}
+
+function restoreCard(player, entry){
+  player.timeline.push(entry);
+  player.timeline.sort((a,b) => (a.year - b.year) || ((a.month||0) - (b.month||0)));
+  statsCardsPlaced++;
+  sessionCardsPlaced++;
+  statsCoinsWon += coinValue(entry);
+  sessionCoinsWon += coinValue(entry);
+}
+
 function loseLatestCard(player){
-  if(!player.timeline.length) return null;
-  // Cards from before this feature have no time; the last one stands in.
-  const latest = player.timeline.reduce((a, e) => (e.addedAt || 0) >= (a.addedAt || 0) ? e : a);
+  const latest = latestCard(player);
+  if(!latest) return null;
   player.timeline.splice(player.timeline.indexOf(latest), 1);
   if(player.lastAdded === latest) player.lastAdded = null;
   statsCardsPlaced = Math.max(0, statsCardsPlaced - 1);
@@ -4873,9 +4995,13 @@ function settleSong(){
   const won = turnPlayer ? turnPlayer.timeline.find(e => e.id === song.id && !e.locked) : null;
   const notes = [];
 
-  if(song.don && turnPlayer && !won){
-    const lost = loseLatestCard(turnPlayer);
-    if(lost) notes.push(turnPlayer.name + ' lost ' + lost.year + ' (double or nothing)');
+  if(song.passedFrom && turnPlayer && !won){
+    const passer = players.find(p => p.name === song.passedFrom);
+    if(passer){
+      turnPlayer.coinAdj = (turnPlayer.coinAdj || 0) - 1;
+      passer.coinAdj = (passer.coinAdj || 0) + 1;
+      notes.push(turnPlayer.name + ' pays ' + passer.name + ' 1 coin');
+    }
   }
 
   if(song.bets && turnPlayer){
@@ -4897,37 +5023,240 @@ function settleSong(){
   renderScoreboard();
 }
 
-/* ── coin shop: the turn player pays 1 coin to swap the song ────────────── */
+/* ── coin shop ─────────────────────────────────────────────────────────────
+   Open in every round with the Settings switch, or in chaos mode's coin shop
+   rounds. Players buy on their phone; the DJ's shop window buys for anyone
+   (for players without a phone). Every purchase goes through shopWhyNot, so
+   the rules live in one place. */
 
-function renderShop(){
+const SHOP_ITEMS = [
+  { id: 'new', name: 'New song', price: 1, desc: 'Swap this song for a new one.' },
+  { id: 'hint', name: 'Hint', price: 2, desc: 'Show the decade on screen.' },
+  { id: 'pass', name: 'Pass it on', price: 2, desc: 'Another player has to place it. Wrong = they pay you 1 coin.', target: 'player' },
+  { id: 'trap', name: 'Speed trap', price: 2, desc: "Another player's next song is a " + SPEED_TRAP_SECONDS + '-second clip.', target: 'player' },
+  { id: 'buy', name: 'Buy the card', price: 3, desc: 'Placed it wrong? Keep the card anyway.' },
+  { id: 'steal', name: 'Steal', price: 5, desc: "Take a card from another player's timeline. Skips your song.", target: 'card' }
+];
+
+function shopOpen(){
+  return shopEnabled || chaosActive('shop');
+}
+
+// 'before' the reveal, 'after' it, or 'none' (no song, a pop-up, stolen).
+function shopPhase(){
+  if(!currentCard || !song || song.event || song.skipped) return 'none';
+  return revealed ? 'after' : 'before';
+}
+
+function shopOwner(){
+  return currentCard ? players.find(p => p.timeline.some(e => e.id === currentCard.id && !e.locked)) : null;
+}
+
+// Why `buyer` can't buy `item` right now, or null if they can.
+function shopWhyNot(buyer, item, opts){
+  opts = opts || {};
+  const def = SHOP_ITEMS.find(i => i.id === item);
+  if(!shopOpen()) return 'The shop is closed';
+  if(!buyer || !def) return 'Pick a player';
+  if(bonusCount(buyer) < def.price) return 'Needs ' + def.price + ' coins';
+  const phase = shopPhase();
+  const isTurn = turnActive() && buyer.name === turnName;
+  const other = players.find(p => p.name === opts.target && p !== buyer);
+  if(item === 'trap'){
+    if(!other) return 'Pick a player';
+    if(speedTraps[other.name]) return other.name + ' is already trapped';
+    return null;
+  }
+  if(!isTurn) return 'Only on your own turn';
+  if(item === 'buy'){
+    if(phase !== 'after') return 'After the reveal';
+    if(shopOwner()) return 'Someone already has the card';
+    return null;
+  }
+  if(phase !== 'before') return 'Before the reveal';
+  if(item === 'hint'){
+    if(song.hint) return 'Hint already shown';
+    if(isNaN(parseInt(currentCard.year, 10))) return 'This song has no year';
+  }
+  if(item === 'pass'){
+    if(song.passedFrom) return 'Already passed on';
+    if(!other) return 'Pick who gets it';
+  }
+  if(item === 'steal' && !(other && other.timeline.some(e => e.id === opts.cardId))) return 'Pick a card to steal';
+  return null;
+}
+
+function shopBuy(buyer, item, opts){
+  opts = opts || {};
+  if(shopWhyNot(buyer, item, opts)) return false;
+  const def = SHOP_ITEMS.find(i => i.id === item);
+  const other = players.find(p => p.name === opts.target);
+  let msg = '';
+  if(item === 'new'){
+    const pick = pickTrack();
+    if(!pick) return false;
+    // Same turn, same round count — just a different song.
+    showTrack(pick.p, pick.t);
+    song.id = pick.t.id;
+    song.hint = null;
+    if(vote) startVote(pick.t, vote.stakes);
+    renderTracklist();
+    if(!awaitingStart) playSnippet(true);
+    msg = buyer.name + ' bought a new song';
+  }else if(item === 'hint'){
+    song.hint = Math.floor(parseInt(currentCard.year, 10) / 10) * 10 + 's';
+    msg = buyer.name + ' bought a hint: ' + song.hint;
+  }else if(item === 'pass'){
+    song.passedFrom = buyer.name;
+    setTurn(other.name);
+    msg = buyer.name + ' passed the song to ' + other.name + '!';
+  }else if(item === 'trap'){
+    speedTraps[other.name] = buyer.name;
+    msg = buyer.name + ' set a speed trap for ' + other.name + '!';
+  }else if(item === 'buy'){
+    giveCardTo(buyer);
+    msg = buyer.name + ' bought the card';
+  }else if(item === 'steal'){
+    const entry = other.timeline.find(e => e.id === opts.cardId);
+    other.timeline.splice(other.timeline.indexOf(entry), 1);
+    if(other.lastAdded === entry) other.lastAdded = null;
+    entry.locked = true;
+    entry.addedAt = Date.now();
+    buyer.timeline.push(entry);
+    buyer.timeline.sort((a,b) => (a.year - b.year) || ((a.month||0) - (b.month||0)));
+    song.skipped = buyer.name + ' stole ' + entry.year + (entry.title ? ' · ' + entry.title : '') + ' from ' + other.name;
+    awaitingStart = false;
+    stopPlayback();
+    msg = song.skipped;
+  }
+  buyer.coinAdj = (buyer.coinAdj || 0) - def.price;
+  lobbyToast(msg);
+  renderScoreboard();
+  renderShopWindow();
+  return true;
+}
+
+function renderHint(){
+  const show = !!(song && song.hint && !revealed);
+  document.getElementById('hintBox').hidden = !show;
+  if(show) document.getElementById('hintLine').textContent = "It's from the " + song.hint;
+}
+
+function renderShopButton(){
   const btn = document.getElementById('shopBtn');
-  const turnPlayer = players.find(p => p.name === turnName);
-  const show = chaosActive('shop') && currentCard && !revealed && !awaitingStart && turnPlayer;
-  btn.hidden = !show;
-  if(!show) return;
-  const coins = bonusCount(turnPlayer);
-  btn.disabled = coins < 1;
-  btn.innerHTML = COIN_SVG + '<span></span>';
-  btn.querySelector('span').textContent = coins < 1
-    ? turnPlayer.name + ' has no coin to swap with'
-    : 'Swap for a new song · 1 coin from ' + turnPlayer.name;
+  btn.hidden = !(shopOpen() && players.length);
+  btn.innerHTML = COIN_SVG + '<span>Coin shop</span>';
+  renderShopWindow();
+}
+
+// The DJ's shop window: the same shop, bought on a player's behalf.
+const shopOverlay = document.getElementById('shopOverlay');
+const shopBuyerSel = document.getElementById('shopBuyer');
+const shopPicks = {};
+
+function renderShopWindow(){
+  // Looked up here: syncStage can call this before the page finished loading.
+  const shopOverlay = document.getElementById('shopOverlay');
+  const shopBuyerSel = document.getElementById('shopBuyer');
+  if(!shopOverlay.classList.contains('open')) return;
+  if(!shopOpen()){ shopOverlay.classList.remove('open'); return; }
+  const wanted = shopBuyerSel.value;
+  shopBuyerSel.innerHTML = '';
+  players.forEach(p => {
+    const o = document.createElement('option');
+    o.value = o.textContent = p.name;
+    shopBuyerSel.appendChild(o);
+  });
+  shopBuyerSel.value = players.some(p => p.name === wanted) ? wanted : (turnActive() && turnName) || (players[0] && players[0].name);
+  const buyer = players.find(p => p.name === shopBuyerSel.value);
+  document.getElementById('shopCoins').textContent = buyer ? bonusCount(buyer) + ' coins' : '';
+  const list = document.getElementById('shopItems');
+  list.innerHTML = '';
+  SHOP_ITEMS.forEach(item => {
+    const row = document.createElement('div');
+    row.className = 'shop-item';
+    const n = document.createElement('div');
+    n.className = 'n';
+    n.textContent = item.name;
+    const price = document.createElement('small');
+    price.textContent = item.price + (item.price === 1 ? ' coin' : ' coins');
+    n.appendChild(price);
+    const d = document.createElement('div');
+    d.className = 'd';
+    d.textContent = item.desc;
+    row.append(n, d);
+    let sel = null;
+    if(item.target && buyer){
+      sel = document.createElement('select');
+      const blank = document.createElement('option');
+      blank.value = '';
+      blank.textContent = item.target === 'card' ? 'Pick a card…' : 'Pick a player…';
+      sel.appendChild(blank);
+      players.filter(p => p !== buyer).forEach(p => {
+        if(item.target === 'card'){
+          p.timeline.forEach(e => {
+            const o = document.createElement('option');
+            o.value = p.name + '|' + e.id;
+            o.textContent = p.name + ' — ' + e.year + (e.title ? ' · ' + e.title : '');
+            sel.appendChild(o);
+          });
+        }else{
+          const o = document.createElement('option');
+          o.value = o.textContent = p.name;
+          sel.appendChild(o);
+        }
+      });
+      sel.value = shopPicks[item.id] || '';
+      if(sel.value !== (shopPicks[item.id] || '')) sel.value = '';
+      sel.addEventListener('change', () => { shopPicks[item.id] = sel.value; renderShopWindow(); });
+      row.appendChild(sel);
+    }
+    const opts = shopOptsFrom(item, sel ? sel.value : '');
+    const why = shopWhyNot(buyer, item.id, opts);
+    if(why){
+      const w = document.createElement('div');
+      w.className = 'why';
+      w.textContent = why;
+      row.appendChild(w);
+    }
+    const buy = document.createElement('button');
+    buy.className = 'buy primary';
+    buy.textContent = 'Buy';
+    buy.disabled = !!why;
+    buy.addEventListener('click', () => {
+      if(shopBuy(buyer, item.id, opts)) shopPicks[item.id] = '';
+      renderShopWindow();
+    });
+    row.appendChild(buy);
+    list.appendChild(row);
+  });
+}
+
+function shopOptsFrom(item, value){
+  if(!value) return {};
+  if(item.target === 'card'){
+    const [target, cardId] = value.split('|');
+    return { target, cardId };
+  }
+  return { target: value };
 }
 
 document.getElementById('shopBtn').addEventListener('click', () => {
-  const turnPlayer = players.find(p => p.name === turnName);
-  if(!turnPlayer || !chaosActive('shop') || !currentCard || revealed || bonusCount(turnPlayer) < 1) return;
-  const pick = pickTrack();
-  if(!pick) return;
-  turnPlayer.coinAdj = (turnPlayer.coinAdj || 0) - 1;
-  // Same turn, same round count — just a different song.
-  showTrack(pick.p, pick.t);
-  if(song) song.id = pick.t.id;
-  if(vote) startVote(pick.t, vote.stakes);
-  lobbyToast(turnPlayer.name + ' paid a coin for a new song');
-  renderTracklist();
-  renderScoreboard();
-  playSnippet(true);
+  shopOverlay.classList.add('open');
+  shopBuyerSel.value = '';
+  renderShopWindow();
 });
+shopBuyerSel.addEventListener('change', renderShopWindow);
+document.getElementById('shopClose').addEventListener('click', () => shopOverlay.classList.remove('open'));
+shopOverlay.addEventListener('click', (e) => { if(e.target === shopOverlay) shopOverlay.classList.remove('open'); });
+
+// A purchase from a phone.
+function phoneBuy(payload){
+  if(!payload) return;
+  const buyer = players.find(p => p.deviceId && p.deviceId === payload.deviceId);
+  if(!buyer) return;
+  shopBuy(buyer, payload.item, { target: payload.target, cardId: payload.cardId });
+}
 
 /* ── betster: bets from phones before the song starts ───────────────────── */
 
@@ -4971,22 +5300,25 @@ function placeBet(payload){
 /* Over/under pop-up (Settings, any game mode): now and then every phone votes
    whether the song is from before or after a year on screen. That year is the
    real one shifted 1–8 years either way, so it never gives the answer away.
-   The chance starts at 10% and grows 5% a song, so it's guaranteed within 10
-   songs; 1 in 4 is high stakes. Votes stay open until Reveal. Players without
-   a phone sit it out. `stakes` forces one (a coin-shop swap keeps its vote). */
+   It's a bonus song for everyone: nobody's turn, not a song of the chaos
+   round, and nobody places it. The chance starts at 5% and grows 5% a song,
+   so it's guaranteed within 10 songs; 1 in 4 is high stakes. Votes stay open
+   until Reveal. Players without a phone sit it out. */
+
+// Decides whether this song is an over/under pop-up: its stakes, or null.
+function rollOverUnder(track){
+  const phones = players.some(p => p.deviceId && p.online);
+  if(!ouEnabled || !phones || isNaN(parseInt(track.year, 10))) return null;
+  const chance = ouSince >= 9 ? 1 : 0.05 + 0.05 * ouSince;
+  if(Math.random() >= chance){ ouSince++; return null; }
+  ouSince = 0;
+  return Math.random() < .25 ? 'hard' : 'normal';
+}
 
 function startVote(track, stakes){
   vote = null;
   const year = parseInt(track.year, 10);
-  if(!stakes){
-    const phones = players.some(p => p.deviceId && p.online);
-    if(!ouEnabled || !phones || isNaN(year)){ renderVote(); return; }
-    const chance = ouSince >= 9 ? 1 : 0.10 + 0.05 * ouSince;
-    if(Math.random() >= chance){ ouSince++; renderVote(); return; }
-    ouSince = 0;
-    stakes = Math.random() < .25 ? 'hard' : 'normal';
-  }
-  if(isNaN(year)){ renderVote(); return; }
+  if(!stakes || isNaN(year)){ renderVote(); return; }
   const shift = (1 + Math.floor(Math.random() * 8)) * (Math.random() < .5 ? -1 : 1);
   vote = {
     id: track.id + ':' + Date.now(),
@@ -5096,7 +5428,7 @@ lobbyDeckHint.addEventListener('click', (e) => { if(e.target.closest('button')) 
 // One button for the whole loop: it stands in for whichever of Draw / Reveal
 // is next. The real buttons stay (hidden) so all their logic is untouched.
 function heroTarget(){
-  return (currentCard && !revealed) ? revealBtn : drawBtn;
+  return (currentCard && !revealed && !(song && song.skipped)) ? revealBtn : drawBtn;
 }
 heroBtn.addEventListener('click', () => {
   if(awaitingStart){ startSong(); return; }
@@ -5118,13 +5450,18 @@ function syncStage(){
   heroBtn.disabled = target.disabled;
   const playing = vinyl.classList.contains('spinning');
   deckEl.classList.toggle('playing', playing);
+  deckEl.classList.toggle('skipped', !!(song && song.skipped && !revealed));
   turntableEl.classList.toggle('revealed', !!(currentCard && revealed));
   if(!currentCard){
     setText(stageStateEl, playlists.length ? 'Ready' : 'No records loaded');
     setText(nowTitle, playlists.length ? 'Ready when you are' : 'Load a playlist to start');
     setText(nowArtist, playlists.length ? 'Drop the needle to play a mystery record.' : 'Open the Spotify pill in the top bar.');
+  }else if(!revealed && song && song.skipped){
+    setText(stageStateEl, 'Skipped');
+    setText(nowTitle, 'Card stolen');
+    setText(nowArtist, song.skipped);
   }else if(!revealed){
-    setText(stageStateEl, awaitingStart ? 'Place your bets' : playing ? 'Now playing' : (awaitingSound ? 'Dropping the needle…' : 'Mystery record'));
+    setText(stageStateEl, awaitingStart ? 'Place your bets' : (song && song.event) ? 'Over/under — everyone votes' : playing ? 'Now playing' : (awaitingSound ? 'Dropping the needle…' : 'Mystery record'));
     setText(nowTitle, 'Mystery record');
     setText(nowArtist, 'Where does it fit in your timeline?');
   }else{
@@ -5142,7 +5479,7 @@ document.addEventListener('keydown', (e) => {
   const a = document.activeElement;
   const tag = a && a.tagName;
   if(['INPUT', 'TEXTAREA', 'BUTTON', 'SELECT', 'SUMMARY', 'A'].includes(tag) || (a && a.isContentEditable)) return;
-  const blocking = [roleOverlay, scoreboardOverlay, menuOverlay, recordsDrawer, confirmOverlay];
+  const blocking = [roleOverlay, scoreboardOverlay, menuOverlay, recordsDrawer, confirmOverlay, shopOverlay];
   if(blocking.some(el => el.classList.contains('open'))) return;
   if(stageEl.dataset.mode !== 'deck' || heroBtn.disabled) return;
   e.preventDefault();
@@ -5260,10 +5597,14 @@ function renderStandings(){
     const wins = isLead && p.timeline.length >= WIN_LENGTH;
     const pct = Math.min(100, Math.round(p.timeline.length / Math.max(1, WIN_LENGTH) * 100));
     const row = document.createElement('div');
-    row.className = 'st' + (isLead ? ' lead' : '');
+    row.className = 'st' + (isLead ? ' lead' : '') + (turnActive() ? ' pickable' : '');
+    if(turnActive()){
+      row.title = p.name === turnName ? p.name + "'s turn" : 'Make it ' + p.name + "'s turn";
+      row.addEventListener('click', () => setTurn(p.name));
+    }
     row.innerHTML =
       '<span class="st-rk">' + String(i + 1).padStart(2, '0') + '</span>' +
-      '<span class="st-nm"><i class="st-on' + (p.online ? '' : ' off') + '"></i><span>' + escapeHtml(p.name) + '</span>' + (wins ? '<b class="st-win">WINS</b>' : '') + (currentCard && p.name === turnName ? '<b class="st-turn">TURN</b>' : '') + '</span>' +
+      '<span class="st-nm"><i class="st-on' + (p.online ? '' : ' off') + '"></i><span>' + escapeHtml(p.name) + '</span>' + (wins ? '<b class="st-win">WINS</b>' : '') + (turnActive() && p.name === turnName ? '<b class="st-turn">TURN</b>' : '') + '</span>' +
       '<span class="st-sc"><span>' + CARD_ICON_SVG + p.timeline.length + '</span><span>' + COIN_SVG + bonusCount(p) + '</span></span>' +
       '<span class="st-bar"><i style="width:' + pct + '%"></i></span>';
     standingsEl.appendChild(row);
@@ -5291,7 +5632,7 @@ alignMenuTrigger();
 let giveDismissedFor = null;
 
 function renderGive(){
-  const canAdd = revealed && currentCard && currentCard.year && !isNaN(parseInt(currentCard.year, 10));
+  const canAdd = revealed && currentCard && currentCard.year && !isNaN(parseInt(currentCard.year, 10)) && !(song && song.event);
   if(!canAdd || players.length === 0 || giveDismissedFor === currentCard.id){
     giveRow.hidden = true;
     return;
@@ -5332,8 +5673,40 @@ function renderGive(){
   }
   giveChips.appendChild(extra);
 
-  // Chaos shortcuts, only while nobody has the card yet.
   const turnPlayer = players.find(p => p.name === turnName);
+
+  // Double or nothing: the DJ takes the turn player's latest card when they
+  // got it wrong — named on the button so everyone sees which one goes.
+  if(chaosActive('don') && turnPlayer && song && !song.event){
+    if(song.donLost){
+      const lost = song.donLost;
+      const back = document.createElement('button');
+      back.className = 'give muted';
+      back.textContent = '↺ give ' + lost.year + ' back to ' + turnPlayer.name;
+      back.addEventListener('click', () => {
+        restoreCard(turnPlayer, lost);
+        song.donLost = null;
+        renderScoreboard();
+      });
+      giveChips.appendChild(back);
+    }else if(owner !== turnPlayer){
+      const latest = latestCard(turnPlayer);
+      if(latest){
+        const lose = document.createElement('button');
+        lose.className = 'give';
+        lose.textContent = '✗ ' + turnPlayer.name + ' loses ' + latest.year + (latest.title ? ' · ' + latest.title : '');
+        lose.title = 'Double or nothing: wrong, so their most recently won card goes';
+        lose.addEventListener('click', () => {
+          song.donLost = loseLatestCard(turnPlayer);
+          lobbyToast(turnPlayer.name + ' lost ' + latest.year + ' — double or nothing');
+          renderScoreboard();
+        });
+        giveChips.appendChild(lose);
+      }
+    }
+  }
+
+  // Chaos shortcuts, only while nobody has the card yet.
   if(!owner && chaosActive('sing') && turnPlayer){
     const sang = document.createElement('button');
     sang.className = 'give';

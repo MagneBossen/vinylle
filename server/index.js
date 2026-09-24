@@ -313,6 +313,18 @@ io.on('connection', (socket) => {
     });
   });
 
+  // Coin shop purchase from a phone. The DJ checks the price and the rules.
+  socket.on('shop:buy', (payload) => {
+    const lobby = L.lobbyForPhone(socket.id);
+    if(!lobby || !payload) return;
+    toDj(lobby, 'player:buy', {
+      deviceId: socket.data.deviceId,
+      item: payload.item,
+      target: payload.target,
+      cardId: payload.cardId
+    });
+  });
+
   // --- Teardown ------------------------------------------------------------
 
   socket.on('disconnect', () => {
