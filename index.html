@@ -1574,6 +1574,15 @@
         </div>
       </div>
       <div class="menu-setting-row" style="justify-content:space-between;">
+        <span class="field-label" style="margin:0;">Automatic turns</span>
+        <div class="filter-toggle">
+          <span class="toggle-slider"></span>
+          <button class="sb-view-btn autoturn-btn" data-autoturn="off">Off</button>
+          <button class="sb-view-btn active autoturn-btn" data-autoturn="on">On</button>
+        </div>
+      </div>
+      <p class="hint">The app keeps track of whose turn it is, and "Who placed it right?" only offers that player. Off: everyone is offered, and chaos cards that need turns (double or nothing, catch-up, sing-along, betster, coin shop) and the coin shop are left out.</p>
+      <div class="menu-setting-row" style="justify-content:space-between;">
         <span class="field-label" style="margin:0;">Game mode</span>
         <div class="filter-toggle">
           <span class="toggle-slider"></span>
@@ -1590,7 +1599,29 @@
           <button class="sb-view-btn ou-btn" data-ou="on">On</button>
         </div>
       </div>
-      <p class="hint">Every so often (at least once every 10 songs) everyone votes on their phone: is it from before or after the year on screen? Right = +1 gold coin. Needs phones in the game.</p>
+      <div id="ouOdds" hidden>
+        <div class="menu-setting-row">
+          <span class="field-label" style="margin:0;">Pause after one</span>
+          <input type="range" id="ouGapInput" min="0" max="10" step="1" value="2">
+          <span class="menu-setting-value" id="ouGapValue">2 songs</span>
+        </div>
+        <div class="menu-setting-row">
+          <span class="field-label" style="margin:0;">Starting chance</span>
+          <input type="range" id="ouStartInput" min="0" max="100" step="1" value="0">
+          <span class="menu-setting-value" id="ouStartValue">0%</span>
+        </div>
+        <div class="menu-setting-row">
+          <span class="field-label" style="margin:0;">Rise per song</span>
+          <input type="range" id="ouStepInput" min="0" max="50" step="1" value="10">
+          <span class="menu-setting-value" id="ouStepValue">+10%</span>
+        </div>
+        <div class="menu-setting-row">
+          <span class="field-label" style="margin:0;">Guaranteed by</span>
+          <input type="range" id="ouMaxInput" min="1" max="30" step="1" value="7">
+          <span class="menu-setting-value" id="ouMaxValue">7 songs</span>
+        </div>
+      </div>
+      <p class="hint">Every so often everyone votes on their phone: is it from before or after the year on screen? Right = +1 gold coin. After one there's a pause, then the chance starts low and rises each song until it's guaranteed — by default about every 6 songs, never twice within 3. Needs phones in the game.</p>
       <div class="menu-setting-row" style="justify-content:space-between;">
         <span class="field-label" style="margin:0;">Coin shop (every round)</span>
         <div class="filter-toggle">
@@ -1945,6 +1976,16 @@ let awaitingStart = false;
 let lastBetResults = null;
 // Coin shop open in every round (a setting).
 let shopEnabled = false;
+// Automatic turns (a setting, on by default): the app tracks whose turn it
+// is, and the give row only offers that player.
+let autoTurns = true;
+// Over/under pop-up odds (settings): a pause after each one (0% for that many
+// songs), then a starting chance that rises each song, until it's guaranteed.
+// Defaults land on song 5–7 nine times in ten, about every 6 songs.
+let ouGap = 2;
+let ouStart = 0;
+let ouStep = 10;
+let ouMax = 7;
 let revealAllNames = false;
 let loadedPlaylistIds = new Set();
 let players = [];
@@ -1988,7 +2029,12 @@ function flushSession(){
       turnName: turnName,
       ouEnabled: ouEnabled,
       ouSince: ouSince,
-      shopEnabled: shopEnabled
+      shopEnabled: shopEnabled,
+      autoTurns: autoTurns,
+      ouGap: ouGap,
+      ouStart: ouStart,
+      ouStep: ouStep,
+      ouMax: ouMax
     };
     localStorage.setItem('bs_session', JSON.stringify(state));
   }catch(e){ console.error('saveSession failed:', e); }
@@ -2040,6 +2086,18 @@ function loadSession(){
       syncShopSetButtons();
     }
     if(typeof state.ouSince === 'number') ouSince = state.ouSince;
+    if(typeof state.autoTurns === 'boolean'){
+      autoTurns = state.autoTurns;
+      syncAutoTurnButtons();
+    }
+    // Saves from before the pause existed only hold the old defaults: skip them.
+    if(typeof state.ouGap === 'number'){
+      ouGap = state.ouGap;
+      if(typeof state.ouStart === 'number') ouStart = state.ouStart;
+      if(typeof state.ouStep === 'number') ouStep = state.ouStep;
+      if(typeof state.ouMax === 'number') ouMax = state.ouMax;
+    }
+    syncOuOdds();
     if(typeof state.ouEnabled === 'boolean'){
       ouEnabled = state.ouEnabled;
       syncOuButtons();
@@ -2592,8 +2650,15 @@ function medalSVG(rank){
 }
 
 // Coins a card carries: 0, 1, or 2 when it was won in a double-coins round.
-function coinValue(entry){
+// The title/artist coin on a card: 0, 1, or 2 in a double-coins round.
+function titleCoins(entry){
   return entry.bonus ? (entry.coins || 1) : 0;
+}
+
+// Every coin a card carries: its title coin plus the one a double-or-nothing
+// win comes with.
+function coinValue(entry){
+  return titleCoins(entry) + (entry.donCoin ? 1 : 0);
 }
 
 // Coins on cards, plus coins won or lost outside them (over/under). Can go
@@ -2817,7 +2882,7 @@ function renderScoreboard(){
         artistEl.textContent = entry.artist;
         card.appendChild(artistEl);
       }
-      if(entry.bonus){
+      if(coinValue(entry) > 0){
         const badge = document.createElement('div');
         badge.className = 'card-bonus-badge';
         badge.innerHTML = COIN_SVG.repeat(coinValue(entry));
@@ -2897,7 +2962,8 @@ function renderScoreboard(){
 
 // The revealed card goes into this player's timeline. Shared by the add-tile
 // in the timelines panel and the "Who placed it right?" chips on the stage.
-function giveCardTo(player){
+// `bought`: paid for in the coin shop rather than won, so no double-or-nothing coin.
+function giveCardTo(player, bought){
   if(!currentCard) return;
   const entry = {
     id: currentCard.id,
@@ -2909,6 +2975,12 @@ function giveCardTo(player){
     locked: false,
     addedAt: Date.now()
   };
+  // Double or nothing, won on your own turn: the card comes with a coin.
+  if(!bought && chaosActive('don') && turnActive() && player.name === turnName){
+    entry.donCoin = true;
+    statsCoinsWon++;
+    sessionCoinsWon++;
+  }
   player.timeline.push(entry);
   player.timeline.sort((a,b) => (a.year - b.year) || ((a.month||0) - (b.month||0)));
   player.lastAdded = entry;
@@ -3167,7 +3239,7 @@ function buildStaticVinylCard(entry){
     artistEl.textContent = entry.artist;
     card.appendChild(artistEl);
   }
-  if(entry.bonus){
+  if(coinValue(entry) > 0){
     const badge = document.createElement('div');
     badge.className = 'card-bonus-badge';
     badge.innerHTML = COIN_SVG.repeat(coinValue(entry));
@@ -3477,6 +3549,20 @@ function setClipSeconds(sec){
   saveSession();
 }
 
+function syncAutoTurnButtons(){
+  document.querySelectorAll('.autoturn-btn').forEach(b => b.classList.toggle('active', b.dataset.autoturn === (autoTurns ? 'on' : 'off')));
+  document.querySelectorAll('.autoturn-btn').forEach(b => positionToggleSlider(b.closest('.filter-toggle')));
+}
+document.querySelectorAll('.autoturn-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    autoTurns = btn.dataset.autoturn === 'on';
+    syncAutoTurnButtons();
+    renderShopButton();
+    renderScoreboard();
+    saveSession();
+  });
+});
+
 function syncShopSetButtons(){
   document.querySelectorAll('.shopset-btn').forEach(b => b.classList.toggle('active', b.dataset.shopset === (shopEnabled ? 'on' : 'off')));
   document.querySelectorAll('.shopset-btn').forEach(b => positionToggleSlider(b.closest('.filter-toggle')));
@@ -3490,7 +3576,32 @@ document.querySelectorAll('.shopset-btn').forEach(btn => {
   });
 });
 
+const ouGapInput = document.getElementById('ouGapInput');
+const ouStartInput = document.getElementById('ouStartInput');
+const ouStepInput = document.getElementById('ouStepInput');
+const ouMaxInput = document.getElementById('ouMaxInput');
+function syncOuOdds(){
+  ouGapInput.value = ouGap;
+  document.getElementById('ouGapValue').textContent = ouGap === 0 ? 'none' : ouGap === 1 ? '1 song' : ouGap + ' songs';
+  ouStartInput.value = ouStart;
+  ouStepInput.value = ouStep;
+  ouMaxInput.value = ouMax;
+  document.getElementById('ouStartValue').textContent = ouStart + '%';
+  document.getElementById('ouStepValue').textContent = '+' + ouStep + '%';
+  document.getElementById('ouMaxValue').textContent = ouMax === 1 ? 'every song' : ouMax + ' songs';
+  document.getElementById('ouOdds').hidden = !ouEnabled;
+}
+[ouGapInput, ouStartInput, ouStepInput, ouMaxInput].forEach(input => input.addEventListener('input', () => {
+  ouGap = parseInt(ouGapInput.value, 10);
+  ouStart = parseInt(ouStartInput.value, 10);
+  ouStep = parseInt(ouStepInput.value, 10);
+  ouMax = parseInt(ouMaxInput.value, 10);
+  syncOuOdds();
+  saveSession();
+}));
+
 function syncOuButtons(){
+  syncOuOdds();
   document.querySelectorAll('.ou-btn').forEach(b => b.classList.toggle('active', b.dataset.ou === (ouEnabled ? 'on' : 'off')));
   document.querySelectorAll('.ou-btn').forEach(b => positionToggleSlider(b.closest('.filter-toggle')));
 }
@@ -4740,7 +4851,7 @@ const CHAOS_CARDS = [
   { id: 'swap', title: 'Swap', desc: "Win the card and you may swap it for any card in an opponent's timeline." },
   { id: 'speed', title: 'Speed round', xs: [5, 10], desc: 'Every clip this round is only {x} seconds.' },
   { id: 'playlist', title: 'Playlist round', desc: 'Every song this round is from “{playlist}”.' },
-  { id: 'don', title: 'Double or nothing', desc: 'Get it right and win the card. Get it wrong and lose your most recently won card.' },
+  { id: 'don', title: 'Double or nothing', desc: 'Get it right: the card plus a gold coin. Get it wrong: lose your most recently won card.' },
   { id: 'shop', title: 'Coin shop', desc: 'The shop is open: spend gold coins on a new song, a hint, passing it on, a speed trap, buying the card or a steal.' },
   { id: 'catchup', title: 'Catch-up', desc: "Get it wrong and the card goes to whoever has the fewest cards (then fewest coins) — unless it's their own turn." },
   { id: 'sing', title: 'Sing-along', desc: "Sing along to it and win the card plus a gold coin. Can't? Play it as normal." },
@@ -4797,6 +4908,8 @@ function pickChaosCard(len, recent, usedPlaylists, bag){
     if(c.id === 'nomonth') return expertMode;
     if(c.id === 'speed') return c.xs.some(x => x < CLIP_SECONDS);
     if(c.id === 'playlist') return chaosPlaylists(len).length > 0;
+    // These are all about the turn player, so they need automatic turns.
+    if(!autoTurns && ['don', 'sing', 'catchup', 'betster', 'shop'].includes(c.id)) return false;
     if(c.id === 'catchup') return players.length > 2;
     // Betting happens on phones, so it needs at least one in the game.
     if(c.id === 'betster') return players.some(p => p.deviceId && p.online);
@@ -4950,7 +5063,7 @@ function renderTurn(){
 // Is this song someone's turn? Not before the first draw, and not during an
 // over/under pop-up, which everyone plays.
 function turnActive(){
-  return !!currentCard && !(song && song.event);
+  return autoTurns && !!currentCard && !(song && song.event);
 }
 
 function setTurn(name){
@@ -5060,8 +5173,9 @@ function shopDesc(item){
   return item.desc.replace('{turn}', turnActive() && turnName ? turnName : 'the player');
 }
 
+// The shop is built on turns (your items vs. sabotage), so it needs them on.
 function shopOpen(){
-  return shopEnabled || chaosActive('shop');
+  return autoTurns && (shopEnabled || chaosActive('shop'));
 }
 
 // 'before' the reveal, 'after' it, or 'none' (no song, a pop-up, stolen).
@@ -5151,7 +5265,7 @@ function shopBuy(buyer, item, opts){
     }
     msg = buyer.name + ' cut ' + SPEED_TRAP_CUT + " seconds off " + turnName + "'s clip!";
   }else if(item === 'buy'){
-    giveCardTo(buyer);
+    giveCardTo(buyer, true);
     msg = buyer.name + ' bought the card';
   }else if(item === 'steal'){
     const entry = other.timeline.find(e => e.id === opts.cardId);
@@ -5338,15 +5452,18 @@ function placeBet(payload){
    whether the song is from before or after a year on screen. That year is the
    real one shifted 1–8 years either way, so it never gives the answer away.
    It's a bonus song for everyone: nobody's turn, not a song of the chaos
-   round, and nobody places it. The chance starts at 5% and grows 5% a song,
-   so it's guaranteed within 10 songs; 1 in 4 is high stakes. Votes stay open
+   round, and nobody places it. After one there's a pause (0%), then the chance
+   starts low and rises each song until it's guaranteed — all adjustable in
+   Settings. 1 in 4 is high stakes. Votes stay open
    until Reveal. Players without a phone sit it out. */
 
 // Decides whether this song is an over/under pop-up: its stakes, or null.
 function rollOverUnder(track){
   const phones = players.some(p => p.deviceId && p.online);
   if(!ouEnabled || !phones || isNaN(parseInt(track.year, 10))) return null;
-  const chance = ouSince >= 9 ? 1 : 0.05 + 0.05 * ouSince;
+  // This song, counted from the last pop-up.
+  const n = ouSince + 1;
+  const chance = n <= ouGap ? 0 : n >= ouMax ? 1 : (ouStart + ouStep * (n - ouGap - 1)) / 100;
   if(Math.random() >= chance){ ouSince++; return null; }
   ouSince = 0;
   return Math.random() < .25 ? 'hard' : 'normal';
@@ -5684,9 +5801,14 @@ function renderGive(){
   giveLabel.textContent = owner ? 'Given to ' + owner.name : 'Who placed it right?';
   // Catch-up rounds: the card can only go to the turn player or, if they got
   // it wrong, to the catch-up player — so only those two are offered.
-  const catchUp = (chaosActive('catchup') && turnActive()) ? catchUpPlayer() : null;
-  const offered = chaosActive('catchup') && turnActive()
+  const catchUpRound = chaosActive('catchup') && turnActive();
+  const catchUp = catchUpRound ? catchUpPlayer() : null;
+  // With automatic turns only the turn player is offered — plus the catch-up
+  // player in catch-up rounds, and whoever already has it. Turn player first.
+  const turnOnly = turnActive() && players.some(p => p.name === turnName);
+  const offered = turnOnly
     ? players.filter(p => p.name === turnName || p === catchUp || p === owner)
+        .sort((a, b) => (b.name === turnName) - (a.name === turnName))
     : players;
   offered.forEach(p => {
     const b = document.createElement('button');
@@ -5702,8 +5824,12 @@ function renderGive(){
   });
   const extra = document.createElement('button');
   extra.className = 'give muted';
+  // Catch-up: a card handed to the catch-up player earns no title coin, and
+  // there's no "nobody" — a missed card always goes to them.
+  const showExtra = owner ? !(catchUpRound && owner.name !== turnName) : !(catchUpRound && catchUp);
   if(owner){
-    extra.innerHTML = '<span style="display:inline-flex;align-items:center;gap:.35rem;">' + COIN_SVG + (ownerEntry.bonus ? (coinValue(ownerEntry) > 1 ? coinValue(ownerEntry) + ' coins ✓' : 'coin ✓') : (chaosCoinValue() > 1 ? '+ 2 coins' : '+ coin')) + '</span>';
+    const titled = titleCoins(ownerEntry);
+    extra.innerHTML = '<span style="display:inline-flex;align-items:center;gap:.35rem;">' + COIN_SVG + (titled ? (titled > 1 ? titled + ' coins ✓' : 'coin ✓') : (chaosCoinValue() > 1 ? '+ 2 coins' : '+ coin')) + '</span>';
     extra.title = 'Title + artist guessed too (gold coin)';
     extra.addEventListener('click', () => {
       toggleCoin(ownerEntry);
@@ -5714,9 +5840,9 @@ function renderGive(){
     extra.title = 'Nobody got it — hide these';
     extra.addEventListener('click', () => { giveDismissedFor = currentCard.id; renderGive(); });
   }
-  giveChips.appendChild(extra);
+  if(showExtra) giveChips.appendChild(extra);
 
-  const turnPlayer = players.find(p => p.name === turnName);
+  const turnPlayer = turnActive() ? players.find(p => p.name === turnName) : null;
 
   // Double or nothing: the DJ takes the turn player's latest card when they
   // got it wrong — named on the button so everyone sees which one goes.

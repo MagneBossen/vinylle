@@ -919,10 +919,17 @@ function me(){
 }
 
 // A card won in a double-coins round carries 2.
+// Coins on one card: the DJ sends the count (title coin, doubled in a
+// double-coins round, plus a double-or-nothing win). Older states only had
+// the flag.
+function cardCoins(e){
+  return typeof e.coins === 'number' ? e.coins : (e.bonus ? 1 : 0);
+}
+
 // Coins on cards (2 on a double-coins card) plus any won or lost in
 // over/under, which can take the total below zero.
 function bonusCount(player){
-  return (player.timeline || []).reduce((sum, e) => sum + (e.bonus ? (e.coins || 1) : 0), 0) + (player.coinAdj || 0);
+  return (player.timeline || []).reduce((sum, e) => sum + cardCoins(e), 0) + (player.coinAdj || 0);
 }
 
 function playerGaps(player){
@@ -952,10 +959,10 @@ function comparePlayers(a, b){
 function buildCard(entry, isNew){
   const card = document.createElement('div');
   card.className = 'vinyl-card' + (entry.bonus ? ' has-bonus' : '') + (isNew ? ' is-new' : '');
-  if(entry.bonus){
+  if(cardCoins(entry) > 0){
     const badge = document.createElement('div');
     badge.className = 'card-bonus-badge';
-    badge.innerHTML = COIN_SVG.repeat(entry.coins || 1);
+    badge.innerHTML = COIN_SVG.repeat(cardCoins(entry));
     card.appendChild(badge);
   }
   if(entry.month && lastState && lastState.expertMode){
@@ -1077,10 +1084,10 @@ function buildEntry(entry, isNew){
     t.appendChild(s);
   }
   row.appendChild(t);
-  if(entry.bonus){
+  if(cardCoins(entry) > 0){
     const c = document.createElement('span');
     c.className = 'coin';
-    c.innerHTML = COIN_SVG.repeat(entry.coins || 1);
+    c.innerHTML = COIN_SVG.repeat(cardCoins(entry));
     row.appendChild(c);
   }
   return row;
