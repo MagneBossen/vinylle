@@ -301,6 +301,17 @@ io.on('connection', (socket) => {
     });
   });
 
+  // Lock-in year from a phone. The DJ checks it against the lock-in.
+  socket.on('lockin:cast', (payload) => {
+    const lobby = L.lobbyForPhone(socket.id);
+    if(!lobby || !payload) return;
+    toDj(lobby, 'player:lockin', {
+      deviceId: socket.data.deviceId,
+      lockId: payload.lockId,
+      year: payload.year
+    });
+  });
+
   // Betster bet from a phone. The DJ checks it against the player's coins.
   socket.on('bet:place', (payload) => {
     const lobby = L.lobbyForPhone(socket.id);
@@ -321,7 +332,8 @@ io.on('connection', (socket) => {
       deviceId: socket.data.deviceId,
       item: payload.item,
       target: payload.target,
-      cardId: payload.cardId
+      cardId: payload.cardId,
+      price: payload.price
     });
   });
 

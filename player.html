@@ -248,19 +248,22 @@
   .bet-step{display:flex;align-items:center;justify-content:center;gap:.8rem;margin:0 0 .8rem;}
   .bet-step button{width:44px;height:44px;padding:0;font-size:1.3rem;}
   .bet-step b{font-family:'IBM Plex Mono',monospace;font-size:1.6rem;color:var(--gold);min-width:2.5ch;text-align:center;}
+  .lock-year{font-family:'IBM Plex Mono',monospace;font-size:2.6rem;font-weight:600;color:var(--gold);line-height:1;margin:.1rem 0 .7rem;}
+  .lock-step input{flex:1;min-width:0;accent-color:var(--gold);}
+  .lock-card .primary{width:100%;padding:.95rem .5rem;font-size:1.05rem;font-weight:600;}
   .bet-picks{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.45rem;}
   .bet-picks button{padding:.8rem .3rem;font-size:.9rem;font-weight:600;line-height:1.25;}
   .bet-picks button small{display:block;font-family:'IBM Plex Mono',monospace;font-weight:400;font-size:.7rem;opacity:.75;}
   .bet-picks button.on{background:var(--gold);border-color:var(--gold);color:#241A0B;}
   .shop-card{text-align:left;}
   .shop-card .k{text-align:center;}
-  .shop-row{display:grid;grid-template-columns:1fr auto;gap:.2rem .7rem;align-items:center;padding:.7rem 0;border-top:1px solid var(--line);}
+  .shop-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.2rem .7rem;align-items:center;padding:.7rem 0;border-top:1px solid var(--line);}
   .shop-row:first-of-type{border-top:none;}
   .shop-row .n{font-family:'Fraunces',serif;font-weight:600;font-size:1rem;}
   .shop-row .n small{font-family:'IBM Plex Mono',monospace;font-weight:400;font-size:.7rem;color:var(--gold);margin-left:.35rem;}
   .shop-row .d{grid-column:1;font-size:.75rem;color:var(--muted);line-height:1.35;}
   .shop-row .why{grid-column:1;font-size:.7rem;color:var(--gold-dim);}
-  .shop-row select{grid-column:1;max-width:100%;font:inherit;font-size:.85rem;padding:.45rem .6rem;background:var(--surface-2);color:var(--paper);border:1px solid var(--line);border-radius:8px;}
+  .shop-row select{grid-column:1;width:100%;min-width:0;text-overflow:ellipsis;font:inherit;font-size:.85rem;padding:.45rem .6rem;background:var(--surface-2);color:var(--paper);border:1px solid var(--line);border-radius:8px;}
   .shop-row button{grid-column:2;grid-row:1 / span 3;padding:.6rem .9rem;}
   .banner.chaos{display:flex;flex-direction:column;gap:.2rem;background:rgba(212,162,78,.08);border:1px solid var(--gold-dim);color:var(--muted);}
   .banner.chaos .k{font-family:'IBM Plex Mono',monospace;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);}
@@ -546,6 +549,7 @@
       <div class="game-col">
         <div class="vote-card" id="voteCard" hidden></div>
         <div class="vote-card" id="betCard" hidden></div>
+        <div class="vote-card lock-card" id="lockCard" hidden></div>
         <div class="vote-card shop-card" id="shopCard" hidden></div>
 
         <div class="now-card" id="nowCard">
@@ -956,6 +960,11 @@ function comparePlayers(a, b){
   return 0;
 }
 
+// Blindfold round: every timeline loses its years (and gaps) for the round.
+function blind(){
+  return !!(lastState && lastState.blind);
+}
+
 function buildCard(entry, isNew){
   const card = document.createElement('div');
   card.className = 'vinyl-card' + (entry.bonus ? ' has-bonus' : '') + (isNew ? ' is-new' : '');
@@ -965,7 +974,7 @@ function buildCard(entry, isNew){
     badge.innerHTML = COIN_SVG.repeat(cardCoins(entry));
     card.appendChild(badge);
   }
-  if(entry.month && lastState && lastState.expertMode){
+  if(entry.month && lastState && lastState.expertMode && !blind()){
     const monthEl = document.createElement('div');
     monthEl.className = 'vinyl-card-month';
     monthEl.textContent = MONTH_NAMES[entry.month - 1];
@@ -973,7 +982,7 @@ function buildCard(entry, isNew){
   }
   const yearEl = document.createElement('div');
   yearEl.className = 'vinyl-card-year';
-  yearEl.textContent = entry.year;
+  yearEl.textContent = blind() ? '?' : entry.year;
   card.appendChild(yearEl);
   if(entry.title){
     const titleEl = document.createElement('div');
@@ -1066,8 +1075,8 @@ function buildEntry(entry, isNew){
   row.className = 'ent' + (isNew ? ' new' : '');
   const y = document.createElement('span');
   y.className = 'y';
-  y.textContent = entry.year;
-  if(entry.month && lastState && lastState.expertMode){
+  y.textContent = blind() ? '?' : entry.year;
+  if(entry.month && lastState && lastState.expertMode && !blind()){
     const m = document.createElement('small');
     m.textContent = MONTH_NAMES[entry.month - 1];
     y.prepend(m);
@@ -1115,7 +1124,7 @@ let tlScrolledTo = null;
 function buildCardGap(months, tight){
   const g = document.createElement('div');
   g.className = 'cgap' + (tight ? ' tight' : '');
-  const txt = gapText(months);
+  const txt = blind() ? '' : gapText(months);
   // "+9y 10m" doesn't fit over a 2rem line: years above, months below.
   const parts = txt.split(' ');
   const over = document.createElement('span');
@@ -1175,7 +1184,7 @@ function renderMyTimeline(){
       const g = document.createElement('div');
       g.className = 'gap-tag' + (gaps[i] === tight ? ' tight' : '');
       g.textContent = gapText(gaps[i]);
-      holder.appendChild(g);
+      if(!blind()) holder.appendChild(g);
     }
     holder.appendChild(buildEntry(entry, newest && entry.id === newest.id));
   });
@@ -1366,7 +1375,7 @@ function nowKey(){
 
 function timelineKey(){
   const mine = me();
-  return JSON.stringify([tlView, !!(lastState && lastState.expertMode), mine && mine.lastAddedId, mine && mine.timeline]);
+  return JSON.stringify([tlView, !!(lastState && lastState.expertMode), blind(), mine && mine.lastAddedId, mine && mine.timeline]);
 }
 
 function leaderboardKey(){
@@ -1440,6 +1449,105 @@ function renderVote(){
     q.textContent = r.choice ? (hard ? 'Wrong — −1 gold coin' : 'Not this time') : (hard ? 'No vote — −1 gold coin' : 'No vote this time');
   }
   box.append(q, s);
+}
+
+// Lock-in: pick a year with the slider (or −/+), lock it in, see how close
+// you were at the reveal. A lock-in is final.
+let lockYear = null; // { id, year } on this phone's slider
+let myLock = null;   // { id, year } this phone locked in
+
+function lockKey(){
+  const l = lastState && lastState.lockin;
+  // Not the count of lock-ins: re-rendering mid-drag would drop the slider.
+  return JSON.stringify([l && [l.id, l.open, l.min, l.max, l.locked.includes(deviceId), l.results], myLock, !!me()]);
+}
+
+function lockCountText(l){
+  return l.locked.length + ' locked in so far';
+}
+
+function renderLock(){
+  const box = document.getElementById('lockCard');
+  const l = lastState && lastState.lockin;
+  box.className = 'vote-card lock-card';
+  box.textContent = '';
+  if(!l || !me()){ box.hidden = true; return; }
+  box.hidden = false;
+  const add = (cls, text) => {
+    const el = document.createElement('div');
+    el.className = cls;
+    el.textContent = text;
+    box.appendChild(el);
+    return el;
+  };
+  add('k', 'Lock-in · closest wins a coin');
+
+  if(l.open && !l.locked.includes(deviceId) && !(myLock && myLock.id === l.id)){
+    if(!lockYear || lockYear.id !== l.id) lockYear = { id: l.id, year: Math.round((l.min + l.max) / 2) };
+    add('q', 'What year is it?');
+    const big = add('lock-year', lockYear.year);
+    const step = document.createElement('div');
+    step.className = 'bet-step lock-step';
+    const minus = document.createElement('button');
+    minus.type = 'button';
+    minus.textContent = '−';
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.min = l.min;
+    slider.max = l.max;
+    slider.step = 1;
+    slider.value = lockYear.year;
+    const plus = document.createElement('button');
+    plus.type = 'button';
+    plus.textContent = '+';
+    step.append(minus, slider, plus);
+    box.appendChild(step);
+    const go = document.createElement('button');
+    go.type = 'button';
+    go.className = 'primary';
+    box.appendChild(go);
+    // Updated in place, so dragging the slider never rebuilds the card.
+    const set = (y) => {
+      lockYear.year = Math.min(l.max, Math.max(l.min, y));
+      big.textContent = lockYear.year;
+      slider.value = lockYear.year;
+      go.textContent = 'Lock in ' + lockYear.year;
+    };
+    set(lockYear.year);
+    slider.addEventListener('input', () => set(Number(slider.value)));
+    minus.addEventListener('click', () => set(lockYear.year - 1));
+    plus.addEventListener('click', () => set(lockYear.year + 1));
+    go.addEventListener('click', () => {
+      myLock = { id: l.id, year: lockYear.year };
+      socket.emit('lockin:cast', { lockId: l.id, year: lockYear.year });
+      renderIfChanged('lock', lockKey(), renderLock);
+    });
+    add('s', lockCountText(l)).id = 'lockCount';
+    return;
+  }
+
+  if(l.open){
+    add('q', myLock && myLock.id === l.id ? 'Locked in: ' + myLock.year : 'Locked in');
+    const count = add('s', '');
+    count.id = 'lockCount';
+    count.dataset.suffix = ' · results at the reveal';
+    count.textContent = lockCountText(l) + count.dataset.suffix;
+    return;
+  }
+
+  const results = l.results || [];
+  const mine = results.find(r => r.deviceId === deviceId);
+  if(!mine){
+    add('q', 'No lock-in this time');
+  }else if(results.length < 2){
+    add('q', 'Only you locked in — no coin');
+  }else if(mine.win){
+    box.classList.add('right');
+    add('q', (mine.off === 0 ? 'Spot on!' : 'Closest!') + ' +1 gold coin');
+  }else{
+    add('q', mine.off + (mine.off === 1 ? ' year' : ' years') + ' off');
+  }
+  if(results.length) add('s', l.year + ': ' + results.map(r => r.name + ' ' + r.year + (r.win ? ' ✓' : '')).join(' · '));
 }
 
 // Betster: bet coins on someone else's turn before their song starts.
@@ -1563,19 +1671,25 @@ function renderBet(){
 // On your turn: your own items. On someone else's: sabotage against them.
 const SHOP_ITEMS = [
   { id: 'new', who: 'turn', name: 'New song', price: 1, desc: 'Swap your song for a new one.' },
-  { id: 'hint', who: 'turn', name: 'Hint', price: 2, desc: 'Show the decade on screen.' },
+  { id: 'hint', who: 'turn', name: 'Hint', price: 1, desc: 'Show the decade on screen.' },
   { id: 'pass', who: 'turn', name: 'Pass it on', price: 2, desc: 'Another player has to place it. Wrong = they pay you 1 coin.', target: 'player' },
   { id: 'buy', who: 'turn', name: 'Buy the card', price: 3, desc: 'Placed it wrong? Keep the card anyway.' },
   { id: 'steal', who: 'turn', name: 'Steal', price: 5, desc: "Take a card from another player's timeline. Skips your song.", target: 'card' },
-  { id: 'trap', who: 'others', name: 'Speed trap', price: 1, desc: "Cut 5 seconds off {turn}'s clip." },
+  { id: 'trap', who: 'others', name: 'Speed trap', price: 1, desc: "Cut 5 seconds off {turn}'s clip. Every second trap costs 1 more." },
   { id: 'force', who: 'others', name: 'New song', price: 2, desc: 'Make {turn} play a different song.' }
 ];
 const shopPicks = {};
 
+// The DJ sends prices that change during a song (speed traps climb).
+function shopPrice(item){
+  const prices = lastState && lastState.shop && lastState.shop.prices;
+  return (prices && prices[item.id]) || item.price;
+}
+
 function shopWhyNot(item, pick){
   const sh = lastState.shop;
   const mine = me();
-  if(myCoins() < item.price) return 'Needs ' + item.price + ' coins';
+  if(myCoins() < shopPrice(item)) return 'Needs ' + shopPrice(item) + ' coins';
   const isTurn = sh.turn === mine.name;
   if(item.who === 'others'){
     if(!sh.turn) return "When someone's song is on";
@@ -1604,7 +1718,7 @@ function shopWhyNot(item, pick){
 
 function shopKey(){
   const s = lastState;
-  return JSON.stringify([s && s.shop, me() && me().name, myCoins(), s && s.players && s.players.map(p => [p.name, p.timeline]), shopPicks]);
+  return JSON.stringify([s && s.shop, me() && me().name, myCoins(), blind(), s && s.players && s.players.map(p => [p.name, p.timeline]), shopPicks]);
 }
 
 function renderShop(){
@@ -1626,8 +1740,9 @@ function renderShop(){
     const n = document.createElement('div');
     n.className = 'n';
     n.textContent = item.name;
+    const cost = shopPrice(item);
     const price = document.createElement('small');
-    price.textContent = item.price + (item.price === 1 ? ' coin' : ' coins');
+    price.textContent = cost + (cost === 1 ? ' coin' : ' coins');
     n.appendChild(price);
     const d = document.createElement('div');
     d.className = 'd';
@@ -1644,7 +1759,7 @@ function renderShop(){
           (p.timeline || []).forEach(e => {
             const o = document.createElement('option');
             o.value = p.name + '|' + e.id;
-            o.textContent = p.name + ' — ' + e.year + (e.title ? ' · ' + e.title : '');
+            o.textContent = p.name + ' — ' + (blind() ? '?' : e.year) + (e.title ? ' · ' + (e.title.length > 28 ? e.title.slice(0, 27) + '…' : e.title) : '');
             sel.appendChild(o);
           });
         }else{
@@ -1675,7 +1790,7 @@ function renderShop(){
     buy.textContent = 'Buy';
     buy.disabled = !!why;
     buy.addEventListener('click', () => {
-      const payload = { item: item.id };
+      const payload = { item: item.id, price: shopPrice(item) };
       if(item.target === 'card'){
         const [target, cardId] = pick.split('|');
         payload.target = target;
@@ -1697,6 +1812,11 @@ function render(){
   renderIfChanged('shop', shopKey(), renderShop);
   renderIfChanged('vote', voteKey(), renderVote);
   renderIfChanged('bet', betKey(), renderBet);
+  renderIfChanged('lock', lockKey(), renderLock);
+  const lockCount = document.getElementById('lockCount');
+  if(lockCount && lastState && lastState.lockin){
+    lockCount.textContent = lockCountText(lastState.lockin) + (lockCount.dataset.suffix || '');
+  }
   renderMe();
   renderIfChanged('now', nowKey(), renderNow);
   renderIfChanged('timeline', timelineKey(), renderMyTimeline);
