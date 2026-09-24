@@ -1943,10 +1943,8 @@ let song = null;
 let awaitingStart = false;
 // Last settled bets, so phones can show how theirs went.
 let lastBetResults = null;
-// Coin shop open in every round (a setting), and pending speed traps:
-// { victimName: buyerName } — their next turn is a 5-second clip.
+// Coin shop open in every round (a setting).
 let shopEnabled = false;
-let speedTraps = {};
 let revealAllNames = false;
 let loadedPlaylistIds = new Set();
 let players = [];
@@ -1990,8 +1988,7 @@ function flushSession(){
       turnName: turnName,
       ouEnabled: ouEnabled,
       ouSince: ouSince,
-      shopEnabled: shopEnabled,
-      speedTraps: speedTraps
+      shopEnabled: shopEnabled
     };
     localStorage.setItem('bs_session', JSON.stringify(state));
   }catch(e){ console.error('saveSession failed:', e); }
@@ -2038,7 +2035,6 @@ function loadSession(){
       });
     }
     if(typeof state.turnName === 'string') turnName = state.turnName;
-    if(state.speedTraps && typeof state.speedTraps === 'object') speedTraps = state.speedTraps;
     if(typeof state.shopEnabled === 'boolean'){
       shopEnabled = state.shopEnabled;
       syncShopSetButtons();
@@ -2257,10 +2253,13 @@ let countdownStartFallback = null;
 let timerSyncTimeout = null;
 let untimedMode = false;
 let CLIP_SECONDS = 30;
-const SPEED_TRAP_SECONDS = 5;
-// The clip for the current song: the setting, unless a speed trap cut it short.
+// Each speed trap cuts this much off the current song's clip, down to the floor.
+const SPEED_TRAP_CUT = 5;
+const CLIP_FLOOR = 5;
+// The clip for the current song: the setting, minus any speed traps.
 function clipSeconds(){
-  return (song && song.trap) ? Math.min(SPEED_TRAP_SECONDS, CLIP_SECONDS) : CLIP_SECONDS;
+  const cut = (song && song.cut) || 0;
+  return Math.max(Math.min(CLIP_SECONDS, CLIP_FLOOR), CLIP_SECONDS - cut);
 }
 const TIMER_SYNC_DELAY = 800;
 
@@ -3622,7 +3621,6 @@ function resetDeckProgress(){
   awaitingStart = false;
   lastBetResults = null;
   turnName = null;
-  speedTraps = {};
   renderChaos();
   clearTimeout(snippetTimer);
   clearInterval(countdownInterval);
@@ -4089,11 +4087,6 @@ drawBtn.addEventListener('click', () => {
     bets: chaosActive('betster') ? { id: t.id + ':' + Date.now(), open: true, placed: {} } : null,
     settled: false
   };
-  if(!ouStakes && speedTraps[turnName]){
-    song.trap = true;
-    lobbyToast(turnName + ' walked into ' + speedTraps[turnName] + "'s speed trap — " + SPEED_TRAP_SECONDS + ' seconds!');
-    delete speedTraps[turnName];
-  }
   // Betster: load it but wait for Start, so everyone can bet first.
   awaitingStart = !!song.bets;
   renderTracklist();
@@ -4302,7 +4295,8 @@ function buildStateBlob(){
       owned: !!(revealed && shopOwner()),
       hint: (song && song.hint) || null,
       passed: !!(song && song.passedFrom),
-      traps: Object.keys(speedTraps)
+      clip: clipSeconds(),
+      vibe: untimedMode
     } : null,
     hint: (song && song.hint && !revealed) ? song.hint : null,
     vote: vote ? {
@@ -4524,7 +4518,22 @@ function handleJoinRequest(req){
   };
 
   const returning = players.find(p => p.deviceId && p.deviceId === req.deviceId);
-  if(returning){
+  // The phone picked the wrong name and asked to switch: free its old slot
+  // (the cards stay on the board) and carry on as a fresh claim below.
+  if(returning && req.switch && norm(returning.name) !== norm(req.name)){
+    const wanted = players.find(p => norm(p.name) === norm(req.name));
+    if(wanted && wanted.deviceId){
+      reject('“' + wanted.name + '” is already taken by another phone.');
+      return;
+    }
+    if(!wanted && players.length >= MAX_LOBBY_PLAYERS){
+      reject('This game is full (' + MAX_LOBBY_PLAYERS + ' players).');
+      return;
+    }
+    returning.deviceId = null;
+    returning.online = false;
+    lobbyToast(returning.name + ' switched to ' + (wanted ? wanted.name : capitalizeFirst(req.name)));
+  }else if(returning){
     accept(returning);
     lobbyToast(returning.name + ' reconnected');
     return;
@@ -4733,7 +4742,7 @@ const CHAOS_CARDS = [
   { id: 'playlist', title: 'Playlist round', desc: 'Every song this round is from “{playlist}”.' },
   { id: 'don', title: 'Double or nothing', desc: 'Get it right and win the card. Get it wrong and lose your most recently won card.' },
   { id: 'shop', title: 'Coin shop', desc: 'The shop is open: spend gold coins on a new song, a hint, passing it on, a speed trap, buying the card or a steal.' },
-  { id: 'catchup', title: 'Catch-up', desc: "Get it wrong and the card goes to whoever is last in the standings — unless it's their own turn." },
+  { id: 'catchup', title: 'Catch-up', desc: "Get it wrong and the card goes to whoever has the fewest cards (then fewest coins) — unless it's their own turn." },
   { id: 'sing', title: 'Sing-along', desc: "Sing along to it and win the card plus a gold coin. Can't? Play it as normal." },
   { id: 'betster', title: 'Betster', desc: 'Before each song starts, bet gold coins on your phone: right ×2, right + coin ×3, wrong ×2. Lose and you lose your bet.' }
 ];
@@ -5029,14 +5038,27 @@ function settleSong(){
    (for players without a phone). Every purchase goes through shopWhyNot, so
    the rules live in one place. */
 
+// `who`: 'turn' items are for the player whose song it is; 'others' are the
+// sabotage the rest can buy against them. Each player only sees their own.
 const SHOP_ITEMS = [
-  { id: 'new', name: 'New song', price: 1, desc: 'Swap this song for a new one.' },
-  { id: 'hint', name: 'Hint', price: 2, desc: 'Show the decade on screen.' },
-  { id: 'pass', name: 'Pass it on', price: 2, desc: 'Another player has to place it. Wrong = they pay you 1 coin.', target: 'player' },
-  { id: 'trap', name: 'Speed trap', price: 2, desc: "Another player's next song is a " + SPEED_TRAP_SECONDS + '-second clip.', target: 'player' },
-  { id: 'buy', name: 'Buy the card', price: 3, desc: 'Placed it wrong? Keep the card anyway.' },
-  { id: 'steal', name: 'Steal', price: 5, desc: "Take a card from another player's timeline. Skips your song.", target: 'card' }
+  { id: 'new', who: 'turn', name: 'New song', price: 1, desc: 'Swap your song for a new one.' },
+  { id: 'hint', who: 'turn', name: 'Hint', price: 2, desc: 'Show the decade on screen.' },
+  { id: 'pass', who: 'turn', name: 'Pass it on', price: 2, desc: 'Another player has to place it. Wrong = they pay you 1 coin.', target: 'player' },
+  { id: 'buy', who: 'turn', name: 'Buy the card', price: 3, desc: 'Placed it wrong? Keep the card anyway.' },
+  { id: 'steal', who: 'turn', name: 'Steal', price: 5, desc: "Take a card from another player's timeline. Skips your song.", target: 'card' },
+  { id: 'trap', who: 'others', name: 'Speed trap', price: 1, desc: 'Cut ' + SPEED_TRAP_CUT + " seconds off {turn}'s clip." },
+  { id: 'force', who: 'others', name: 'New song', price: 2, desc: 'Make {turn} play a different song.' }
 ];
+
+// The items `buyer` gets to see: their own on their turn, sabotage otherwise.
+function shopItemsFor(buyer){
+  const mine = !!buyer && turnActive() && buyer.name === turnName;
+  return SHOP_ITEMS.filter(i => i.who === (mine ? 'turn' : 'others'));
+}
+
+function shopDesc(item){
+  return item.desc.replace('{turn}', turnActive() && turnName ? turnName : 'the player');
+}
 
 function shopOpen(){
   return shopEnabled || chaosActive('shop');
@@ -5062,9 +5084,14 @@ function shopWhyNot(buyer, item, opts){
   const phase = shopPhase();
   const isTurn = turnActive() && buyer.name === turnName;
   const other = players.find(p => p.name === opts.target && p !== buyer);
-  if(item === 'trap'){
-    if(!other) return 'Pick a player';
-    if(speedTraps[other.name]) return other.name + ' is already trapped';
+  if(def.who === 'others'){
+    if(!turnActive()) return "When someone's song is on";
+    if(isTurn) return "Not on your own turn";
+    if(phase !== 'before') return 'Before the reveal';
+    if(item === 'trap'){
+      if(untimedMode) return 'Vibe mode has no clip to cut';
+      if(clipSeconds() <= CLIP_FLOOR) return 'The clip is as short as it gets';
+    }
     return null;
   }
   if(!isTurn) return 'Only on your own turn';
@@ -5092,7 +5119,7 @@ function shopBuy(buyer, item, opts){
   const def = SHOP_ITEMS.find(i => i.id === item);
   const other = players.find(p => p.name === opts.target);
   let msg = '';
-  if(item === 'new'){
+  if(item === 'new' || item === 'force'){
     const pick = pickTrack();
     if(!pick) return false;
     // Same turn, same round count — just a different song.
@@ -5102,7 +5129,7 @@ function shopBuy(buyer, item, opts){
     if(vote) startVote(pick.t, vote.stakes);
     renderTracklist();
     if(!awaitingStart) playSnippet(true);
-    msg = buyer.name + ' bought a new song';
+    msg = item === 'force' ? buyer.name + ' forced a new song on ' + turnName + '!' : buyer.name + ' bought a new song';
   }else if(item === 'hint'){
     song.hint = Math.floor(parseInt(currentCard.year, 10) / 10) * 10 + 's';
     msg = buyer.name + ' bought a hint: ' + song.hint;
@@ -5111,8 +5138,18 @@ function shopBuy(buyer, item, opts){
     setTurn(other.name);
     msg = buyer.name + ' passed the song to ' + other.name + '!';
   }else if(item === 'trap'){
-    speedTraps[other.name] = buyer.name;
-    msg = buyer.name + ' set a speed trap for ' + other.name + '!';
+    song.cut = (song.cut || 0) + SPEED_TRAP_CUT;
+    // Already playing: pull the end of the clip in now. Otherwise the shorter
+    // clip applies when it starts (clipSeconds counts the cut).
+    if(clipEndMs){
+      clipEndMs = Math.max(clipEndMs - SPEED_TRAP_CUT * 1000, 1);
+      if(vinyl.classList.contains('spinning')){
+        const left = clipEndMs - lastKnownPosition;
+        if(left <= 0) endClip();
+        else runClip(left);
+      }
+    }
+    msg = buyer.name + ' cut ' + SPEED_TRAP_CUT + " seconds off " + turnName + "'s clip!";
   }else if(item === 'buy'){
     giveCardTo(buyer);
     msg = buyer.name + ' bought the card';
@@ -5172,7 +5209,7 @@ function renderShopWindow(){
   document.getElementById('shopCoins').textContent = buyer ? bonusCount(buyer) + ' coins' : '';
   const list = document.getElementById('shopItems');
   list.innerHTML = '';
-  SHOP_ITEMS.forEach(item => {
+  shopItemsFor(buyer).forEach(item => {
     const row = document.createElement('div');
     row.className = 'shop-item';
     const n = document.createElement('div');
@@ -5183,7 +5220,7 @@ function renderShopWindow(){
     n.appendChild(price);
     const d = document.createElement('div');
     d.className = 'd';
-    d.textContent = item.desc;
+    d.textContent = shopDesc(item);
     row.append(n, d);
     let sel = null;
     if(item.target && buyer){
@@ -5645,10 +5682,16 @@ function renderGive(){
     return false;
   }));
   giveLabel.textContent = owner ? 'Given to ' + owner.name : 'Who placed it right?';
-  players.forEach(p => {
+  // Catch-up rounds: the card can only go to the turn player or, if they got
+  // it wrong, to the catch-up player — so only those two are offered.
+  const catchUp = (chaosActive('catchup') && turnActive()) ? catchUpPlayer() : null;
+  const offered = chaosActive('catchup') && turnActive()
+    ? players.filter(p => p.name === turnName || p === catchUp || p === owner)
+    : players;
+  offered.forEach(p => {
     const b = document.createElement('button');
     b.className = 'give' + (owner === p ? ' given' : '');
-    b.textContent = (owner === p ? '✓ ' : '') + p.name;
+    b.textContent = (owner === p ? '✓ ' : '') + (p === catchUp && owner !== p ? 'Catch-up → ' : '') + p.name;
     b.disabled = !!owner && owner !== p;
     b.title = owner === p ? 'Take it back' : 'Give ' + currentCard.year + ' to ' + p.name;
     b.addEventListener('click', () => {
@@ -5720,18 +5763,18 @@ function renderGive(){
     });
     giveChips.appendChild(sang);
   }
-  if(!owner && chaosActive('catchup') && players.length > 1){
-    const last = players.slice().sort(comparePlayers).pop();
-    // Last place can't catch up on their own turn.
-    if(last && last.name !== turnName){
-      const catchUp = document.createElement('button');
-      catchUp.className = 'give';
-      catchUp.textContent = 'Catch-up → ' + last.name;
-      catchUp.title = 'The turn player got it wrong: the card goes to last place';
-      catchUp.addEventListener('click', () => giveCardTo(last));
-      giveChips.appendChild(catchUp);
-    }
-  }
+}
+
+// Catch-up goes to whoever has the fewest cards, then the fewest coins, then
+// comes first alphabetically — counted without this song's card, so giving it
+// doesn't change who it was meant for. Never the turn player themselves.
+function catchUpPlayer(){
+  const settled = p => p.timeline.filter(e => e.locked || !currentCard || e.id !== currentCard.id);
+  const cards = p => settled(p).length;
+  const coins = p => settled(p).reduce((sum, e) => sum + coinValue(e), 0) + (p.coinAdj || 0);
+  const last = players.slice().sort((a, b) =>
+    (cards(a) - cards(b)) || (coins(a) - coins(b)) || a.name.localeCompare(b.name))[0];
+  return last && last.name !== turnName ? last : null;
 }
 
 function takeCardBack(player, entry){

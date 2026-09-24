@@ -285,7 +285,7 @@ io.on('connection', (socket) => {
     // With no DJ connected there's nobody to approve the join — it gets
     // replayed from the roster the moment they come back.
     if(lobby.djSocketId){
-      toDj(lobby, 'player:join-request', { socketId: socket.id, name, deviceId });
+      toDj(lobby, 'player:join-request', { socketId: socket.id, name, deviceId, switch: !!(payload && payload.switch) });
       pushRoster(lobby);
     }
   });

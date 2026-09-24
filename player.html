@@ -221,6 +221,12 @@
     font-family:'IBM Plex Mono',monospace;font-size:.55rem;color:var(--gold);
     border:1px solid var(--gold);border-radius:20px;padding:.1rem .45rem;flex-shrink:0;
   }
+  .turn-badge{
+    font-family:'IBM Plex Mono',monospace;font-size:.55rem;color:#241A0B;background:var(--gold);
+    border-radius:20px;padding:.1rem .45rem;flex-shrink:0;
+  }
+  .switch-link{background:none;border:none;padding:0;margin-top:.35rem;font-size:.75rem;color:var(--muted);text-decoration:underline;text-underline-offset:3px;width:auto;}
+  .switch-link:hover{background:none;color:var(--gold);}
 
   .banner{
     border-radius:12px;padding:.9rem 1rem;margin-bottom:1.1rem;
@@ -531,6 +537,7 @@
     </div>
     <div class="me" id="meName">—</div>
     <div class="me-sub" id="meSub"></div>
+    <button type="button" class="switch-link" id="switchBtn">Not you? Switch player</button>
     <div class="pips" id="mePips"></div>
 
     <div id="banners"></div>
@@ -579,6 +586,17 @@
 <div class="toast" id="toast" role="status" aria-live="polite">
   <span class="toast-rec" aria-hidden="true"></span>
   <div><span id="toastTitle"></span><small id="toastSub"></small></div>
+</div>
+
+<div class="overlay" id="switchOverlay">
+  <div class="overlay-panel">
+    <h3 id="switchTitle">Switch player?</h3>
+    <p id="switchText"></p>
+    <div class="row" style="flex-wrap:nowrap;">
+      <button class="block" id="switchCancelBtn">Cancel</button>
+      <button class="primary block" id="switchConfirmBtn">Switch</button>
+    </div>
+  </div>
 </div>
 
 <div class="overlay" id="leaveOverlay">
@@ -750,7 +768,11 @@ function renderNameOptions(names, full){
     btn.innerHTML = '<span>' + escapeHtml(entry.name) + '</span>' +
       (entry.mine ? '<span class="taken">that\'s you</span>'
                   : entry.claimed ? '<span class="taken">taken</span>' : '');
-    btn.addEventListener('click', () => join(entry.name));
+    btn.addEventListener('click', () => {
+      // Your own name: nothing to change, just go back to the game.
+      if(entry.mine && joined){ showView('game'); return; }
+      pickName(entry.name);
+    });
     nameList.appendChild(btn);
   });
 
@@ -765,18 +787,49 @@ nameInput.addEventListener('keydown', (e) => { if(e.key === 'Enter') joinBtn.cli
 joinBtn.addEventListener('click', () => {
   const name = nameInput.value.trim();
   if(!name){ nameError.textContent = 'Type a name first.'; return; }
-  join(name);
+  pickName(name);
+});
+
+// Already playing as someone and picked a different name: ask first, since
+// this phone leaves its current slot (the cards stay on the board).
+const switchOverlay = document.getElementById('switchOverlay');
+let switchTo = null;
+function pickName(name){
+  if(!joined || !myName || name.trim().toLowerCase() === myName.trim().toLowerCase()){
+    join(name);
+    return;
+  }
+  switchTo = name;
+  document.getElementById('switchTitle').textContent = 'Switch to ' + name + '?';
+  document.getElementById('switchText').textContent = "You'll stop being " + myName + ' on this phone. ' + myName + "'s cards stay on the board, and someone else can pick that name.";
+  switchOverlay.classList.add('open');
+}
+document.getElementById('switchConfirmBtn').addEventListener('click', () => {
+  switchOverlay.classList.remove('open');
+  if(switchTo) join(switchTo, true);
+  switchTo = null;
+});
+document.getElementById('switchCancelBtn').addEventListener('click', () => {
+  switchOverlay.classList.remove('open');
+  switchTo = null;
+});
+document.getElementById('switchBtn').addEventListener('click', () => {
+  nameError.textContent = '';
+  peekRefresh();
+  showView('name');
 });
 
 document.getElementById('backToCodeBtn').addEventListener('click', () => {
   nameError.textContent = '';
-  showView('code');
+  // Came here to switch names: back means back to the game.
+  showView(joined ? 'game' : 'code');
 });
 
-function join(name){
+function join(name, switching){
   nameError.textContent = '';
-  myName = name;
-  socket.emit('lobby:join', { code: lobbyCode, name, deviceId }, (res) => {
+  // Keep the current name until the DJ confirms a switch.
+  if(!switching) myName = name;
+  socket.emit('lobby:join', { code: lobbyCode, name, deviceId, switch: !!switching }, (res) => {
     if(!res || !res.ok){
       const msg = {
         'no-lobby': 'That game has ended.',
@@ -1221,6 +1274,13 @@ function renderLeaderboard(){
     name.textContent = player.name;
     row.appendChild(name);
 
+    if(lastState && lastState.turn === player.name){
+      const turn = document.createElement('span');
+      turn.className = 'turn-badge';
+      turn.textContent = 'TURN';
+      row.appendChild(turn);
+    }
+
     if((player.timeline || []).length >= winLength && comparePlayers(player, leader) === 0){
       const win = document.createElement('span');
       win.className = 'win-badge';
@@ -1267,14 +1327,6 @@ function renderBanners(){
     b.textContent = "Hint: it's from the " + lastState.hint + '.';
     holder.appendChild(b);
   }
-  const mineNow = me();
-  const traps = (lastState && lastState.shop && lastState.shop.traps) || [];
-  if(mineNow && traps.includes(mineNow.name)){
-    const b = document.createElement('div');
-    b.className = 'banner warn';
-    b.textContent = "Someone set a speed trap for you — your next song is a 5-second clip.";
-    holder.appendChild(b);
-  }
   const chaos = lastState && lastState.chaos;
   if(chaos){
     const b = document.createElement('div');
@@ -1312,7 +1364,7 @@ function timelineKey(){
 
 function leaderboardKey(){
   const s = lastState;
-  return JSON.stringify([deviceId, s && s.winLength, s && s.players && s.players.map(p => [p.name, p.deviceId, p.online, p.timeline, p.coinAdj])]);
+  return JSON.stringify([deviceId, s && s.turn, s && s.winLength, s && s.players && s.players.map(p => [p.name, p.deviceId, p.online, p.timeline, p.coinAdj])]);
 }
 
 // Over/under: two big buttons while the song plays, then how you did.
@@ -1501,13 +1553,15 @@ function renderBet(){
 
 // Coin shop: the same items and rules as the DJ screen (which has the final
 // say). Picks for "who" / "which card" survive re-renders.
+// On your turn: your own items. On someone else's: sabotage against them.
 const SHOP_ITEMS = [
-  { id: 'new', name: 'New song', price: 1, desc: 'Swap this song for a new one.' },
-  { id: 'hint', name: 'Hint', price: 2, desc: 'Show the decade on screen.' },
-  { id: 'pass', name: 'Pass it on', price: 2, desc: 'Another player has to place it. Wrong = they pay you 1 coin.', target: 'player' },
-  { id: 'trap', name: 'Speed trap', price: 2, desc: "Another player's next song is a 5-second clip.", target: 'player' },
-  { id: 'buy', name: 'Buy the card', price: 3, desc: 'Placed it wrong? Keep the card anyway.' },
-  { id: 'steal', name: 'Steal', price: 5, desc: "Take a card from another player's timeline. Skips your song.", target: 'card' }
+  { id: 'new', who: 'turn', name: 'New song', price: 1, desc: 'Swap your song for a new one.' },
+  { id: 'hint', who: 'turn', name: 'Hint', price: 2, desc: 'Show the decade on screen.' },
+  { id: 'pass', who: 'turn', name: 'Pass it on', price: 2, desc: 'Another player has to place it. Wrong = they pay you 1 coin.', target: 'player' },
+  { id: 'buy', who: 'turn', name: 'Buy the card', price: 3, desc: 'Placed it wrong? Keep the card anyway.' },
+  { id: 'steal', who: 'turn', name: 'Steal', price: 5, desc: "Take a card from another player's timeline. Skips your song.", target: 'card' },
+  { id: 'trap', who: 'others', name: 'Speed trap', price: 1, desc: "Cut 5 seconds off {turn}'s clip." },
+  { id: 'force', who: 'others', name: 'New song', price: 2, desc: 'Make {turn} play a different song.' }
 ];
 const shopPicks = {};
 
@@ -1516,9 +1570,13 @@ function shopWhyNot(item, pick){
   const mine = me();
   if(myCoins() < item.price) return 'Needs ' + item.price + ' coins';
   const isTurn = sh.turn === mine.name;
-  if(item.id === 'trap'){
-    if(!pick) return 'Pick a player';
-    if((sh.traps || []).includes(pick)) return pick + ' is already trapped';
+  if(item.who === 'others'){
+    if(!sh.turn) return "When someone's song is on";
+    if(sh.phase !== 'before') return 'Before the reveal';
+    if(item.id === 'trap'){
+      if(sh.vibe) return 'Vibe mode has no clip to cut';
+      if(sh.clip <= 5) return 'The clip is as short as it gets';
+    }
     return null;
   }
   if(!isTurn) return 'On your own turn';
@@ -1554,7 +1612,8 @@ function renderShop(){
   k.textContent = 'Coin shop · you have ' + myCoins() + ' coin' + (myCoins() === 1 ? '' : 's');
   box.appendChild(k);
   const others = (lastState.players || []).filter(p => p.name !== mine.name);
-  SHOP_ITEMS.forEach(item => {
+  const role = sh.turn === mine.name ? 'turn' : 'others';
+  SHOP_ITEMS.filter(item => item.who === role).forEach(item => {
     const row = document.createElement('div');
     row.className = 'shop-row';
     const n = document.createElement('div');
@@ -1565,7 +1624,7 @@ function renderShop(){
     n.appendChild(price);
     const d = document.createElement('div');
     d.className = 'd';
-    d.textContent = item.desc;
+    d.textContent = item.desc.replace('{turn}', sh.turn || 'the player');
     row.append(n, d);
     if(item.target){
       const sel = document.createElement('select');
