@@ -2190,10 +2190,18 @@ function tickCountdown(){
 
 // Song position (ms) at which the current clip ends; 0 = no clip running.
 let clipEndMs = 0;
+// The clip's countdown as the phones see it: ms left as of `at`, and whether
+// it's running (their record gets the same ring as the DJ's).
+let clipRun = null;
+function setClipRun(left, running){
+  clipRun = left == null ? null : { left: Math.max(0, left), at: Date.now(), total: clipSeconds() * 1000, running };
+  broadcastState();
+}
 
 function endClip(){
   clearTimeout(snippetTimer);
   clipEndMs = 0;
+  setClipRun(null);
   if(controller) controller.pause();
   setPlayingVisual(false);
 }
@@ -2216,6 +2224,7 @@ function runClip(leftMs){
   clipBar.style.width = '0%';
   tickCountdown();
   armAutoStop(leftMs / 1000);
+  setClipRun(leftMs, true);
 }
 
 function startCountdown(seconds, exact){
@@ -2231,6 +2240,7 @@ function pauseCountdown(){
   clearInterval(countdownInterval);
   clearTimeout(snippetTimer);
   freezeClipBar();
+  if(clipRun && clipRun.running) setClipRun(clipRun.left - (Date.now() - clipRun.at), false);
 }
 
 function resumeCountdown(){
@@ -4418,6 +4428,7 @@ function playSnippet(useNewPoint, overrideStartMs){
   }
   const startAtSeconds = Math.floor(lastStartMs / 1000);
   clipEndMs = untimedMode ? 0 : (startAtSeconds + clipSeconds()) * 1000;
+  setClipRun(untimedMode ? null : clipSeconds() * 1000, false);
   controller.loadUri(currentCard.uri, false, startAtSeconds);
   controller.play();
   cueNeedle(startAtSeconds * 1000);
@@ -4569,6 +4580,7 @@ function stopPlayback(){
   pendingCountdownStart = false;
   freezeClipBar();
   pausedAtMs = lastKnownPosition;
+  if(clipRun && clipRun.running) setClipRun(clipRun.left - (Date.now() - clipRun.at), false);
   // Only pause what might be playing: a pause sent to an already stopped
   // player has woken the last song back up.
   if(controller && (awaitingSound || vinyl.classList.contains('spinning') || !lastKnownPaused)) controller.pause();
@@ -4667,6 +4679,11 @@ function buildStateBlob(){
     currentCard: card,
     revealed: revealed,
     playing: vinyl.classList.contains('spinning'),
+    clip: clipRun ? {
+      left: clipRun.running ? Math.max(0, clipRun.left - (Date.now() - clipRun.at)) : clipRun.left,
+      total: clipRun.total,
+      running: clipRun.running
+    } : null,
     winLength: WIN_LENGTH,
     expertMode: expertMode,
     chaos: (gameMode === 'chaos' && chaos) ? {
@@ -5550,10 +5567,14 @@ const SHOP_ITEMS = [
   { id: 'force', who: 'others', name: 'New song', price: 2, desc: 'Make {turn} play a different song.' }
 ];
 
-// The items `buyer` gets to see: their own on their turn, sabotage otherwise.
+// The items `buyer` gets to see: their own on their turn, sabotage otherwise
+// — before the song starts. After the reveal only Buy the card is left.
 function shopItemsFor(buyer){
   const mine = !!buyer && turnActive() && buyer.name === turnName;
-  return SHOP_ITEMS.filter(i => i.who === (mine ? 'turn' : 'others'));
+  const phase = shopPhase();
+  if(phase === 'after') return mine && !shopOwner() ? SHOP_ITEMS.filter(i => i.id === 'buy') : [];
+  if(phase !== 'before') return [];
+  return SHOP_ITEMS.filter(i => i.who === (mine ? 'turn' : 'others') && i.id !== 'buy');
 }
 
 function shopDesc(item){
@@ -5566,9 +5587,13 @@ function shopOpen(){
 }
 
 // 'before' the reveal, 'after' it, or 'none' (no song, a pop-up, stolen).
+// 'before' the song starts (it waits for Start while the shop is open),
+// 'playing' (the shop is closed), 'after' the reveal (only Buy the card), or
+// 'none' (no song, a pop-up, a stolen song).
 function shopPhase(){
   if(!currentCard || !song || song.event || song.skipped) return 'none';
-  return revealed ? 'after' : 'before';
+  if(revealed) return 'after';
+  return awaitingStart ? 'before' : 'playing';
 }
 
 function shopOwner(){
@@ -5595,7 +5620,7 @@ function shopWhyNot(buyer, item, opts){
   if(def.who === 'others'){
     if(!turnActive()) return "When someone's song is on";
     if(isTurn) return "Not on your own turn";
-    if(phase !== 'before') return 'Before the reveal';
+    if(phase !== 'before') return 'Before the song starts';
     if(item === 'trap'){
       if(untimedMode) return 'Vibe mode has no clip to cut';
       if(clipSeconds() <= CLIP_FLOOR) return 'The clip is as short as it gets';
@@ -5608,7 +5633,7 @@ function shopWhyNot(buyer, item, opts){
     if(shopOwner()) return 'Someone already has the card';
     return null;
   }
-  if(phase !== 'before') return 'Before the reveal';
+  if(phase !== 'before') return 'Before the song starts';
   if(item === 'hint'){
     if(song.hint) return 'Hint already shown';
     if(isNaN(parseInt(currentCard.year, 10))) return 'This song has no year';
@@ -5729,7 +5754,16 @@ function renderShopWindow(){
   document.getElementById('shopCoins').textContent = buyer ? bonusCount(buyer) + ' coins' : '';
   const list = document.getElementById('shopItems');
   list.innerHTML = '';
-  shopItemsFor(buyer).forEach(item => {
+  const items = shopItemsFor(buyer);
+  if(!items.length){
+    const p = document.createElement('p');
+    p.className = 'hint';
+    p.textContent = shopPhase() === 'playing'
+      ? 'Closed while the song plays. Buy the card opens after the reveal.'
+      : shopPhase() === 'after' ? (shopOwner() ? 'The card has an owner — the shop reopens next song.' : 'Only the player whose turn it was can buy the card now.') : 'Nothing to buy right now.';
+    list.appendChild(p);
+  }
+  items.forEach(item => {
     const row = document.createElement('div');
     row.className = 'shop-item';
     const n = document.createElement('div');

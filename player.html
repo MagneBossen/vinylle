@@ -226,7 +226,8 @@
     font-family:'IBM Plex Mono',monospace;font-size:.55rem;color:#241A0B;background:var(--gold);
     border-radius:20px;padding:.1rem .45rem;flex-shrink:0;
   }
-  .recap-link{display:block;width:100%;margin:.9rem 0 .2rem;padding:.7rem 1rem;border-radius:12px;border:1px solid var(--gold-dim);background:rgba(212,162,78,.08);color:var(--gold);font-weight:600;font-size:.9rem;}
+  .me-links{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;}
+  .switch-link.gold{color:var(--gold);text-decoration-color:var(--gold-dim);}
   .recap-panel{padding:1rem 1rem 1.2rem;max-width:420px;}
   .recap-panel img{display:block;width:100%;border-radius:12px;margin:0 0 .9rem;}
   .recap-panel p{margin:0 0 1rem;font-size:.8rem;}
@@ -239,6 +240,8 @@
   }
   .banner.warn{background:rgba(179,58,58,.12);border:1px solid var(--red);color:var(--paper);}
   .banner.info{background:var(--surface-2);border:1px solid var(--line);color:var(--muted);}
+  .banner.event{display:flex;flex-direction:column;align-items:center;gap:.2rem;text-align:center;background:rgba(212,162,78,.08);border:1px solid var(--gold-dim);color:var(--paper);font-family:'Fraunces',serif;font-weight:600;font-size:1rem;padding:.7rem 1rem;}
+  .banner.event .k{font-family:'IBM Plex Mono',monospace;font-weight:400;font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);}
   .banner strong{font-family:'IBM Plex Mono',monospace;color:var(--gold);}
   .vote-card{background:rgba(212,162,78,.08);border:1px solid var(--gold-dim);border-radius:14px;padding:1.1rem 1.2rem;margin-bottom:1.1rem;text-align:center;}
   .vote-card.right{border-color:var(--green);background:rgba(92,145,99,.1);}
@@ -270,7 +273,14 @@
   .shop-row .why{grid-column:1;font-size:.7rem;color:var(--gold-dim);}
   .shop-row select{grid-column:1;width:100%;min-width:0;text-overflow:ellipsis;font:inherit;font-size:.85rem;padding:.45rem .6rem;background:var(--surface-2);color:var(--paper);border:1px solid var(--line);border-radius:8px;}
   .shop-row button{grid-column:2;grid-row:1 / span 3;padding:.6rem .9rem;}
-  .banner.chaos{display:flex;flex-direction:column;gap:.2rem;background:rgba(212,162,78,.08);border:1px solid var(--gold-dim);color:var(--muted);}
+  .banner.chaos{display:flex;flex-direction:column;gap:.2rem;width:100%;text-align:left;font:inherit;background:rgba(212,162,78,.08);border:1px solid var(--gold-dim);color:var(--muted);}
+  .banner.chaos:hover{background:rgba(212,162,78,.12);color:var(--muted);}
+  .banner.chaos b::after{content:' ▾';font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--gold);}
+  .banner.chaos.open b::after{content:' ▴';}
+  .banner.chaos .d{display:none;}
+  .banner.chaos.open .d{display:block;}
+  .chaos-pop .k{font-family:'IBM Plex Mono',monospace;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);}
+  .chaos-pop h3{margin:.5rem 0 .6rem;font-size:1.8rem;}
   .banner.chaos .k{font-family:'IBM Plex Mono',monospace;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);}
   .banner.chaos b{font-family:'Fraunces',serif;font-size:1.1rem;color:var(--paper);}
 
@@ -364,6 +374,12 @@
     display:grid;place-items:center;font-family:'Fraunces',serif;font-weight:700;font-size:1rem;
   }
   .mini-rec.spinning{animation:spin 1.8s linear infinite;}
+  /* The clip's countdown around the record, like the DJ's ring. */
+  .mini-wrap{position:relative;flex-shrink:0;}
+  .mini-ring{position:absolute;inset:-7px;width:calc(100% + 14px);height:calc(100% + 14px);transform:rotate(-90deg);pointer-events:none;}
+  .mini-ring circle{fill:none;stroke-width:3;}
+  .mini-ring-track{stroke:var(--line);}
+  .mini-ring-prog{stroke:var(--gold);stroke-linecap:round;stroke-dasharray:295.3;stroke-dashoffset:295.3;}
   .mini-rec.revealed span{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:.64rem;}
   .now-text{flex:1;min-width:0;}
   .now-state{margin-bottom:.35rem;}
@@ -545,9 +561,11 @@
     </div>
     <div class="me" id="meName">—</div>
     <div class="me-sub" id="meSub"></div>
-    <button type="button" class="switch-link" id="switchBtn">Not you? Switch player</button>
+    <div class="me-links">
+      <button type="button" class="switch-link" id="switchBtn">Not you? Switch player</button>
+      <button type="button" class="switch-link gold" id="recapBtn">Your recap card ›</button>
+    </div>
     <div class="pips" id="mePips"></div>
-    <button type="button" class="recap-link" id="recapBtn">📸 See your recap card</button>
 
     <div id="banners"></div>
 
@@ -559,7 +577,10 @@
         <div class="vote-card shop-card" id="shopCard" hidden></div>
 
         <div class="now-card" id="nowCard">
-          <div class="rec mini-rec" id="miniRec" aria-hidden="true"><span id="miniLabel">?</span></div>
+          <div class="mini-wrap" aria-hidden="true">
+            <svg class="mini-ring" viewBox="0 0 100 100"><circle class="mini-ring-track" cx="50" cy="50" r="47"/><circle class="mini-ring-prog" id="miniRing" cx="50" cy="50" r="47"/></svg>
+            <div class="rec mini-rec" id="miniRec"><span id="miniLabel">?</span></div>
+          </div>
           <div class="now-text">
             <div class="now-state" id="nowState">Waiting for the DJ</div>
             <div id="nowBody"></div>
@@ -607,6 +628,15 @@
       <button class="block" id="switchCancelBtn">Cancel</button>
       <button class="primary block" id="switchConfirmBtn">Switch</button>
     </div>
+  </div>
+</div>
+
+<div class="overlay" id="chaosOverlay">
+  <div class="overlay-panel chaos-pop">
+    <div class="k" id="chaosPopKicker"></div>
+    <h3 id="chaosPopTitle"></h3>
+    <p id="chaosPopDesc"></p>
+    <button class="primary block" id="chaosPopBtn">Got it</button>
   </div>
 </div>
 
@@ -1018,6 +1048,31 @@ function buildCard(entry, isNew){
   return card;
 }
 
+// The ring empties over what's left of the clip: one CSS transition per
+// update from the DJ, so it runs smoothly without a timer of our own.
+const RING_LEN = 295.3;
+function renderRing(){
+  const ring = document.getElementById('miniRing');
+  const clip = lastState && lastState.clip;
+  const card = lastState && lastState.currentCard;
+  ring.style.transition = 'none';
+  if(!clip || !clip.total || !card){
+    ring.style.strokeDashoffset = RING_LEN;
+    return;
+  }
+  const frac = Math.min(1, clip.left / clip.total);
+  ring.style.strokeDashoffset = (RING_LEN * (1 - frac)).toFixed(1);
+  if(!clip.running || clip.left <= 0) return;
+  void ring.getBoundingClientRect();
+  ring.style.transition = 'stroke-dashoffset ' + clip.left + 'ms linear';
+  ring.style.strokeDashoffset = RING_LEN;
+}
+function ringKey(){
+  const c = lastState && lastState.clip;
+  // Whole seconds only, so every sync doesn't restart the transition.
+  return JSON.stringify(c ? [Math.round(c.left / 1000), c.total, c.running] : null) + !!(lastState && lastState.currentCard);
+}
+
 function renderNow(){
   const stateEl = document.getElementById('nowState');
   const bodyEl = document.getElementById('nowBody');
@@ -1301,6 +1356,7 @@ document.getElementById('recapBtn').addEventListener('click', async () => {
 document.getElementById('recapSaveBtn').addEventListener('click', () => {
   if(recapCanvas) saveRecapCard(recapCanvas, me() ? me().name : 'me');
 });
+document.getElementById('chaosPopBtn').addEventListener('click', () => document.getElementById('chaosOverlay').classList.remove('open'));
 document.getElementById('recapCloseBtn').addEventListener('click', () => document.getElementById('recapOverlay').classList.remove('open'));
 
 function ordinal(n){
@@ -1382,12 +1438,6 @@ function renderLeaderboard(){
       row.appendChild(fire);
     }
 
-    if((player.timeline || []).length >= winLength && comparePlayers(player, leader) === 0){
-      const win = document.createElement('span');
-      win.className = 'win-badge';
-      win.textContent = 'WINS';
-      row.appendChild(win);
-    }
 
     const cards = document.createElement('span');
     cards.className = 'lb-stat';
@@ -1401,6 +1451,23 @@ function renderLeaderboard(){
 
     holder.appendChild(row);
   });
+}
+
+// Chaos: each round's card pops up once in the middle of the screen; after
+// that the banner only shows its name (tap to read the rules again).
+let chaosOpen = null;
+function chaosSeenKey(){
+  return 'vl_chaos_seen_' + lobbyCode;
+}
+function showChaosPopup(chaos){
+  let seen = null;
+  try{ seen = sessionStorage.getItem(chaosSeenKey()); }catch(e){}
+  if(seen === String(chaos.round)) return;
+  try{ sessionStorage.setItem(chaosSeenKey(), String(chaos.round)); }catch(e){}
+  document.getElementById('chaosPopKicker').textContent = 'Chaos · round ' + chaos.round;
+  document.getElementById('chaosPopTitle').textContent = chaos.title;
+  document.getElementById('chaosPopDesc').textContent = chaos.desc;
+  document.getElementById('chaosOverlay').classList.add('open');
 }
 
 function renderBanners(){
@@ -1430,22 +1497,35 @@ function renderBanners(){
   }
   if(lastState && lastState.event){
     const b = document.createElement('div');
-    b.className = 'banner info';
-    b.textContent = lastState.event;
+    b.className = 'banner event';
+    const k = document.createElement('span');
+    k.className = 'k';
+    k.textContent = 'Just now';
+    const t = document.createElement('span');
+    t.textContent = lastState.event;
+    b.append(k, t);
     holder.appendChild(b);
   }
   const chaos = lastState && lastState.chaos;
   if(chaos){
-    const b = document.createElement('div');
-    b.className = 'banner chaos';
+    showChaosPopup(chaos);
+    // After the pop-up, just the card's name: tap it for the rules again.
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'banner chaos' + (chaosOpen === chaos.round ? ' open' : '');
     const k = document.createElement('span');
     k.className = 'k';
     k.textContent = 'Chaos · round ' + chaos.round + (chaos.pending ? ' · up next' : ' · song ' + Math.max(1, chaos.song) + ' of ' + chaos.of);
     const t = document.createElement('b');
     t.textContent = chaos.title;
     const d = document.createElement('span');
+    d.className = 'd';
     d.textContent = chaos.desc;
     b.append(k, t, d);
+    b.addEventListener('click', () => {
+      chaosOpen = chaosOpen === chaos.round ? null : chaos.round;
+      b.classList.toggle('open', chaosOpen === chaos.round);
+    });
     holder.appendChild(b);
   }
 }
@@ -1784,7 +1864,7 @@ function shopWhyNot(item, pick){
   const isTurn = sh.turn === mine.name;
   if(item.who === 'others'){
     if(!sh.turn) return "When someone's song is on";
-    if(sh.phase !== 'before') return 'Before the reveal';
+    if(sh.phase !== 'before') return 'Before the song starts';
     if(item.id === 'trap'){
       if(sh.vibe) return 'Vibe mode has no clip to cut';
       if(sh.clip <= 5) return 'The clip is as short as it gets';
@@ -1797,7 +1877,7 @@ function shopWhyNot(item, pick){
     if(sh.owned) return 'Someone already has the card';
     return null;
   }
-  if(sh.phase !== 'before') return 'Before the reveal';
+  if(sh.phase !== 'before') return 'Before the song starts';
   if(item.id === 'hint' && sh.hint) return 'Hint already shown';
   if(item.id === 'pass'){
     if(sh.passed) return 'Already passed on';
@@ -1825,7 +1905,20 @@ function renderShop(){
   box.appendChild(k);
   const others = (lastState.players || []).filter(p => p.name !== mine.name);
   const role = sh.turn === mine.name ? 'turn' : 'others';
-  SHOP_ITEMS.filter(item => item.who === role).forEach(item => {
+  // Before the song starts: your items. While it plays: closed. After the
+  // reveal: only Buy the card, for the player whose turn it was.
+  const items = sh.phase === 'before' ? SHOP_ITEMS.filter(i => i.who === role && i.id !== 'buy')
+    : sh.phase === 'after' && role === 'turn' && !sh.owned ? SHOP_ITEMS.filter(i => i.id === 'buy') : [];
+  if(!items.length){
+    if(sh.phase !== 'playing'){ box.hidden = true; return; }
+    const s = document.createElement('div');
+    s.className = 's';
+    s.style.textAlign = 'center';
+    s.textContent = 'Closed while the song plays' + (role === 'turn' ? ' — Buy the card opens after the reveal.' : '.');
+    box.appendChild(s);
+    return;
+  }
+  items.forEach(item => {
     const row = document.createElement('div');
     row.className = 'shop-row';
     const n = document.createElement('div');
@@ -1910,6 +2003,7 @@ function render(){
   }
   renderMe();
   renderIfChanged('now', nowKey(), renderNow);
+  renderIfChanged('ring', ringKey(), renderRing);
   renderIfChanged('timeline', timelineKey(), renderMyTimeline);
   renderIfChanged('leaderboard', leaderboardKey(), renderLeaderboard);
   buzzCheck();
