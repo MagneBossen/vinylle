@@ -3289,6 +3289,8 @@ function recapCardData(player){
   const s = sessionChaos;
   // Neighbouring cards: the tightest squeeze and the biggest leap.
   const gaps = years.slice(1).map((y, i) => y - years[i]);
+  const months = player.timeline.map(e => e.year * 12 + (e.month || 1) - 1).filter(v => !isNaN(v)).sort((a, b) => a - b);
+  const monthGaps = months.slice(1).map((v, i) => v - months[i]);
   return {
     name: player.name,
     rank,
@@ -3309,6 +3311,9 @@ function recapCardData(player){
     decadeShare: fav && years.length ? Math.round(fav[1] / years.length * 100) : 0,
     years,
     tightest: gaps.length >= 2 ? Math.min(...gaps) : null,
+    // With months in play (expert mode, or a guess-the-month round tonight)
+    // the squeeze is measured in months. No release month counts as January.
+    tightestMonths: (expertMode || s.rounds.month) && monthGaps.length >= 2 ? Math.min(...monthGaps) : null,
     leap: gaps.length ? Math.max(...gaps) : null,
     turns: s.turns[player.name] || 0,
     turnWins: s.turnWins[player.name] || 0,

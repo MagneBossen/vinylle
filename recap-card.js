@@ -114,7 +114,12 @@
     if(d.ou >= 2 && d.ouRight === d.ou) add(92, d.ouRight + '/' + d.ou, 'Perfect over/under');
     if(d.turns >= 4 && pct === 100) add(91, '100%', 'Never missed');
     if(d.steals) add(88, d.steals, plural(d.steals, 'Card stolen', 'Cards stolen'));
-    if(d.tightest === 0) add(86, 'Same year', 'Tightest squeeze');
+    // Tightest squeeze in months when months were in play, else in years.
+    const tm = d.tightestMonths;
+    if(tm === 0) add(88, 'Same month', 'Tightest squeeze');
+    else if(tm > 0 && tm < 12) add(86, tm + (tm === 1 ? ' month' : ' months'), 'Tightest squeeze');
+    else if(tm >= 12) add(52, Math.floor(tm / 12) + 'y' + (tm % 12 ? ' ' + (tm % 12) + 'm' : ''), 'Tightest squeeze');
+    else if(d.tightest === 0) add(86, 'Same year', 'Tightest squeeze');
     if(d.sabotage) add(84, d.sabotage, plural(d.sabotage, 'Sabotage', 'Sabotages'));
     if(d.sang) add(82, '🎤' + d.sang, plural(d.sang, 'Song sung', 'Songs sung'));
     if(d.donWins) add(80, d.donWins, 'Double or nothing wins');
@@ -130,7 +135,7 @@
     if(d.bestStreak === 2) add(60, '🔥2', 'Best streak');
     if(d.titles && d.titles < 3) add(58, d.titles, plural(d.titles, 'Title named', 'Titles named'));
     if(d.decade) add(55, d.decade, 'Favourite decade');
-    if(d.tightest > 0) add(52, d.tightest + 'y', 'Tightest squeeze');
+    if(tm == null && d.tightest > 0) add(52, d.tightest + 'y', 'Tightest squeeze');
     if(d.spent) add(50, d.spent, 'Coins spent');
     if(years.length){
       add(45, years[0], 'Oldest card');
@@ -268,30 +273,43 @@
       spaced(ctx, text, tx + 28, ty + 140, 2.5);
     });
 
-    // Their timeline as a row of little records, oldest to newest.
+    // Their whole timeline as little records, oldest to newest: one row up
+    // to 16 cards, then two rows (a very long night is thinned to 40).
     let years = (d.years || []).slice();
-    const MAX = 12;
+    const MAX = 40;
     if(years.length > MAX) years = Array.from({ length: MAX }, (_, i) => years[Math.round(i * (years.length - 1) / (MAX - 1))]);
-    const ly = 1195;
-    ctx.strokeStyle = 'rgba(212,162,78,.35)';
-    ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(80, ly); ctx.lineTo(W - 80, ly); ctx.stroke();
+    const two = years.length > 16;
+    const rows = two ? [years.slice(0, Math.ceil(years.length / 2)), years.slice(Math.ceil(years.length / 2))] : [years];
+    const ly = two ? 1150 : 1195;
+    const disc = two ? 12 : years.length > 12 ? 14 : 17;
+    const font = two || years.length > 12 ? 17 : 19;
     if(years.length){
-      const step = years.length > 1 ? (W - 220) / (years.length - 1) : 0;
-      years.forEach((y, i) => {
-        const cx = years.length > 1 ? 110 + i * step : W / 2;
-        ctx.beginPath(); ctx.arc(cx, ly, 17, 0, Math.PI * 2);
-        ctx.fillStyle = '#0D0910'; ctx.fill();
-        ctx.strokeStyle = 'rgba(255,255,255,.12)'; ctx.lineWidth = 1; ctx.stroke();
-        ctx.beginPath(); ctx.arc(cx, ly, 6, 0, Math.PI * 2);
-        ctx.fillStyle = C.gold; ctx.fill();
-        ctx.fillStyle = C.muted;
-        ctx.textAlign = 'center';
-        ctx.font = '400 19px ' + MONO;
-        ctx.fillText(String(y), cx, ly + 46);
+      rows.forEach((row, r) => {
+        const y0 = ly + r * 64;
+        ctx.strokeStyle = 'rgba(212,162,78,.35)';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(80, y0); ctx.lineTo(W - 80, y0); ctx.stroke();
+        // Both rows share one spacing so the discs line up.
+        const per = rows[0].length;
+        const step = per > 1 ? (W - 220) / (per - 1) : 0;
+        row.forEach((y, i) => {
+          const cx = per > 1 ? 110 + i * step : W / 2;
+          ctx.beginPath(); ctx.arc(cx, y0, disc, 0, Math.PI * 2);
+          ctx.fillStyle = '#0D0910'; ctx.fill();
+          ctx.strokeStyle = 'rgba(255,255,255,.12)'; ctx.lineWidth = 1; ctx.stroke();
+          ctx.beginPath(); ctx.arc(cx, y0, disc * .36, 0, Math.PI * 2);
+          ctx.fillStyle = C.gold; ctx.fill();
+          ctx.fillStyle = C.muted;
+          ctx.textAlign = 'center';
+          ctx.font = '400 ' + font + 'px ' + MONO;
+          ctx.fillText(String(y), cx, y0 + disc + 26);
+        });
       });
       ctx.textAlign = 'left';
     }else{
+      ctx.strokeStyle = 'rgba(212,162,78,.35)';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(80, ly); ctx.lineTo(W - 80, ly); ctx.stroke();
       ctx.fillStyle = C.muted;
       ctx.textAlign = 'center';
       ctx.font = '400 22px ' + MONO;
