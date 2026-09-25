@@ -4239,6 +4239,20 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
       lastKnownPaused = e.data.isPaused;
       lastKnownPosition = e.data.position || 0;
       lastKnownDuration = e.data.duration || 0;
+      // Safety net: Spotify playing while the deck isn't — a play that landed
+      // after its pause, say, while a song waits for Start. The DJ can't see
+      // or stop that, so pause it. Only once the position is really moving
+      // (a stale "playing" update right after a pause doesn't count), and at
+      // most every 2s.
+      if(!e.data.isPaused && !awaitingSound && !vinyl.classList.contains('spinning')){
+        if(strayPrevPos !== null && lastKnownPosition > strayPrevPos + 50 && Date.now() - strayPausedAt > 2000){
+          strayPausedAt = Date.now();
+          controller.pause();
+        }
+        strayPrevPos = lastKnownPosition;
+      }else{
+        strayPrevPos = null;
+      }
       // The clip is measured in song time, not wall time: it ends when the
       // song itself reaches clipEndMs. Nothing (spin, ring, countdown) starts
       // until the song is really moving — Spotify often sends a stale
@@ -4349,6 +4363,9 @@ continueBtn.addEventListener('click', () => {
 // lifts again on stop, clip end or reveal.
 let awaitingSound = false;
 let cuePrevPos = null;
+// Stray playback (see the playback listener): last position seen, last pause.
+let strayPrevPos = null;
+let strayPausedAt = 0;
 let soundFromMs = 0;
 let soundFallback = null;
 
@@ -4493,8 +4510,9 @@ function showTrack(p, t){
   stopBtn.disabled = false;
 }
 
-replayBtn.addEventListener('click', () => playSnippet(false));
-newPointBtn.addEventListener('click', () => playSnippet(true));
+// A song waiting for Start (coin shop, betster) starts properly instead.
+replayBtn.addEventListener('click', () => awaitingStart ? startSong() : playSnippet(false));
+newPointBtn.addEventListener('click', () => awaitingStart ? startSong() : playSnippet(true));
 
 function refreshNowYearDisplay(){
   if(!currentCard || !revealed) return;
@@ -4546,7 +4564,9 @@ function stopPlayback(){
   pendingCountdownStart = false;
   freezeClipBar();
   pausedAtMs = lastKnownPosition;
-  if(controller) controller.pause();
+  // Only pause what might be playing: a pause sent to an already stopped
+  // player has woken the last song back up.
+  if(controller && (awaitingSound || vinyl.classList.contains('spinning') || !lastKnownPaused)) controller.pause();
   setPlayingVisual(false);
 }
 stopBtn.addEventListener('click', stopPlayback);
