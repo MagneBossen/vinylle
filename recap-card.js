@@ -100,24 +100,49 @@
     ctx.textBaseline = 'alphabetic';
   }
 
-  // The six tiles: whatever this player actually has, most interesting first.
+  // The six tiles. Every stat this player has scores points: rare, bragging
+  // ones score highest, everyday ones (oldest card, years covered) are there
+  // to fill up. The six best make the card, in score order.
   function tiles(d){
     const out = [];
+    const add = (score, value, label) => out.push({ score, value, label });
+    const plural = (n, one, many) => n === 1 ? one : many;
     const years = d.years || [];
-    if(d.bestStreak >= 2) out.push(['🔥' + d.bestStreak, 'Best streak']);
-    if(d.titles) out.push([d.titles, d.titles === 1 ? 'Title named' : 'Titles named']);
-    if(d.decade) out.push([d.decade, 'Favourite decade']);
-    if(d.ou) out.push([d.ouRight + '/' + d.ou, 'Over/under']);
-    if(d.lockWins) out.push([d.lockWins, 'Lock-ins won']);
-    if(d.bets > 0) out.push(['+' + d.bets, 'Betting profit']);
-    if(d.spent) out.push([d.spent, 'Coins spent']);
+    const pct = d.turns ? Math.round(d.turnWins / d.turns * 100) : 0;
+
+    if(d.bestStreak >= 3) add(95, '🔥' + d.bestStreak, 'Best streak');
+    if(d.ou >= 2 && d.ouRight === d.ou) add(92, d.ouRight + '/' + d.ou, 'Perfect over/under');
+    if(d.turns >= 4 && pct === 100) add(91, '100%', 'Never missed');
+    if(d.steals) add(88, d.steals, plural(d.steals, 'Card stolen', 'Cards stolen'));
+    if(d.tightest === 0) add(86, 'Same year', 'Tightest squeeze');
+    if(d.sabotage) add(84, d.sabotage, plural(d.sabotage, 'Sabotage', 'Sabotages'));
+    if(d.sang) add(82, '🎤' + d.sang, plural(d.sang, 'Song sung', 'Songs sung'));
+    if(d.donWins) add(80, d.donWins, 'Double or nothing wins');
+    if(d.lockWins) add(78, d.lockWins, plural(d.lockWins, 'Lock-in won', 'Lock-ins won'));
+    if(d.robinGot) add(76, '+' + d.robinGot, 'Robin Hood gifts');
+    if(d.robinGave) add(75, '−' + d.robinGave, 'Robbed');
+    if(d.bets > 0) add(74, '+' + d.bets, 'Betting profit');
+    if(d.titles >= 3) add(72, d.titles, 'Titles named');
+    if(d.turns >= 3 && pct < 100) add(70, pct + '%', 'Own-turn hits');
+    if(d.decadeShare >= 50 && years.length >= 4) add(68, d.decadeShare + '%', d.decade + ' specialist');
+    if(d.leap >= 20) add(66, d.leap + 'y', 'Biggest leap');
+    if(d.ou && d.ouRight < d.ou) add(64, d.ouRight + '/' + d.ou, 'Over/under');
+    if(d.bestStreak === 2) add(60, '🔥2', 'Best streak');
+    if(d.titles && d.titles < 3) add(58, d.titles, plural(d.titles, 'Title named', 'Titles named'));
+    if(d.decade) add(55, d.decade, 'Favourite decade');
+    if(d.tightest > 0) add(52, d.tightest + 'y', 'Tightest squeeze');
+    if(d.spent) add(50, d.spent, 'Coins spent');
     if(years.length){
-      out.push([years[0], 'Oldest card']);
-      out.push([years[years.length - 1], 'Newest card']);
+      add(45, years[0], 'Oldest card');
+      add(44, years[years.length - 1], 'Newest card');
     }
-    if(years.length > 1) out.push([(years[years.length - 1] - years[0]) + 'y', 'Years covered']);
-    while(out.length < 6) out.push(['—', out.length % 2 ? 'Keep playing' : 'More to come']);
-    return out.slice(0, 6);
+    if(years.length > 1) add(40, (years[years.length - 1] - years[0]) + 'y', 'Years covered');
+    if(d.leap > 0 && d.leap < 20) add(38, d.leap + 'y', 'Biggest leap');
+    if(d.turns) add(36, d.turns, plural(d.turns, 'Turn played', 'Turns played'));
+
+    const picked = out.sort((a, b) => b.score - a.score).slice(0, 6).map(t => [t.value, t.label]);
+    while(picked.length < 6) picked.push(['—', picked.length % 2 ? 'Keep playing' : 'More to come']);
+    return picked;
   }
 
   async function drawRecapCard(d){
@@ -233,8 +258,14 @@
       ctx.font = '600 ' + vs + 'px ' + SERIF;
       ctx.fillText(String(value), tx + 26, ty + 94);
       ctx.fillStyle = C.muted;
-      ctx.font = '500 20px ' + MONO;
-      spaced(ctx, label.toUpperCase(), tx + 28, ty + 140, 2.5);
+      // Long labels shrink to stay inside the tile.
+      const text = label.toUpperCase();
+      let ls = 20;
+      for(; ls > 13; ls--){
+        ctx.font = '500 ' + ls + 'px ' + MONO;
+        if(ctx.measureText(text).width + text.length * 2.5 <= tw - 52) break;
+      }
+      spaced(ctx, text, tx + 28, ty + 140, 2.5);
     });
 
     // Their timeline as a row of little records, oldest to newest.

@@ -2957,6 +2957,7 @@ function renderScoreboard(){
           statsCardsPlaced = Math.max(0, statsCardsPlaced - 1);
           sessionCardsPlaced = Math.max(0, sessionCardsPlaced - 1);
           uncountCoins(entry);
+          if(!entry.locked) forgetCardEvent(entry.id);
           renderScoreboard();
         });
         card.appendChild(removeCardBtn);
@@ -3039,7 +3040,7 @@ function giveCardTo(player, bought){
     entry.streakCoin = true;
     statsCoinsWon++;
     sessionCoinsWon++;
-    gameEvent('🔥 ' + player.name + ': ' + streak + ' in a row, +1 coin');
+    gameEvent('🔥 ' + player.name + ': ' + streak + ' in a row, +1 coin', entry.id);
   }
   player.timeline.push(entry);
   player.timeline.sort((a,b) => (a.year - b.year) || ((a.month||1) - (b.month||1)));
@@ -3149,7 +3150,8 @@ let sessionCoinsWon = 0;
 // This session's chaos, coin shop and over/under numbers, for the recap.
 // Per-player tallies are keyed by name.
 function freshChaosStats(){
-  return { rounds: {}, shop: {}, spent: {}, ou: 0, ouRight: {}, lockWins: {}, bets: {}, robin: 0, donLost: 0, streaks: {} };
+  return { rounds: {}, shop: {}, spent: {}, ou: 0, ouRight: {}, lockWins: {}, bets: {}, robin: 0, donLost: 0, streaks: {},
+    turns: {}, turnWins: {}, robinGot: {}, robinGave: {}, sabotage: {}, steals: {} };
 }
 let sessionChaos = freshChaosStats();
 function tally(obj, key, n){
@@ -3285,6 +3287,8 @@ function recapCardData(player){
   const fav = Object.entries(decades).sort((a, b) => (b[1] - a[1]) || (a[0] - b[0]))[0];
   const decade = fav ? (fav[0] < 2000 ? "'" + String(fav[0]).slice(2) + 's' : fav[0] + 's') : null;
   const s = sessionChaos;
+  // Neighbouring cards: the tightest squeeze and the biggest leap.
+  const gaps = years.slice(1).map((y, i) => y - years[i]);
   return {
     name: player.name,
     rank,
@@ -3302,7 +3306,18 @@ function recapCardData(player){
     spent: s.spent[player.name] || 0,
     bets: s.bets[player.name] || 0,
     decade,
+    decadeShare: fav && years.length ? Math.round(fav[1] / years.length * 100) : 0,
     years,
+    tightest: gaps.length >= 2 ? Math.min(...gaps) : null,
+    leap: gaps.length ? Math.max(...gaps) : null,
+    turns: s.turns[player.name] || 0,
+    turnWins: s.turnWins[player.name] || 0,
+    sang: player.timeline.filter(e => e.sang).length,
+    donWins: player.timeline.filter(e => e.donCoin).length,
+    robinGot: s.robinGot[player.name] || 0,
+    robinGave: s.robinGave[player.name] || 0,
+    sabotage: s.sabotage[player.name] || 0,
+    steals: s.steals[player.name] || 0,
     date: Date.now()
   };
 }
@@ -4866,9 +4881,19 @@ let toastTimer = null;
 // so nobody has to catch the toast.
 let lastEvent = null; // { text, at: draw count }
 let drawCount = 0;
-function gameEvent(message){
+// `cardId`: the event is about that card (a streak coin) — taking the card
+// back takes the event with it.
+function gameEvent(message, cardId){
   lobbyToast(message);
-  lastEvent = { text: message, at: drawCount };
+  lastEvent = { text: message, at: drawCount, cardId: cardId || null };
+  renderEvent();
+}
+
+function forgetCardEvent(cardId){
+  if(!lastEvent || lastEvent.cardId !== cardId) return;
+  lastEvent = null;
+  const toast = document.querySelector('.join-toast');
+  if(toast) toast.remove();
   renderEvent();
 }
 
@@ -5413,6 +5438,8 @@ function robinMiss(){
   poor.coinAdj = (poor.coinAdj || 0) + 1;
   song.robin = { rich: rich.name, poor: poor.name };
   sessionChaos.robin++;
+  tally(sessionChaos.robinGave, rich.name);
+  tally(sessionChaos.robinGot, poor.name);
   return 'Robin Hood: ' + rich.name + ' gives ' + poor.name + ' 1 coin';
 }
 
@@ -5425,6 +5452,8 @@ function robinUndo(){
   if(poor) poor.coinAdj = (poor.coinAdj || 0) - 1;
   song.robin = null;
   sessionChaos.robin = Math.max(0, sessionChaos.robin - 1);
+  tally(sessionChaos.robinGave, move.rich, -1);
+  tally(sessionChaos.robinGot, move.poor, -1);
 }
 
 function settleSong(){
@@ -5438,6 +5467,8 @@ function settleSong(){
 
   // Won on your own turn: the streak goes on. Missed (or bought it): it's over.
   if(turnPlayer && autoTurns){
+    tally(sessionChaos.turns, turnPlayer.name);
+    if(won && !won.bought) tally(sessionChaos.turnWins, turnPlayer.name);
     turnPlayer.streak = won && !won.bought ? (turnPlayer.streak || 0) + 1 : 0;
     if(turnPlayer.streak > (sessionChaos.streaks[turnPlayer.name] || 0)) sessionChaos.streaks[turnPlayer.name] = turnPlayer.streak;
   }
@@ -5629,6 +5660,8 @@ function shopBuy(buyer, item, opts){
   buyer.coinAdj = (buyer.coinAdj || 0) - price;
   tally(sessionChaos.shop, item);
   tally(sessionChaos.spent, buyer.name, price);
+  if(item === 'trap' || item === 'force') tally(sessionChaos.sabotage, buyer.name);
+  if(item === 'steal') tally(sessionChaos.steals, buyer.name);
   gameEvent(msg);
   renderScoreboard();
   renderShopWindow();
@@ -6388,6 +6421,7 @@ function takeCardBack(player, entry){
   statsCardsPlaced = Math.max(0, statsCardsPlaced - 1);
   sessionCardsPlaced = Math.max(0, sessionCardsPlaced - 1);
   uncountCoins(entry);
+  forgetCardEvent(entry.id);
   renderScoreboard();
 }
 
