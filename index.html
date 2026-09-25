@@ -1672,7 +1672,7 @@
       <p class="hint" style="margin:0 0 .5rem;">If a player can also name the song's title and/or one of the artist(s) (if multiple) before it's revealed, they earn a gold coin. Tap the gold coin on their card to mark it as a bonus. What a bonus is actually worth (an extra card, a skip, a steal, nothing at all) is entirely up to your group — else it's merely a tiebreaker.</p>
 
       <h3 class="rules-h3">Scoring System</h3>
-      <p class="hint" style="margin:0 0 .5rem;">The first player to the agreed number of cards in their timeline (default 10) wins the game. In case of a tie on cards, the winner is decided by gold coins. If still tied, the winner is decided by whoever has the closest year-gaps (or if on expert mode, closest months-gap) in their timeline — so a 2012 and a 2013 beats a 2012 and a 2014, by the difference in years. If tied again, this continues until a winner is found, and in the rare case both players have identical years, the winner is decided by name in alphabetical order — tough luck, William and Whitney.</p>
+      <p class="hint" style="margin:0 0 .5rem;">The first player to the agreed number of cards in their timeline (default 10) wins the game. In case of a tie on cards, the winner is decided by gold coins. If still tied, the winner is decided by whoever has the closest year-gaps (or if on expert mode, closest months-gap) in their timeline — so a 2012 and a 2013 beats a 2012 and a 2014, by the difference in years. If tied again, this continues until a winner is found, and in the rare case both players have identical years, it's a coin toss.</p>
 
       <h3 class="rules-h3">Gamemodes</h3>
 
@@ -1810,7 +1810,7 @@
           <div class="chaos-chip" id="eventBox" hidden><span class="k">Just now</span><span class="v" id="eventLine"></span></div>
           <div class="chaos-chip" id="spotBox" hidden><span class="k">Their pick</span><span class="v" id="spotLine"></span></div>
           <div class="chaos-chip" id="lockBox" hidden><span class="k">Lock-in</span><span class="v" id="lockLine"></span></div>
-          <div class="chaos-chip" id="betBox" hidden><span class="k" id="betKicker"></span><span class="v" id="betLine"></span></div>
+          <div class="chaos-chip" id="betBox" hidden><span class="k" id="betKicker"></span><span class="v" id="betLine"></span><span class="v" id="betLast"></span></div>
           <div class="chaos-chip" id="hintBox" hidden><span class="k">Hint</span><span class="v" id="hintLine"></span></div>
           <div class="state-line"><span class="live-dot"></span><span id="stageState">Ready</span></div>
           <div class="title ticker"><span id="nowTitle">—</span></div>
@@ -2042,7 +2042,7 @@ function flushSession(){
     const state = {
       playlists: playlists.map(p => ({name: p.name, tracks: p.tracks, enabled: p.enabled, id: p.id, expanded: p.expanded})),
       loadedPlaylistIds: Array.from(loadedPlaylistIds),
-      players: players.map(pl => ({name: pl.name, timeline: pl.timeline, coinAdj: pl.coinAdj || 0, streak: pl.streak || 0})),
+      players: players.map(pl => ({name: pl.name, timeline: pl.timeline, coinAdj: pl.coinAdj || 0, streak: pl.streak || 0, tie: pl.tie})),
       sessionHistory: sessionHistory,
       statsRevealed: statsRevealed,
       statsCardsPlaced: statsCardsPlaced,
@@ -2083,7 +2083,7 @@ function loadSession(){
     if(state.loadedPlaylistIds) loadedPlaylistIds = new Set(state.loadedPlaylistIds);
     // Claims are per-session: socket ids and phones don't survive a reload, so
     // everyone starts unclaimed and re-claims from their phone.
-    if(state.players) players = state.players.map(pl => ({name: pl.name, timeline: pl.timeline || [], coinAdj: pl.coinAdj || 0, streak: pl.streak || 0, lastAdded: null, deviceId: null, online: false}));
+    if(state.players) players = state.players.map(pl => ({name: pl.name, timeline: pl.timeline || [], coinAdj: pl.coinAdj || 0, streak: pl.streak || 0, tie: pl.tie, lastAdded: null, deviceId: null, online: false}));
     if(state.sessionHistory) sessionHistory = state.sessionHistory;
     if(typeof state.statsRevealed === 'number') statsRevealed = state.statsRevealed;
     if(typeof state.statsCardsPlaced === 'number') statsCardsPlaced = state.statsCardsPlaced;
@@ -2753,7 +2753,17 @@ function comparePlayers(a, b){
     if(gapsA[i] !== gapsB[i]) return gapsA[i] - gapsB[i];
   }
   if(gapsA.length !== gapsB.length) return gapsA.length - gapsB.length;
-  return a.name.localeCompare(b.name);
+  // Still level: a coin toss, tossed once per player so the order doesn't
+  // flicker — not the alphabet, which always favoured Andrea over William.
+  return tieToss(a) - tieToss(b);
+}
+function tieToss(p){
+  if(typeof p.tie !== 'number') p.tie = Math.random();
+  return p.tie;
+}
+// Whoever's lowest (or highest) by `score`, a random one of them on a tie.
+function pickRandom(list){
+  return list[Math.floor(Math.random() * list.length)];
 }
 
 function renderScoreboard(){
@@ -3051,6 +3061,14 @@ function announceWinner(){
     en: '🏆 ' + gameWinner.name + ' wins — first to ' + gameWinner.target + ' cards!',
     da: '🏆 ' + gameWinner.name + ' vinder — først til ' + gameWinner.target + ' kort!'
   });
+}
+
+// The streak as it stands right now: the settled run, plus this song's card
+// if they've just been given it on their own turn.
+function liveStreak(p){
+  const s = p.streak || 0;
+  if(!autoTurns || !song || song.settled || song.event || song.turn !== p.name) return s;
+  return p.timeline.some(e => e.id === song.id && !e.locked && !e.bought) ? s + 1 : s;
 }
 
 // Hot streak: cards won on your own turn in a row (automatic turns only).
@@ -4712,7 +4730,8 @@ function buildStateBlob(){
     players: players.map(p => ({
       name: p.name,
       coinAdj: p.coinAdj || 0,
-      streak: p.streak || 0,
+      streak: liveStreak(p),
+      tie: tieToss(p),
       deviceId: p.deviceId || null,
       online: !!p.online,
       lastAddedId: p.lastAdded ? p.lastAdded.id : null,
@@ -4984,6 +5003,9 @@ let toastTimer = null;
 // else, and also stay on the stage — and the phones — through the next song,
 // so nobody has to catch the toast.
 let lastEvent = null; // { text, at: draw count }
+// The big screen shows a notice this long; phones keep it through the next song.
+const EVENT_DJ_MS = 10000;
+let eventTimer = null;
 let drawCount = 0;
 // `cardId`: the event is about that card (a streak coin) — taking the card
 // back takes the event with it.
@@ -4991,8 +5013,10 @@ let drawCount = 0;
 // phone picks its own language.
 function gameEvent(message, cardId){
   lobbyToast(enText(message));
-  lastEvent = { text: message, at: drawCount, cardId: cardId || null };
+  lastEvent = { text: message, at: drawCount, cardId: cardId || null, shownAt: Date.now() };
   renderEvent();
+  clearTimeout(eventTimer);
+  eventTimer = setTimeout(renderEvent, EVENT_DJ_MS + 50);
 }
 
 function forgetCardEvent(cardId){
@@ -5015,7 +5039,8 @@ function daGen(name){
 }
 
 function renderEvent(){
-  const text = enText(eventText());
+  const fresh = lastEvent && Date.now() - lastEvent.shownAt < EVENT_DJ_MS;
+  const text = fresh ? enText(eventText()) : null;
   document.getElementById('eventBox').hidden = !text;
   document.getElementById('eventLine').textContent = text || '';
   broadcastState();
@@ -5601,9 +5626,13 @@ function loseLatestCard(player){
 function robinMiss(){
   if(!chaosActive('robin') || !song || song.event || song.robin || currentCard.id !== song.id) return null;
   const coins = p => bonusCount(p);
-  const rich = players.slice().sort((a, b) => (coins(b) - coins(a)) || (b.timeline.length - a.timeline.length) || a.name.localeCompare(b.name))[0];
-  const poor = players.slice().sort((a, b) => (coins(a) - coins(b)) || (a.timeline.length - b.timeline.length) || a.name.localeCompare(b.name))[0];
-  if(!rich || rich === poor || coins(rich) <= 0 || coins(rich) === coins(poor)) return null;
+  // Most coins, then most cards — and a random pick if that's still a tie.
+  const key = p => coins(p) * 1000 + p.timeline.length;
+  const top = Math.max(...players.map(key));
+  const bottom = Math.min(...players.map(key));
+  const rich = pickRandom(players.filter(p => key(p) === top));
+  const poor = pickRandom(players.filter(p => key(p) === bottom && p !== rich));
+  if(!rich || !poor || rich === poor || coins(rich) <= 0 || coins(rich) === coins(poor)) return null;
   rich.coinAdj = (rich.coinAdj || 0) - 1;
   poor.coinAdj = (poor.coinAdj || 0) + 1;
   song.robin = { rich: rich.name, poor: poor.name };
@@ -5658,12 +5687,13 @@ function settleSong(){
       const bettor = players.find(p => p.deviceId === deviceId);
       if(!bettor) return;
       const hit = bet.pick === 'wrong' ? !won : bet.pick === 'coin' ? !!(won && won.bonus) : !!won;
-      const delta = hit ? bet.amount * (bet.pick === 'coin' ? 3 : 2) : -bet.amount;
+      // Like any bet: ×2 pays back double your stake, so you're up by the
+      // stake (×3: up by twice the stake). Lose, and the stake is gone.
+      const delta = hit ? bet.amount * (bet.pick === 'coin' ? 2 : 1) : -bet.amount;
       bettor.coinAdj = (bettor.coinAdj || 0) + delta;
       tally(sessionChaos.bets, bettor.name, delta);
       if(delta > 0){ statsCoinsWon += delta; sessionCoinsWon += delta; }
       results[deviceId] = { pick: bet.pick, amount: bet.amount, delta };
-      notes.push(bettor.name + ' ' + (delta > 0 ? '+' : '−') + Math.abs(delta));
     });
     lastBetResults = { id: song.bets.id, turn: song.turn, results };
   }
@@ -5997,8 +6027,19 @@ function renderBets(){
   const box = document.getElementById('betBox');
   const line = document.getElementById('betLine');
   const bets = song && song.bets;
-  box.hidden = !bets || !!song.settled;
+  // How last song's bets went — kept here (one place) instead of a notice.
+  const last = lastBetResults ? Object.entries(lastBetResults.results).map(([id, r]) =>
+    ((players.find(p => p.deviceId === id) || {}).name || '?') + ' ' + (r.delta > 0 ? '+' : '−') + Math.abs(r.delta)) : [];
+  document.getElementById('betLast').textContent = last.length ? 'Last song: ' + last.join(' · ') : '';
+  const live = !!bets && !song.settled;
+  box.hidden = !live && !last.length;
   if(box.hidden){ broadcastState(); return; }
+  if(!live){
+    document.getElementById('betKicker').textContent = 'Betster · results';
+    line.textContent = '';
+    broadcastState();
+    return;
+  }
   const placed = Object.entries(bets.placed).map(([id, b]) => {
     const who = (players.find(p => p.deviceId === id) || {}).name || '?';
     return who + ' ' + b.amount + ' on ' + (b.pick === 'coin' ? 'right + coin' : b.pick);
@@ -6442,7 +6483,7 @@ function renderStandings(){
     }
     row.innerHTML =
       '<span class="st-rk">' + String(i + 1).padStart(2, '0') + '</span>' +
-      '<span class="st-nm"><i class="st-on' + (p.online ? '' : ' off') + '"></i><span>' + escapeHtml(p.name) + '</span>' + (wins ? '<b class="st-win">' + wins + '</b>' : '') + (turnActive() && p.name === turnName ? '<b class="st-turn">TURN</b>' : '') + (p.streak >= 2 ? '<b class="st-fire" title="' + p.streak + ' in a row on their own turns">🔥' + p.streak + '</b>' : '') + '</span>' +
+      '<span class="st-nm"><i class="st-on' + (p.online ? '' : ' off') + '"></i><span>' + escapeHtml(p.name) + '</span>' + (wins ? '<b class="st-win">' + wins + '</b>' : '') + (turnActive() && p.name === turnName ? '<b class="st-turn">TURN</b>' : '') + (liveStreak(p) >= 2 ? '<b class="st-fire" title="' + liveStreak(p) + ' in a row on their own turns">🔥' + liveStreak(p) + '</b>' : '') + '</span>' +
       '<span class="st-sc"><span>' + CARD_ICON_SVG + p.timeline.length + '</span><span>' + COIN_SVG + bonusCount(p) + '</span></span>' +
       '<span class="st-bar"><i style="width:' + pct + '%"></i></span>';
     standingsEl.appendChild(row);
@@ -6600,8 +6641,16 @@ function catchUpPlayer(){
   const settled = p => p.timeline.filter(e => e.locked || !currentCard || e.id !== currentCard.id);
   const cards = p => settled(p).length;
   const coins = p => settled(p).reduce((sum, e) => sum + coinValue(e), 0) + (p.coinAdj || 0);
-  const last = players.slice().sort((a, b) =>
-    (cards(a) - cards(b)) || (coins(a) - coins(b)) || a.name.localeCompare(b.name))[0];
+  const key = p => cards(p) * 100000 + coins(p);
+  const low = Math.min(...players.map(key));
+  const tied = players.filter(p => key(p) === low);
+  // A tie is settled by a random pick, kept for the rest of the song so the
+  // chip doesn't jump around.
+  let last = song && tied.find(p => p.name === song.catchUpPick);
+  if(!last){
+    last = pickRandom(tied);
+    if(song && last) song.catchUpPick = last.name;
+  }
   return last && last.name !== turnName ? last : null;
 }
 

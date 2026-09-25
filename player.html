@@ -5,7 +5,7 @@
   <link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
 <meta charset="UTF-8">
 <title>Vinyl'le — player</title>
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#1B1420">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -28,6 +28,10 @@
     margin:0;
     background:var(--bg);
     color:var(--paper);
+    /* An app, not a document: no pinch/double-tap zoom, no text selection
+       (fields still work, and the recap picture can still be long-pressed). */
+    touch-action:manipulation;
+    -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
     font-family:'Work Sans',sans-serif;
     padding:1.5rem 1rem calc(2rem + env(safe-area-inset-bottom));
     -webkit-text-size-adjust:100%;
@@ -226,6 +230,8 @@
     font-family:'IBM Plex Mono',monospace;font-size:.55rem;color:#241A0B;background:var(--gold);
     border-radius:20px;padding:.1rem .45rem;flex-shrink:0;
   }
+  input,textarea{-webkit-user-select:text;user-select:text;}
+  #recapImg{-webkit-touch-callout:default;}
   .lang-row{display:flex;justify-content:center;align-items:center;gap:.5rem;margin:0 0 1.6rem;font-size:.75rem;color:var(--muted);}
   .lang-row button{background:none;border:none;padding:.2rem;width:auto;color:var(--muted);font-size:.75rem;}
   .lang-row button.on{color:var(--gold);text-decoration:underline;text-underline-offset:3px;}
@@ -260,10 +266,19 @@
   .bet-step{display:flex;align-items:center;justify-content:center;gap:.8rem;margin:0 0 .8rem;}
   .bet-step button{width:44px;height:44px;padding:0;font-size:1.3rem;}
   .bet-step b{font-family:'IBM Plex Mono',monospace;font-size:1.6rem;color:var(--gold);min-width:2.5ch;text-align:center;}
-  .spot-grid{display:grid;grid-template-columns:1fr 1fr;gap:.45rem;margin:.2rem 0 .3rem;}
-  .spot-grid button{padding:.7rem .4rem;font-size:.85rem;font-family:'IBM Plex Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .spot-grid button.on{background:var(--gold);border-color:var(--gold);color:#241A0B;font-weight:600;}
-  .spot-grid button:only-child,.spot-grid button:last-child:nth-child(odd){grid-column:1 / -1;}
+  .pick-bar{font-family:'IBM Plex Mono',monospace;font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);text-align:center;margin:-.2rem 0 .7rem;}
+  .pick-bar.result{font-family:'Work Sans',sans-serif;text-transform:none;letter-spacing:0;font-size:.85rem;padding:.5rem .8rem;border-radius:10px;border:1px solid var(--green);background:rgba(92,145,99,.1);color:var(--paper);}
+  .pick-bar.result.wrong{border-color:var(--red);background:rgba(179,58,58,.1);}
+  .spot-plus{display:flex;align-items:center;justify-content:center;width:100%;height:24px;margin:.3rem 0;padding:0;border:1px dashed var(--gold-dim);border-radius:8px;background:transparent;color:var(--gold-dim);font-size:.95rem;line-height:1;}
+  .spot-plus:hover{background:rgba(212,162,78,.08);color:var(--gold);}
+  .spot-plus.on{height:34px;border:1.5px solid var(--gold);background:rgba(212,162,78,.14);color:var(--gold);font-family:'IBM Plex Mono',monospace;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;}
+  .sleeves .vinyl-card.ghost::after{border:1.5px dashed var(--gold-dim);background:rgba(212,162,78,.05);box-shadow:none;}
+  .sleeves .vinyl-card.mystery::after{border:1.5px solid var(--gold);background:linear-gradient(165deg,#4a3822,#2c2118 72%);box-shadow:0 0 0 3px rgba(212,162,78,.2),0 10px 20px rgba(0,0,0,.35);}
+  .sleeves .vinyl-card.mystery .vinyl-card-year{color:var(--gold);letter-spacing:.08em;}
+  .sleeves .vinyl-card.mystery.unset{opacity:.55;}
+  .pick-slide{margin-top:.4rem;}
+  .pick-slide input{width:100%;accent-color:var(--gold);}
+  .pick-slide .cap{text-align:center;font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--gold);margin-top:.2rem;}
   .ghost-row{display:flex;align-items:center;gap:1rem;margin:.35rem 0 .35rem 1.2rem;padding:.55rem .8rem;border:1px dashed var(--gold-dim);border-radius:10px;color:var(--muted);animation:rise .4s both;}
   .ghost-row .y{font-family:'IBM Plex Mono',monospace;color:var(--gold);font-size:.95rem;}
   .ghost-row b{display:block;font-family:'IBM Plex Mono',monospace;font-weight:400;font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);}
@@ -659,7 +674,6 @@
         <div class="vote-card" id="voteCard" hidden></div>
         <div class="vote-card" id="betCard" hidden></div>
         <div class="vote-card lock-card" id="lockCard" hidden></div>
-        <div class="vote-card spot-card" id="spotCard" hidden></div>
         <div class="vote-card shop-card" id="shopCard" hidden></div>
 
         <div class="now-card" id="nowCard">
@@ -681,7 +695,9 @@
               <button type="button" data-tlview="cards" data-i18n="cards">Cards</button>
             </div>
           </div>
+          <div class="pick-bar" id="pickBar" hidden></div>
           <div class="spine" id="myTimeline"></div>
+          <div class="pick-slide" id="pickSlide" hidden><input type="range" id="pickRange" min="0" max="1" step="1" aria-label="Where it fits"><div class="cap" id="pickCap"></div></div>
         </div>
       </div>
 
@@ -828,7 +844,8 @@ const STR = {
     removed: 'The DJ removed you from the game. You can join again.', thatsYou: "that's you", taken: 'taken',
     notYou: 'Not you? Switch player', recapLink: 'Your recap card ›', howTo: 'How to play',
     waitingDj: 'Waiting for the DJ', noRecord: 'No record on yet', nowPlaying: 'Now playing', mystery: 'Mystery record',
-    whereFit: 'Where does it fit in your timeline?', revealed: 'Revealed', unknownTrack: 'Unknown track', openSpotify: 'Open in Spotify',
+    whereFit: 'Where does it fit in your timeline?', ouAsk: 'Was this song released before or after {y}?',
+    turnToast: 'Your turn!', turnToastSub: 'Where does this one fit in your timeline?', revealed: 'Revealed', unknownTrack: 'Unknown track', openSpotify: 'Open in Spotify',
     yourTimeline: 'Your timeline', list: 'List', cards: 'Cards', leaderboard: 'Leaderboard', songsTonight: 'Songs tonight',
     djPlaces: 'The DJ places cards from the main screen. This view updates on its own.',
     noCardsYet: 'No cards yet — win one and it lands here.', fitsHere: 'Fits here', nobodyYet: 'Nobody in the game yet.',
@@ -886,6 +903,8 @@ const STR = {
     ht3: 'Name it', ht3d: 'Know the title or the artist too? That’s a gold coin. Coins break ties and buy things in the shop.',
     ht4: 'First to {n}', ht4d: 'First to {n} cards wins. Play on afterwards if you like — the win stays.',
     ht5: 'Your phone', ht5d: 'Your turn, over/under votes, bets and the coin shop pop up right here. Chaos rounds shake up the rules — each card shows as it starts.',
+    tapToPlace: 'Your turn · tap + where it goes', slideToPlace: 'Your turn · slide the ??? card',
+    slideCap: 'Slide to place it', pickResult: 'Your pick: {x}',
     htSkip: 'Skip', htNext: 'Next', htGo: 'Let’s play', htMine: 'Your turn'
   },
   da: {
@@ -901,7 +920,8 @@ const STR = {
     removed: 'DJ’en fjernede dig fra spillet. Du kan deltage igen.', thatsYou: 'det er dig', taken: 'taget',
     notYou: 'Ikke dig? Skift spiller', recapLink: 'Dit recap-kort ›', howTo: 'Sådan spiller du',
     waitingDj: 'Venter på DJ’en', noRecord: 'Ingen plade på endnu', nowPlaying: 'Spiller nu', mystery: 'Mysterieplade',
-    whereFit: 'Hvor passer den ind i din tidslinje?', revealed: 'Afsløret', unknownTrack: 'Ukendt nummer', openSpotify: 'Åbn i Spotify',
+    whereFit: 'Hvor passer den ind i din tidslinje?', ouAsk: 'Udkom sangen før eller efter {y}?',
+    turnToast: 'Din tur!', turnToastSub: 'Hvor passer den her ind i din tidslinje?', revealed: 'Afsløret', unknownTrack: 'Ukendt nummer', openSpotify: 'Åbn i Spotify',
     yourTimeline: 'Din tidslinje', list: 'Liste', cards: 'Kort', leaderboard: 'Stilling', songsTonight: 'Aftenens sange',
     djPlaces: 'DJ’en placerer kortene fra hovedskærmen. Siden her opdaterer sig selv.',
     noCardsYet: 'Ingen kort endnu — vind et, så lander det her.', fitsHere: 'Passer her', nobodyYet: 'Ingen i spillet endnu.',
@@ -959,6 +979,8 @@ const STR = {
     ht3: 'Nævn den', ht3d: 'Kender du også titlen eller kunstneren? Så får du en guldmønt. Mønter afgør uafgjort og kan bruges i butikken.',
     ht4: 'Først til {n}', ht4d: 'Først til {n} kort vinder. I kan spille videre bagefter — sejren bliver stående.',
     ht5: 'Din telefon', ht5d: 'Din tur, over/under, væddemål og møntbutikken dukker op lige her. Kaosrunder ryster reglerne — hvert kort vises, når runden starter.',
+    tapToPlace: 'Din tur · tryk på + hvor den skal ind', slideToPlace: 'Din tur · flyt ???-kortet',
+    slideCap: 'Træk for at placere den', pickResult: 'Dit valg: {x}',
     htSkip: 'Spring over', htNext: 'Næste', htGo: 'Lad os spille', htMine: 'Din tur'
   }
 };
@@ -1069,6 +1091,8 @@ async function keepAwake(){
   }catch(e){ /* not allowed right now */ }
 }
 document.addEventListener('visibilitychange', keepAwake);
+// iOS ignores user-scalable=no for pinches; these stop them.
+['gesturestart', 'gesturechange'].forEach(type => document.addEventListener(type, e => e.preventDefault()));
 document.addEventListener('pointerdown', keepAwake);
 
 function escapeHtml(str){
@@ -1340,7 +1364,7 @@ function comparePlayers(a, b){
   for(let i = 0; i < len; i++){
     if(gapsA[i] !== gapsB[i]) return gapsA[i] - gapsB[i];
   }
-  return 0;
+  return (a.tie || 0) - (b.tie || 0);
 }
 
 // Blindfold round: every timeline loses its years (and gaps) for the round.
@@ -1430,8 +1454,9 @@ function renderNow(){
 
   if(!card.revealed){
     stateEl.innerHTML = (lastState.playing ? '<span class="pulse"></span>' + tr('nowPlaying') : tr('mystery'));
+    const v = lastState.vote;
     bodyEl.innerHTML = '<div class="now-title">' + tr('mystery') + '</div>' +
-      '<div class="now-artist">' + tr('whereFit') + '</div>';
+      '<div class="now-artist">' + (v ? tr('ouAsk', { y: v.pivot }) : tr('whereFit')) + '</div>';
     return;
   }
 
@@ -1602,10 +1627,15 @@ function buildCardGap(months, tight){
 function renderMyTimeline(){
   const holder = document.getElementById('myTimeline');
   const countEl = document.getElementById('myCount');
+  const bar = document.getElementById('pickBar');
+  const slide = document.getElementById('pickSlide');
   // Keep the swipe position across re-renders.
   const keepScroll = holder.scrollLeft;
   holder.className = tlView === 'cards' ? 'sleeves' : 'spine';
   holder.innerHTML = '';
+  bar.hidden = true;
+  bar.className = 'pick-bar';
+  slide.hidden = true;
   const mine = me();
   const timeline = mine ? (mine.timeline || []) : [];
   countEl.textContent = timeline.length;
@@ -1618,21 +1648,33 @@ function renderMyTimeline(){
     holder.innerHTML = '<p class="empty">' + tr('noCardsYet') + '</p>';
     return;
   }
+  const pick = myPick();
+  const picking = !!pick && pick.open;
+  if(pick && !pick.open && pick.slot != null && pick.right != null){
+    // After the reveal: how the pick went (the ghost below shows where it fits).
+    bar.hidden = false;
+    bar.className = 'pick-bar result' + (pick.right ? '' : ' wrong');
+    bar.textContent = tr('pickResult', { x: spotLabel(pick.tl, pick.slot) }) + ' · ' + (pick.right ? '✓ ' + tr('rightSpot') : '✗ ' + tr('wrongSpot'));
+  }else if(picking){
+    bar.hidden = false;
+    bar.textContent = tlView === 'cards' ? tr('slideToPlace') : tr('tapToPlace');
+  }
+
   const gaps = timeline.map((e, i) => i ? gapMonths(timeline[i - 1], e) : null);
   const tight = timeline.length >= 3 ? Math.min(...gaps.slice(1)) : null;
-  // After a reveal, a dashed "fits here" shows where the song would have gone
-  // in your timeline — unless it's already in it.
+  // After a reveal, a dashed "fits here" shows the turn player where the song
+  // would have gone — unless it's already in their timeline.
   const card = lastState && lastState.currentCard;
   let ghostAt = -1;
-  if(card && card.revealed && parseInt(card.year, 10) && !timeline.some(e => e.id === card.id)){
+  if(card && card.revealed && parseInt(card.year, 10) && mine && lastState.turn === mine.name && !timeline.some(e => e.id === card.id)){
     const expert = lastState.expertMode;
     const val = e => expert ? e.year * 12 + (e.month || 1) - 1 : e.year * 12;
     const v = val({ year: parseInt(card.year, 10), month: card.month });
     ghostAt = timeline.findIndex(e => val(e) > v);
     if(ghostAt < 0) ghostAt = timeline.length;
   }
+
   if(tlView === 'cards'){
-    let newEl = null;
     const ghostCard = () => {
       const g = document.createElement('div');
       g.className = 'vinyl-card ghost';
@@ -1646,31 +1688,78 @@ function renderMyTimeline(){
       g.append(y, t);
       return g;
     };
-    timeline.forEach((entry, i) => {
-      if(i === ghostAt){
-        if(i > 0) holder.appendChild(buildCardGap(0, false)).textContent = '';
-        holder.appendChild(ghostCard());
+    // The ??? card: the song you're placing, sitting in the gap you picked.
+    const mysteryCard = (unset) => {
+      const m = document.createElement('div');
+      m.className = 'vinyl-card mystery' + (unset ? ' unset' : '');
+      const y = document.createElement('div');
+      y.className = 'vinyl-card-year';
+      y.textContent = '???';
+      m.appendChild(y);
+      return m;
+    };
+    const blank = () => { const g = buildCardGap(0, false); g.textContent = ''; return g; };
+    // Draws the sleeves with an extra card (ghost or ???) at `at`; returns it.
+    const drawSleeves = (at, extra) => {
+      holder.innerHTML = '';
+      let newEl = null, extraEl = null;
+      timeline.forEach((entry, i) => {
+        if(i === at){
+          if(i > 0) holder.appendChild(blank());
+          extraEl = holder.appendChild(extra());
+          holder.appendChild(blank());
+        }else if(i > 0){
+          holder.appendChild(buildCardGap(gaps[i], gaps[i] === tight));
+        }
+        const isNew = newest && entry.id === newest.id;
+        const c = buildCard(entry, isNew);
+        if(isNew) newEl = c;
+        holder.appendChild(c);
+      });
+      if(at === timeline.length){
+        holder.appendChild(blank());
+        extraEl = holder.appendChild(extra());
       }
-      if(i > 0) holder.appendChild(buildCardGap(gaps[i], gaps[i] === tight));
-      const isNew = newest && entry.id === newest.id;
-      const c = buildCard(entry, isNew);
-      if(isNew) newEl = c;
-      holder.appendChild(c);
-    });
-    if(ghostAt === timeline.length){
-      holder.appendChild(buildCardGap(0, false)).textContent = '';
-      holder.appendChild(ghostCard());
+      return { newEl, extraEl };
+    };
+    const center = el => { holder.scrollLeft = el.offsetLeft - (holder.clientWidth - el.offsetWidth) / 2; };
+
+    if(picking){
+      const range = document.getElementById('pickRange');
+      const cap = document.getElementById('pickCap');
+      const n = pick.tl.length;
+      const start = pick.slot != null ? pick.slot : Math.round(n / 2);
+      range.max = n;
+      range.value = start;
+      const place = (slot, unset) => {
+        const { extraEl } = drawSleeves(slot, () => mysteryCard(unset));
+        cap.textContent = unset ? tr('slideCap') : spotLabel(pick.tl, slot);
+        center(extraEl);
+      };
+      place(start, pick.slot == null);
+      range.oninput = () => {
+        const slot = Number(range.value);
+        place(slot, false);
+        sendSpot(pick.songId, slot, 150);
+      };
+      slide.hidden = false;
+      return;
     }
-    // Jump to a newly won card once; otherwise stay where the player swiped.
+    const { newEl, extraEl } = drawSleeves(ghostAt, ghostCard);
+    // Jump to a newly won card once (or to "fits here"); otherwise stay put.
     const newId = newEl ? newest.id : null;
     if(newEl && tlScrolledTo !== newId){
       tlScrolledTo = newId;
-      holder.scrollLeft = newEl.offsetLeft - (holder.clientWidth - newEl.offsetWidth) / 2;
+      center(newEl);
+    }else if(extraEl && tlScrolledTo !== 'ghost:' + card.id){
+      tlScrolledTo = 'ghost:' + card.id;
+      center(extraEl);
     }else{
       holder.scrollLeft = keepScroll;
     }
     return;
   }
+
   const ghostRow = () => {
     const g = document.createElement('div');
     g.className = 'ghost-row';
@@ -1686,17 +1775,34 @@ function renderMyTimeline(){
     g.append(y, t);
     return g;
   };
+  // A "+" for every gap; tap one to put your pick there, tap another to move it.
+  const plus = slot => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'spot-plus' + (pick.slot === slot ? ' on' : '');
+    b.textContent = pick.slot === slot ? '? ' + tr('yourPick') : '+';
+    b.setAttribute('aria-label', spotLabel(pick.tl, slot));
+    b.addEventListener('click', () => {
+      sendSpot(pick.songId, slot);
+      renderKeys.timeline = timelineKey();
+      renderMyTimeline();
+    });
+    return b;
+  };
   timeline.forEach((entry, i) => {
-    if(i > 0 && i !== ghostAt){
+    // The gap labels would sit on top of the "+" buttons, so they rest meanwhile.
+    if(i > 0 && i !== ghostAt && !picking){
       const g = document.createElement('div');
       g.className = 'gap-tag' + (gaps[i] === tight ? ' tight' : '');
       g.textContent = gapText(gaps[i]);
       g.dataset.after = i - 1;
       if(!blind()) holder.appendChild(g);
     }
+    if(picking) holder.appendChild(plus(i));
     if(i === ghostAt) holder.appendChild(ghostRow());
     holder.appendChild(buildEntry(entry, newest && entry.id === newest.id));
   });
+  if(picking) holder.appendChild(plus(timeline.length));
   if(ghostAt === timeline.length) holder.appendChild(ghostRow());
   placeGapTags();
 }
@@ -1727,13 +1833,17 @@ function hideToast(){
 }
 document.getElementById('toast').addEventListener('click', hideToast);
 
-function celebrate(entry){
-  document.getElementById('toastTitle').textContent = tr('gotIt', { year: entry.year });
-  document.getElementById('toastSub').textContent = (entry.title || '') + (entry.artist ? ' · ' + entry.artist : '');
+function showToast(title, sub, ms){
+  document.getElementById('toastTitle').textContent = title;
+  document.getElementById('toastSub').textContent = sub;
   const toast = document.getElementById('toast');
   toast.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toast.classList.remove('show'), 4200);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), ms);
+}
+
+function celebrate(entry){
+  showToast(tr('gotIt', { year: entry.year }), (entry.title || '') + (entry.artist ? ' · ' + entry.artist : ''), 4200);
   buzz([60, 40, 140]);
 }
 
@@ -1775,7 +1885,10 @@ function buzzCheck(){
   buzzSeen = now;
   // Nothing on the first look after joining: that's not news.
   if(!was) return;
-  if(now.turn && !was.turn) buzz([80, 70, 80]);
+  if(now.turn && !was.turn){
+    buzz([80, 70, 80]);
+    showToast(tr('turnToast'), tr('turnToastSub'), 3500);
+  }
   else if((now.vote && now.vote !== was.vote) || (now.lock && now.lock !== was.lock)) buzz(120);
   else if(['voteWin', 'lockWin', 'betWin'].some(k => now[k] && now[k] !== was[k])) buzz([60, 40, 140]);
 }
@@ -2115,13 +2228,15 @@ function renderIfChanged(name, key, fn){
 
 function nowKey(){
   const s = lastState;
-  return JSON.stringify([s && s.currentCard, !!(s && s.playing), !!(s && s.expertMode)]);
+  return JSON.stringify([s && s.currentCard, !!(s && s.playing), !!(s && s.expertMode), s && s.vote && s.vote.pivot]);
 }
 
 function timelineKey(){
   const mine = me();
   const c = lastState && lastState.currentCard;
-  return JSON.stringify([tlView, !!(lastState && lastState.expertMode), blind(), mine && mine.lastAddedId, mine && mine.timeline, c && c.revealed ? [c.id, c.year, c.month] : null]);
+  const p = myPick();
+  return JSON.stringify([tlView, !!(lastState && lastState.expertMode), blind(), mine && mine.lastAddedId, mine && mine.timeline, c && c.revealed ? [c.id, c.year, c.month] : null,
+    p ? [p.songId, p.open, p.open ? null : [p.slot, p.right]] : null]);
 }
 
 function leaderboardKey(){
@@ -2175,12 +2290,7 @@ function renderVote(){
       btn.addEventListener('click', () => castVote(choice));
       btns.appendChild(btn);
     });
-    const s = document.createElement('div');
-    s.className = 's';
-    s.textContent = myVote.choice
-      ? tr('yourVote', { v: myVote.choice === 'before' ? tr('before') : tr('after') })
-      : tr('tapOne');
-    box.append(q, btns, s);
+    box.append(q, btns);
     return;
   }
 
@@ -2202,9 +2312,11 @@ function renderVote(){
   box.append(q, s);
 }
 
-// Point to your spot: on your turn, tap the gap in your timeline where you
-// think the song goes (automatic turns only). Change it until the reveal.
+// Point to your spot (automatic turns only): on your turn you mark where the
+// song goes, right in your own timeline — a "+" between cards in the list,
+// a ??? card you slide along in the cards view. Change it until the reveal.
 let mySpot = null; // { songId, slot } sent from this phone
+let spotSendTimer = null;
 
 function spotLabel(tl, slot){
   const name = e => blind() ? '“' + (e.title || '?') + '”' : String(e.year);
@@ -2212,54 +2324,23 @@ function spotLabel(tl, slot){
   if(slot === tl.length) return tr('spotAfter', { x: name(tl[tl.length - 1]) });
   return name(tl[slot - 1]) + ' – ' + name(tl[slot]);
 }
-function spotKey(){
-  const s = lastState;
-  return JSON.stringify([s && s.spot, s && s.revealed, blind(), me() && me().name, me() && me().timeline, mySpot]);
-}
-function renderSpot(){
-  const box = document.getElementById('spotCard');
+// This song's pick when it's my turn to point, else null. `tl` is my timeline
+// without this song's card; slot i is the gap before tl[i].
+function myPick(){
   const sp = lastState && lastState.spot;
   const mine = me();
-  box.className = 'vote-card spot-card';
-  box.textContent = '';
-  const tl = mine ? (mine.timeline || []).filter(e => !sp || e.id !== sp.songId) : [];
-  if(!sp || !mine || sp.turn !== mine.name || !tl.length){ box.hidden = true; return; }
-  const picked = sp.slot != null ? sp.slot : (mySpot && mySpot.songId === sp.songId ? mySpot.slot : null);
-  const add = (cls, text) => {
-    const el = document.createElement('div');
-    el.className = cls;
-    el.textContent = text;
-    box.appendChild(el);
-    return el;
-  };
-  if(lastState.revealed){
-    if(picked == null){ box.hidden = true; return; }
-    box.hidden = false;
-    box.classList.add(sp.right ? 'right' : 'wrong');
-    add('k', tr('yourPick'));
-    add('q', sp.right ? tr('rightSpot') : tr('wrongSpot'));
-    add('s', tr('pointedTo', { x: spotLabel(tl, picked) }));
-    return;
-  }
-  box.hidden = false;
-  add('k', tr('spotKicker'));
-  add('q', tr('whereGo'));
-  const grid = document.createElement('div');
-  grid.className = 'spot-grid';
-  for(let slot = 0; slot <= tl.length; slot++){
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.textContent = spotLabel(tl, slot);
-    b.classList.toggle('on', picked === slot);
-    b.addEventListener('click', () => {
-      mySpot = { songId: sp.songId, slot };
-      socket.emit('spot:pick', { songId: sp.songId, slot });
-      renderIfChanged('spot', spotKey(), renderSpot);
-    });
-    grid.appendChild(b);
-  }
-  box.appendChild(grid);
-  add('s', picked == null ? tr('spotHint') : tr('spotPicked'));
+  if(!sp || !mine || sp.turn !== mine.name) return null;
+  const tl = (mine.timeline || []).filter(e => e.id !== sp.songId);
+  if(!tl.length) return null;
+  const open = !lastState.revealed;
+  const local = mySpot && mySpot.songId === sp.songId ? mySpot.slot : null;
+  const slot = open && local != null ? local : sp.slot;
+  return { tl, songId: sp.songId, open, slot: slot != null ? slot : null, right: sp.right };
+}
+function sendSpot(songId, slot, delay){
+  mySpot = { songId, slot };
+  clearTimeout(spotSendTimer);
+  spotSendTimer = setTimeout(() => socket.emit('spot:pick', { songId, slot }), delay || 0);
 }
 
 // Lock-in: pick a year with the slider (or −/+), lock it in, see how close
@@ -2410,10 +2491,8 @@ function renderBet(){
     // Back-to-back betster songs: the last result shows here, not on its own card.
     const last = r && r.results && r.results[deviceId];
     if(last) add('s', tr('lastBet', { x: last.delta > 0 ? '+' + last.delta + ' ✓' : '−' + last.amount }));
-    if(b.turn === mine.name){
-      add('q', tr('yourTurnBets'));
-      return;
-    }
+    // Your own turn: nothing to bet on (the "your turn" pop-up says the rest).
+    if(b.turn === mine.name){ box.hidden = true; return; }
     const my = b.placed && b.placed[deviceId];
     add('q', tr('betOn', { gen: gen(b.turn) }));
     if(!b.open){
@@ -2637,7 +2716,6 @@ function render(){
   renderIfChanged('vote', voteKey(), renderVote);
   renderIfChanged('bet', betKey(), renderBet);
   renderIfChanged('lock', lockKey(), renderLock);
-  renderIfChanged('spot', spotKey(), renderSpot);
   const lockCount = document.getElementById('lockCount');
   if(lockCount && lastState && lastState.lockin){
     lockCount.textContent = lockCountText(lastState.lockin) + (lockCount.dataset.suffix || '');
