@@ -335,6 +335,11 @@
     padding:1.5rem;
   }
   .confirm-overlay.open{display:flex;}
+  .preset-row{display:flex;gap:.35rem;}
+  .preset-btn{border:1px solid var(--line);border-radius:999px;}
+  .recap-card-box{max-width:460px;padding:1.2rem 1.2rem 1.4rem;}
+  .recap-card-box img{display:block;width:100%;border-radius:14px;margin:.2rem 0 1rem;}
+  .recap-cards{display:flex;flex-wrap:wrap;gap:.45rem;}
   .confirm-box{
     background:var(--surface);
     border:1px solid var(--line);
@@ -1059,6 +1064,7 @@
   }
   .hero-btn:hover{background:#e0b568;}
   .hero-btn:disabled{box-shadow:none;}
+  .give kbd{font-family:'IBM Plex Mono',monospace;font-size:.58rem;font-weight:400;border:1px solid var(--line);border-radius:4px;padding:0 .3rem;margin-left:.45rem;opacity:.65;vertical-align:.1em;}
   .hero-btn kbd{font-family:'IBM Plex Mono',monospace;font-size:.62rem;border:1px solid rgba(36,26,11,.35);border-radius:5px;padding:.1rem .4rem;opacity:.7;}
   .ibtn{
     width:44px;height:44px;padding:0;border-radius:10px;
@@ -1124,6 +1130,7 @@
   .shop-item select{grid-column:1;width:100%;min-width:0;text-overflow:ellipsis;}
   .shop-item .buy{grid-column:2;grid-row:1 / span 3;}
   .st-turn{font-family:'IBM Plex Mono',monospace;font-size:.55rem;color:var(--ink);background:var(--gold);border-radius:20px;padding:.05rem .4rem;}
+  .st-fire{font-family:'IBM Plex Mono',monospace;font-size:.62rem;font-weight:500;color:var(--gold);}
   .chaos-announce{
     position:absolute;inset:0;z-index:5;border-radius:inherit;
     display:grid;place-items:center;padding:2rem;text-align:center;
@@ -1502,6 +1509,7 @@
           <div class="capture-subtitle">Session Recap</div>
         </div>
         <div id="recapStats"></div>
+        <div id="recapCards"></div>
         <div id="recapSongList" class="history-scroll-box" style="margin-top:1rem;"></div>
       </div>
       <div class="row" style="margin-top:1.2rem;">
@@ -1523,6 +1531,14 @@
       <button class="menu-dropdown-item" data-view="history">History</button>
       <button class="menu-dropdown-item" data-view="stats">Stats</button>
     </div>
+  </div>
+</div>
+
+<div class="confirm-overlay" id="recapCardOverlay">
+  <div class="confirm-box recap-card-box">
+    <div class="shop-head"><h2 id="recapCardTitle">Recap card</h2><button class="dr-x" id="recapCardClose" aria-label="Close">✕</button></div>
+    <img id="recapCardImg" alt="">
+    <button class="primary" id="recapCardSave">Save picture</button>
   </div>
 </div>
 
@@ -1576,6 +1592,15 @@
           <button class="sb-view-btn expert-mode-btn" data-expertmode="on">On</button>
         </div>
       </div>
+      <div class="menu-setting-row" style="justify-content:space-between;">
+        <span class="field-label" style="margin:0;">Preset</span>
+        <div class="preset-row">
+          <button class="sb-view-btn preset-btn" data-preset="classic">Classic</button>
+          <button class="sb-view-btn preset-btn" data-preset="casual">Casual</button>
+          <button class="sb-view-btn preset-btn" data-preset="party">Party</button>
+        </div>
+      </div>
+      <p class="hint">One tap for the switches below. Classic: the plain game. Casual: over/under pop-ups and the coin shop every round. Party: chaos mode with over/under pop-ups. Clip length, cards to win and expert mode stay as they are.</p>
       <div class="menu-setting-row" style="justify-content:space-between;">
         <span class="field-label" style="margin:0;">Automatic turns</span>
         <div class="filter-toggle">
@@ -1782,6 +1807,7 @@
         <div class="readout">
           <div class="chaos-chip" id="chaosChip" hidden><span class="k" id="chaosChipKicker"></span><b id="chaosChipTitle"></b><span class="d" id="chaosChipDesc"></span></div>
           <div class="chaos-chip" id="ouBox" hidden><span class="k" id="ouKicker"></span><span class="v" id="ouLine"></span></div>
+          <div class="chaos-chip" id="eventBox" hidden><span class="k">Just now</span><span class="v" id="eventLine"></span></div>
           <div class="chaos-chip" id="lockBox" hidden><span class="k">Lock-in</span><span class="v" id="lockLine"></span></div>
           <div class="chaos-chip" id="betBox" hidden><span class="k" id="betKicker"></span><span class="v" id="betLine"></span></div>
           <div class="chaos-chip" id="hintBox" hidden><span class="k">Hint</span><span class="v" id="hintLine"></span></div>
@@ -1793,7 +1819,7 @@
 
           <div class="deck-controls">
             <button class="hero-btn" id="heroBtn" disabled><span id="heroLabel">Drop the needle</span> <kbd>↵</kbd></button>
-            <button class="ibtn" id="replayBtn" disabled title="Replay clip" aria-label="Replay clip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg></button>
+            <button class="ibtn" id="replayBtn" disabled title="Replay clip (R)" aria-label="Replay clip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg></button>
             <button class="ibtn" id="newPointBtn" disabled title="New point in the song" aria-label="New point in the song"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="m15 15 6 6"/><path d="M4 4l5 5"/></svg></button>
             <button class="ibtn" id="stopBtn" disabled title="Stop" aria-label="Stop"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
             <button id="drawBtn" hidden disabled>Draw &amp; play</button>
@@ -1934,6 +1960,7 @@ https://open.spotify.com/playlist/yyyyyyyy"></textarea>
 
 <script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
 <script src="/socket.io/socket.io.js"></script>
+<script src="/recap-card.js"></script>
 <script>
 const confirmOverlay = document.getElementById('confirmOverlay');
 const confirmMessage = document.getElementById('confirmMessage');
@@ -2014,7 +2041,7 @@ function flushSession(){
     const state = {
       playlists: playlists.map(p => ({name: p.name, tracks: p.tracks, enabled: p.enabled, id: p.id, expanded: p.expanded})),
       loadedPlaylistIds: Array.from(loadedPlaylistIds),
-      players: players.map(pl => ({name: pl.name, timeline: pl.timeline, coinAdj: pl.coinAdj || 0})),
+      players: players.map(pl => ({name: pl.name, timeline: pl.timeline, coinAdj: pl.coinAdj || 0, streak: pl.streak || 0})),
       sessionHistory: sessionHistory,
       statsRevealed: statsRevealed,
       statsCardsPlaced: statsCardsPlaced,
@@ -2054,7 +2081,7 @@ function loadSession(){
     if(state.loadedPlaylistIds) loadedPlaylistIds = new Set(state.loadedPlaylistIds);
     // Claims are per-session: socket ids and phones don't survive a reload, so
     // everyone starts unclaimed and re-claims from their phone.
-    if(state.players) players = state.players.map(pl => ({name: pl.name, timeline: pl.timeline || [], coinAdj: pl.coinAdj || 0, lastAdded: null, deviceId: null, online: false}));
+    if(state.players) players = state.players.map(pl => ({name: pl.name, timeline: pl.timeline || [], coinAdj: pl.coinAdj || 0, streak: pl.streak || 0, lastAdded: null, deviceId: null, online: false}));
     if(state.sessionHistory) sessionHistory = state.sessionHistory;
     if(typeof state.statsRevealed === 'number') statsRevealed = state.statsRevealed;
     if(typeof state.statsCardsPlaced === 'number') statsCardsPlaced = state.statsCardsPlaced;
@@ -2664,7 +2691,7 @@ function titleCoins(entry){
 // Every coin a card carries: its title coin plus the one a double-or-nothing
 // win comes with.
 function coinValue(entry){
-  return titleCoins(entry) + (entry.donCoin ? 1 : 0);
+  return titleCoins(entry) + (entry.donCoin ? 1 : 0) + (entry.streakCoin ? 1 : 0);
 }
 
 // Coins on cards, plus coins won or lost outside them (over/under). Can go
@@ -2977,8 +3004,17 @@ function renderScoreboard(){
 // The revealed card goes into this player's timeline. Shared by the add-tile
 // in the timelines panel and the "Who placed it right?" chips on the stage.
 // `bought`: paid for in the coin shop rather than won, so no double-or-nothing coin.
+// Hot streak: cards won on your own turn in a row (automatic turns only).
+// `player.streak` counts the settled ones; bought cards don't count.
+const STREAK_FROM = 3;
+function ownTurnCard(player, bought){
+  return !bought && autoTurns && !!song && !song.event && song.id === currentCard.id && song.turn === player.name;
+}
+
 function giveCardTo(player, bought){
   if(!currentCard) return;
+  // Robin Hood already moved a coin for "nobody got it": not any more.
+  if(song && song.id === currentCard.id) robinUndo();
   const entry = {
     id: currentCard.id,
     year: parseInt(currentCard.year, 10),
@@ -2989,11 +3025,21 @@ function giveCardTo(player, bought){
     locked: false,
     addedAt: Date.now()
   };
+  if(bought) entry.bought = true;
   // Double or nothing, won on your own turn: the card comes with a coin.
   if(!bought && chaosActive('don') && turnActive() && player.name === turnName){
     entry.donCoin = true;
     statsCoinsWon++;
     sessionCoinsWon++;
+  }
+  // Hot streak: from the STREAK_FROM-th card in a row on your own turns,
+  // every card comes with a coin.
+  const streak = ownTurnCard(player, bought) ? (player.streak || 0) + 1 : 0;
+  if(streak >= STREAK_FROM){
+    entry.streakCoin = true;
+    statsCoinsWon++;
+    sessionCoinsWon++;
+    gameEvent('🔥 ' + player.name + ': ' + streak + ' in a row, +1 coin');
   }
   player.timeline.push(entry);
   player.timeline.sort((a,b) => (a.year - b.year) || ((a.month||1) - (b.month||1)));
@@ -3046,6 +3092,7 @@ document.addEventListener('keydown', (e) => {
     // One layer per press, top-most first: the confirm dialog, then the
     // hamburger dropdown, then whichever panel is open.
     if(confirmOverlay.classList.contains('open')){ confirmCancelBtn.click(); return; }
+    if(recapCardOverlay.classList.contains('open')){ recapCardOverlay.classList.remove('open'); return; }
     if(menuTrigger.classList.contains('open')){ menuTrigger.classList.remove('open'); return; }
     closeScoreboard();
     closeMenu();
@@ -3102,7 +3149,7 @@ let sessionCoinsWon = 0;
 // This session's chaos, coin shop and over/under numbers, for the recap.
 // Per-player tallies are keyed by name.
 function freshChaosStats(){
-  return { rounds: {}, shop: {}, spent: {}, ou: 0, ouRight: {}, lockWins: {}, bets: {}, robin: 0, donLost: 0 };
+  return { rounds: {}, shop: {}, spent: {}, ou: 0, ouRight: {}, lockWins: {}, bets: {}, robin: 0, donLost: 0, streaks: {} };
 }
 let sessionChaos = freshChaosStats();
 function tally(obj, key, n){
@@ -3220,10 +3267,60 @@ function chaosRecapRows(){
   if(lock) rows.push(['Closest lock-ins', lock[0] + ' · won ' + times(lock[1])]);
   const bettor = ranked(s.bets)[0];
   if(bettor && bettor[1] > 0) rows.push(['Best bettor', bettor[0] + ' · +' + bettor[1] + ' coins']);
+  const streak = ranked(s.streaks)[0];
+  if(streak && streak[1] >= STREAK_FROM) rows.push(['Longest streak', streak[0] + ' · ' + streak[1] + ' in a row']);
   if(s.robin) rows.push(['Robin Hood', s.robin + (s.robin === 1 ? ' coin' : ' coins') + ' moved']);
   if(s.donLost) rows.push(['Lost to double or nothing', s.donLost + (s.donLost === 1 ? ' card' : ' cards')]);
   return rows;
 }
+
+// Everything a player's recap card shows (recap-card.js draws it). Phones get
+// theirs in the state blob, so they can draw and save their own.
+function recapCardData(player){
+  const sorted = players.slice().sort(comparePlayers);
+  const rank = sorted.indexOf(player) + 1;
+  const years = player.timeline.map(e => e.year).filter(y => !isNaN(y)).sort((a, b) => a - b);
+  const decades = {};
+  years.forEach(y => tally(decades, Math.floor(y / 10) * 10));
+  const fav = Object.entries(decades).sort((a, b) => (b[1] - a[1]) || (a[0] - b[0]))[0];
+  const decade = fav ? (fav[0] < 2000 ? "'" + String(fav[0]).slice(2) + 's' : fav[0] + 's') : null;
+  const s = sessionChaos;
+  return {
+    name: player.name,
+    rank,
+    of: players.length,
+    cards: player.timeline.length,
+    coins: bonusCount(player),
+    winLength: WIN_LENGTH,
+    won: rank === 1 && player.timeline.length >= WIN_LENGTH,
+    streak: player.streak || 0,
+    bestStreak: Math.max(s.streaks[player.name] || 0, player.streak || 0),
+    titles: player.timeline.filter(e => e.bonus).length,
+    ouRight: s.ouRight[player.name] || 0,
+    ou: s.ou,
+    lockWins: s.lockWins[player.name] || 0,
+    spent: s.spent[player.name] || 0,
+    bets: s.bets[player.name] || 0,
+    decade,
+    years,
+    date: Date.now()
+  };
+}
+
+const recapCardOverlay = document.getElementById('recapCardOverlay');
+let recapCanvas = null;
+async function openRecapCard(player){
+  recapCanvas = await drawRecapCard(recapCardData(player));
+  recapCanvas.dataset.name = player.name;
+  document.getElementById('recapCardImg').src = recapCanvas.toDataURL('image/png');
+  document.getElementById('recapCardTitle').textContent = player.name + "'s night";
+  recapCardOverlay.classList.add('open');
+}
+document.getElementById('recapCardSave').addEventListener('click', () => {
+  if(recapCanvas) saveRecapCard(recapCanvas, recapCanvas.dataset.name);
+});
+document.getElementById('recapCardClose').addEventListener('click', () => recapCardOverlay.classList.remove('open'));
+recapCardOverlay.addEventListener('click', (e) => { if(e.target === recapCardOverlay) recapCardOverlay.classList.remove('open'); });
 
 function renderRecap(){
   const container = document.getElementById('recapStats');
@@ -3258,6 +3355,23 @@ function renderRecap(){
     row.innerHTML = '<span class="field-label" style="margin:0;">' + label + '</span><span class="menu-setting-value">' + value + '</span>';
     container.appendChild(row);
   });
+
+  const cardsBox = document.getElementById('recapCards');
+  cardsBox.innerHTML = '';
+  if(players.length){
+    const h = document.createElement('div');
+    h.className = 'recap-h';
+    h.textContent = 'Player cards';
+    const row = document.createElement('div');
+    row.className = 'recap-cards';
+    players.slice().sort(comparePlayers).forEach(p => {
+      const b = document.createElement('button');
+      b.textContent = '📸 ' + p.name;
+      b.addEventListener('click', () => openRecapCard(p));
+      row.appendChild(b);
+    });
+    cardsBox.append(h, row);
+  }
 
   const extras = chaosRecapRows();
   if(extras.length){
@@ -3641,9 +3755,35 @@ function setClipSeconds(sec){
   saveSession();
 }
 
+// Presets flip the four game switches at once; the one that matches the
+// current switches lights up.
+function presetDefs(){
+  return {
+    classic: { mode: 'normal', ou: 'off', shop: 'off', turns: 'on' },
+    casual: { mode: 'normal', ou: 'on', shop: 'on', turns: 'on' },
+    party: { mode: 'chaos', ou: 'on', shop: 'off', turns: 'on' }
+  };
+}
+function syncPresetButtons(){
+  const defs = presetDefs();
+  document.querySelectorAll('.preset-btn').forEach(b => {
+    const p = defs[b.dataset.preset];
+    b.classList.toggle('active', gameMode === p.mode && ouEnabled === (p.ou === 'on') && shopEnabled === (p.shop === 'on') && autoTurns === (p.turns === 'on'));
+  });
+}
+document.querySelectorAll('.preset-btn').forEach(btn => btn.addEventListener('click', () => {
+  const p = presetDefs()[btn.dataset.preset];
+  document.querySelector('.game-mode-btn[data-gamemode="' + p.mode + '"]').click();
+  document.querySelector('.ou-btn[data-ou="' + p.ou + '"]').click();
+  document.querySelector('.shopset-btn[data-shopset="' + p.shop + '"]').click();
+  document.querySelector('.autoturn-btn[data-autoturn="' + p.turns + '"]').click();
+  syncPresetButtons();
+}));
+
 function syncAutoTurnButtons(){
   document.querySelectorAll('.autoturn-btn').forEach(b => b.classList.toggle('active', b.dataset.autoturn === (autoTurns ? 'on' : 'off')));
   document.querySelectorAll('.autoturn-btn').forEach(b => positionToggleSlider(b.closest('.filter-toggle')));
+  syncPresetButtons();
 }
 document.querySelectorAll('.autoturn-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -3658,6 +3798,7 @@ document.querySelectorAll('.autoturn-btn').forEach(btn => {
 function syncShopSetButtons(){
   document.querySelectorAll('.shopset-btn').forEach(b => b.classList.toggle('active', b.dataset.shopset === (shopEnabled ? 'on' : 'off')));
   document.querySelectorAll('.shopset-btn').forEach(b => positionToggleSlider(b.closest('.filter-toggle')));
+  syncPresetButtons();
 }
 document.querySelectorAll('.shopset-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -3696,6 +3837,7 @@ function syncOuButtons(){
   syncOuOdds();
   document.querySelectorAll('.ou-btn').forEach(b => b.classList.toggle('active', b.dataset.ou === (ouEnabled ? 'on' : 'off')));
   document.querySelectorAll('.ou-btn').forEach(b => positionToggleSlider(b.closest('.filter-toggle')));
+  syncPresetButtons();
 }
 document.querySelectorAll('.ou-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -3708,6 +3850,7 @@ document.querySelectorAll('.ou-btn').forEach(btn => {
 function syncGameModeButtons(){
   document.querySelectorAll('.game-mode-btn').forEach(b => b.classList.toggle('active', b.dataset.gamemode === gameMode));
   document.querySelectorAll('.game-mode-btn').forEach(b => positionToggleSlider(b.closest('.filter-toggle')));
+  syncPresetButtons();
 }
 document.querySelectorAll('.game-mode-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -3826,6 +3969,7 @@ function resetDeckProgress(){
   awaitingStart = false;
   lastBetResults = null;
   turnName = null;
+  lastEvent = null;
   renderChaos();
   clearTimeout(snippetTimer);
   clearInterval(countdownInterval);
@@ -3851,7 +3995,7 @@ function resetDeckProgress(){
 resetScoresBtn.addEventListener('click', async () => {
   const hasProgress = players.some(p => p.timeline.length > 0);
   if(hasProgress && !(await showConfirm('Reset every player\'s timeline and start a fresh deck? All songs become drawable again — this can\'t be undone.'))) return;
-  players.forEach(p => { p.timeline = []; p.lastAdded = null; p.coinAdj = 0; });
+  players.forEach(p => { p.timeline = []; p.lastAdded = null; p.coinAdj = 0; p.streak = 0; });
   resetDeckProgress();
   renderScoreboard();
 });
@@ -4285,6 +4429,8 @@ drawBtn.addEventListener('click', () => {
     pl.lastAdded = null;
   });
   if(!ouStakes) advanceTurn();
+  drawCount++;
+  renderEvent();
   showTrack(p, t);
   song = ouStakes ? { id: t.id, event: true, settled: false } : {
     id: t.id,
@@ -4464,6 +4610,7 @@ function buildStateBlob(){
     players: players.map(p => ({
       name: p.name,
       coinAdj: p.coinAdj || 0,
+      streak: p.streak || 0,
       deviceId: p.deviceId || null,
       online: !!p.online,
       lastAddedId: p.lastAdded ? p.lastAdded.id : null,
@@ -4508,6 +4655,8 @@ function buildStateBlob(){
       results: song.lockin.results
     } : null,
     blind: chaosActive('blind'),
+    event: eventText(),
+    recaps: players.map(recapCardData),
     shop: shopOpen() ? {
       phase: shopPhase(),
       turn: turnActive() ? turnName : null,
@@ -4712,6 +4861,28 @@ function kickPlayer(player){
 }
 
 let toastTimer = null;
+// Game events (coins moving, cards lost, shop buys) toast like everything
+// else, and also stay on the stage — and the phones — through the next song,
+// so nobody has to catch the toast.
+let lastEvent = null; // { text, at: draw count }
+let drawCount = 0;
+function gameEvent(message){
+  lobbyToast(message);
+  lastEvent = { text: message, at: drawCount };
+  renderEvent();
+}
+
+function eventText(){
+  return lastEvent && drawCount - lastEvent.at <= 1 ? lastEvent.text : null;
+}
+
+function renderEvent(){
+  const text = eventText();
+  document.getElementById('eventBox').hidden = !text;
+  document.getElementById('eventLine').textContent = text || '';
+  broadcastState();
+}
+
 function lobbyToast(message){
   const existing = document.querySelector('.join-toast');
   if(existing) existing.remove();
@@ -5229,15 +5400,31 @@ function loseLatestCard(player){
 
 // Robin Hood: the player with the most coins gives one to the player with the
 // fewest. Ties: more cards counts as richer, fewer as poorer, then by name.
-// Nothing moves when everyone has the same.
-function robinHood(){
+// Nothing moves when everyone has the same. It fires once per song — the
+// moment the DJ taps "nobody", or at the next draw if the card was never
+// given — and is undone if the card gets handed out after all.
+function robinMiss(){
+  if(!chaosActive('robin') || !song || song.event || song.robin || currentCard.id !== song.id) return null;
   const coins = p => bonusCount(p);
   const rich = players.slice().sort((a, b) => (coins(b) - coins(a)) || (b.timeline.length - a.timeline.length) || a.name.localeCompare(b.name))[0];
   const poor = players.slice().sort((a, b) => (coins(a) - coins(b)) || (a.timeline.length - b.timeline.length) || a.name.localeCompare(b.name))[0];
   if(!rich || rich === poor || coins(rich) <= 0 || coins(rich) === coins(poor)) return null;
   rich.coinAdj = (rich.coinAdj || 0) - 1;
   poor.coinAdj = (poor.coinAdj || 0) + 1;
-  return rich.name + ' gives ' + poor.name + ' 1 coin';
+  song.robin = { rich: rich.name, poor: poor.name };
+  sessionChaos.robin++;
+  return 'Robin Hood: ' + rich.name + ' gives ' + poor.name + ' 1 coin';
+}
+
+function robinUndo(){
+  const move = song && song.robin;
+  if(!move) return;
+  const rich = players.find(p => p.name === move.rich);
+  const poor = players.find(p => p.name === move.poor);
+  if(rich) rich.coinAdj = (rich.coinAdj || 0) + 1;
+  if(poor) poor.coinAdj = (poor.coinAdj || 0) - 1;
+  song.robin = null;
+  sessionChaos.robin = Math.max(0, sessionChaos.robin - 1);
 }
 
 function settleSong(){
@@ -5248,6 +5435,12 @@ function settleSong(){
   const turnPlayer = players.find(p => p.name === song.turn);
   const won = turnPlayer ? turnPlayer.timeline.find(e => e.id === song.id && !e.locked) : null;
   const notes = [];
+
+  // Won on your own turn: the streak goes on. Missed (or bought it): it's over.
+  if(turnPlayer && autoTurns){
+    turnPlayer.streak = won && !won.bought ? (turnPlayer.streak || 0) + 1 : 0;
+    if(turnPlayer.streak > (sessionChaos.streaks[turnPlayer.name] || 0)) sessionChaos.streaks[turnPlayer.name] = turnPlayer.streak;
+  }
 
   if(song.passedFrom && turnPlayer && !won){
     const passer = players.find(p => p.name === song.passedFrom);
@@ -5274,15 +5467,12 @@ function settleSong(){
     lastBetResults = { id: song.bets.id, turn: song.turn, results };
   }
 
-  if(chaosActive('robin') && !song.event && !players.some(p => p.timeline.some(e => e.id === song.id && !e.locked))){
-    const robin = robinHood();
-    if(robin){
-      notes.push('Robin Hood: ' + robin);
-      sessionChaos.robin++;
-    }
+  if(!players.some(p => p.timeline.some(e => e.id === song.id && !e.locked))){
+    const robin = robinMiss();
+    if(robin) notes.push(robin);
   }
 
-  if(notes.length) lobbyToast(notes.join(' · '));
+  if(notes.length) gameEvent(notes.join(' · '));
   renderScoreboard();
 }
 
@@ -5439,7 +5629,7 @@ function shopBuy(buyer, item, opts){
   buyer.coinAdj = (buyer.coinAdj || 0) - price;
   tally(sessionChaos.shop, item);
   tally(sessionChaos.spent, buyer.name, price);
-  lobbyToast(msg);
+  gameEvent(msg);
   renderScoreboard();
   renderShopWindow();
   return true;
@@ -5857,16 +6047,56 @@ new MutationObserver(syncStage).observe(revealBtn, { attributes: true, attribute
 
 // Enter = the hero button, from anywhere that isn't a field or another button
 // (Space is already play/pause, Tab the timelines).
+// A button, link or collapsible keeps focus after a click, and Enter/Space
+// would press it again. Only the keys we designed do anything: they never
+// press whatever was clicked last (the confirm dialog keeps Enter = OK).
+function clickedControl(){
+  const a = document.activeElement;
+  return a && ['BUTTON', 'SUMMARY', 'A'].includes(a.tagName) && !a.closest('#confirmOverlay') ? a : null;
+}
+['keydown', 'keyup'].forEach(type => document.addEventListener(type, (e) => {
+  if(e.key !== 'Enter' && e.key !== ' ') return;
+  const a = clickedControl();
+  if(!a) return;
+  e.preventDefault();
+  a.blur();
+}, true));
+
 document.addEventListener('keydown', (e) => {
   if(e.key !== 'Enter' || e.repeat) return;
   const a = document.activeElement;
   const tag = a && a.tagName;
-  if(['INPUT', 'TEXTAREA', 'BUTTON', 'SELECT', 'SUMMARY', 'A'].includes(tag) || (a && a.isContentEditable)) return;
+  if(['INPUT', 'TEXTAREA', 'SELECT'].includes(tag) || (a && a.isContentEditable)) return;
+  if(a && a.closest && a.closest('#confirmOverlay')) return;
   const blocking = [roleOverlay, scoreboardOverlay, menuOverlay, recordsDrawer, confirmOverlay, shopOverlay];
   if(blocking.some(el => el.classList.contains('open'))) return;
   if(stageEl.dataset.mode !== 'deck' || heroBtn.disabled) return;
   e.preventDefault();
   heroBtn.click();
+});
+
+// Letter keys: N nobody, C coin, R replay, B coin shop (B again closes it).
+// Only on the stage — never in a field, over a panel, or with a modifier.
+document.addEventListener('keydown', (e) => {
+  if(e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
+  const key = e.key.toLowerCase();
+  if(!['n', 'c', 'r', 'b'].includes(key)) return;
+  const a = document.activeElement;
+  if(a && (['INPUT', 'TEXTAREA', 'SELECT'].includes(a.tagName) || a.isContentEditable)) return;
+  if(key === 'b' && shopOverlay.classList.contains('open')){
+    e.preventDefault();
+    shopOverlay.classList.remove('open');
+    return;
+  }
+  const blocking = [roleOverlay, scoreboardOverlay, menuOverlay, recordsDrawer, confirmOverlay, shopOverlay, recapCardOverlay];
+  if(blocking.some(el => el.classList.contains('open'))) return;
+  const shopBtn = document.getElementById('shopBtn');
+  const target = key === 'r' ? replayBtn
+    : key === 'b' ? (shopBtn.hidden ? null : shopBtn)
+    : (giveRow.hidden ? null : giveChips.querySelector('[data-key="' + key + '"]'));
+  if(!target || target.disabled) return;
+  e.preventDefault();
+  target.click();
 });
 
 // Title and artist are one line each. Anything wider runs as a ticker:
@@ -5987,7 +6217,7 @@ function renderStandings(){
     }
     row.innerHTML =
       '<span class="st-rk">' + String(i + 1).padStart(2, '0') + '</span>' +
-      '<span class="st-nm"><i class="st-on' + (p.online ? '' : ' off') + '"></i><span>' + escapeHtml(p.name) + '</span>' + (wins ? '<b class="st-win">WINS</b>' : '') + (turnActive() && p.name === turnName ? '<b class="st-turn">TURN</b>' : '') + '</span>' +
+      '<span class="st-nm"><i class="st-on' + (p.online ? '' : ' off') + '"></i><span>' + escapeHtml(p.name) + '</span>' + (wins ? '<b class="st-win">WINS</b>' : '') + (turnActive() && p.name === turnName ? '<b class="st-turn">TURN</b>' : '') + (p.streak >= 2 ? '<b class="st-fire" title="' + p.streak + ' in a row on their own turns">🔥' + p.streak + '</b>' : '') + '</span>' +
       '<span class="st-sc"><span>' + CARD_ICON_SVG + p.timeline.length + '</span><span>' + COIN_SVG + bonusCount(p) + '</span></span>' +
       '<span class="st-bar"><i style="width:' + pct + '%"></i></span>';
     standingsEl.appendChild(row);
@@ -6066,16 +6296,23 @@ function renderGive(){
     : !(catchUpRound && catchUp) && !(donRound && (donLatest || song.donLost));
   if(owner){
     const titled = titleCoins(ownerEntry);
-    extra.innerHTML = '<span style="display:inline-flex;align-items:center;gap:.35rem;">' + COIN_SVG + (titled ? (titled > 1 ? titled + ' coins ✓' : 'coin ✓') : (chaosCoinValue() > 1 ? '+ 2 coins' : '+ coin')) + '</span>';
+    extra.innerHTML = '<span style="display:inline-flex;align-items:center;gap:.35rem;">' + COIN_SVG + (titled ? (titled > 1 ? titled + ' coins ✓' : 'coin ✓') : (chaosCoinValue() > 1 ? '+ 2 coins' : '+ coin')) + '<kbd>C</kbd></span>';
+    extra.dataset.key = 'c';
     extra.title = 'Title + artist guessed too (gold coin)';
     extra.addEventListener('click', () => {
       toggleCoin(ownerEntry);
       renderScoreboard();
     });
   }else{
-    extra.textContent = 'nobody';
+    extra.innerHTML = 'nobody<kbd>N</kbd>';
+    extra.dataset.key = 'n';
     extra.title = 'Nobody got it — hide these';
-    extra.addEventListener('click', () => { giveDismissedFor = currentCard.id; renderGive(); });
+    extra.addEventListener('click', () => {
+      giveDismissedFor = currentCard.id;
+      const robin = robinMiss();
+      if(robin) gameEvent(robin);
+      renderScoreboard();
+    });
   }
   if(showExtra) giveChips.appendChild(extra);
 
@@ -6105,7 +6342,7 @@ function renderGive(){
       lose.addEventListener('click', () => {
         song.donLost = loseLatestCard(turnPlayer);
         sessionChaos.donLost++;
-        lobbyToast(turnPlayer.name + ' lost ' + latest.year + ' — double or nothing');
+        gameEvent(turnPlayer.name + ' lost ' + latest.year + ' — double or nothing');
         renderScoreboard();
       });
       giveChips.appendChild(lose);

@@ -55,6 +55,7 @@ function shareOrigin(req){
 
 app.get('/', (req, res) => res.sendFile(path.join(ROOT, 'index.html')));
 app.get('/player', (req, res) => res.sendFile(path.join(ROOT, 'player.html')));
+app.get('/recap-card.js', (req, res) => res.sendFile(path.join(ROOT, 'recap-card.js')));
 app.use('/images', express.static(path.join(ROOT, 'images'), { maxAge: '1d' }));
 
 app.get('/health', (req, res) => res.json({ ok: true, lobbies: L.count() }));
