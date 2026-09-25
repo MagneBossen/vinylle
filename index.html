@@ -1808,6 +1808,7 @@
           <div class="chaos-chip" id="chaosChip" hidden><span class="k" id="chaosChipKicker"></span><b id="chaosChipTitle"></b><span class="d" id="chaosChipDesc"></span></div>
           <div class="chaos-chip" id="ouBox" hidden><span class="k" id="ouKicker"></span><span class="v" id="ouLine"></span></div>
           <div class="chaos-chip" id="eventBox" hidden><span class="k">Just now</span><span class="v" id="eventLine"></span></div>
+          <div class="chaos-chip" id="spotBox" hidden><span class="k">Their pick</span><span class="v" id="spotLine"></span></div>
           <div class="chaos-chip" id="lockBox" hidden><span class="k">Lock-in</span><span class="v" id="lockLine"></span></div>
           <div class="chaos-chip" id="betBox" hidden><span class="k" id="betKicker"></span><span class="v" id="betLine"></span></div>
           <div class="chaos-chip" id="hintBox" hidden><span class="k">Hint</span><span class="v" id="hintLine"></span></div>
@@ -2066,7 +2067,8 @@ function flushSession(){
       ouGap: ouGap,
       ouStart: ouStart,
       ouStep: ouStep,
-      ouMax: ouMax
+      ouMax: ouMax,
+      gameWinner: gameWinner
     };
     localStorage.setItem('bs_session', JSON.stringify(state));
   }catch(e){ console.error('saveSession failed:', e); }
@@ -2114,6 +2116,7 @@ function loadSession(){
       });
     }
     if(typeof state.turnName === 'string') turnName = state.turnName;
+    if(state.gameWinner && state.gameWinner.name) gameWinner = state.gameWinner;
     if(typeof state.shopEnabled === 'boolean'){
       shopEnabled = state.shopEnabled;
       syncShopSetButtons();
@@ -2754,6 +2757,7 @@ function comparePlayers(a, b){
 }
 
 function renderScoreboard(){
+  checkWinner();
   scoreboardEl.innerHTML = '';
   if(players.length === 0){
     scoreboardEl.innerHTML = '<p class="empty">No players yet — add someone above. When they guess a card\'s spot right, tap the add-card tile to drop it into their timeline.</p>';
@@ -2812,10 +2816,12 @@ function renderScoreboard(){
     header.appendChild(name);
     header.appendChild(buildPips(player.timeline.length, WIN_LENGTH));
 
-    if(player.timeline.length >= WIN_LENGTH && isTrueLeader){
+    const badge = winBadge(player, isTrueLeader);
+    if(badge){
       const win = document.createElement('span');
       win.className = 'player-win-badge';
-      win.textContent = 'WINS';
+      win.textContent = badge;
+      win.title = badge === 'WON' ? 'First to ' + gameWinner.target + ' cards' : 'Leading now, past the target';
       header.appendChild(win);
     }
 
@@ -3015,6 +3021,38 @@ function renderScoreboard(){
 // The revealed card goes into this player's timeline. Shared by the add-tile
 // in the timelines panel and the "Who placed it right?" chips on the stage.
 // `bought`: paid for in the coin shop rather than won, so no double-or-nothing coin.
+// The game's winner: the first player to reach the target. It stays theirs
+// if you play on and someone passes them (that player "WINS" — leads — but
+// this one "WON"). Raising the target reopens the win; lowering it keeps it.
+// { name, target, cardId } — cardId is the winning card: take it back and the
+// win goes with it.
+let gameWinner = null;
+// Settle who won. True when a new winner was just crowned.
+function checkWinner(){
+  if(gameWinner){
+    const w = players.find(p => p.name === gameWinner.name);
+    if(w && (!gameWinner.cardId || w.timeline.some(e => e.id === gameWinner.cardId))) return false;
+    gameWinner = null;
+  }
+  const leader = players.slice().sort(comparePlayers)[0];
+  if(!leader || leader.timeline.length < WIN_LENGTH) return false;
+  const card = leader.lastAdded || latestCard(leader);
+  gameWinner = { name: leader.name, target: WIN_LENGTH, cardId: card ? card.id : null };
+  return true;
+}
+// 'WON' for the winner, 'WINS' for someone else leading past the target.
+function winBadge(player, isLeader){
+  if(gameWinner && gameWinner.name === player.name) return 'WON';
+  return isLeader && player.timeline.length >= WIN_LENGTH ? 'WINS' : null;
+}
+
+function announceWinner(){
+  gameEvent({
+    en: '🏆 ' + gameWinner.name + ' wins — first to ' + gameWinner.target + ' cards!',
+    da: '🏆 ' + gameWinner.name + ' vinder — først til ' + gameWinner.target + ' kort!'
+  });
+}
+
 // Hot streak: cards won on your own turn in a row (automatic turns only).
 // `player.streak` counts the settled ones; bought cards don't count.
 const STREAK_FROM = 3;
@@ -3050,13 +3088,14 @@ function giveCardTo(player, bought){
     entry.streakCoin = true;
     statsCoinsWon++;
     sessionCoinsWon++;
-    gameEvent('🔥 ' + player.name + ': ' + streak + ' in a row, +1 coin', entry.id);
+    gameEvent({ en: '🔥 ' + player.name + ': ' + streak + ' in a row, +1 coin', da: '🔥 ' + player.name + ': ' + streak + ' i træk, +1 mønt' }, entry.id);
   }
   player.timeline.push(entry);
   player.timeline.sort((a,b) => (a.year - b.year) || ((a.month||1) - (b.month||1)));
   player.lastAdded = entry;
   statsCardsPlaced++;
   sessionCardsPlaced++;
+  if(checkWinner()) announceWinner();
   renderScoreboard();
 }
 
@@ -3308,7 +3347,9 @@ function recapCardData(player){
     cards: player.timeline.length,
     coins: bonusCount(player),
     winLength: WIN_LENGTH,
-    won: rank === 1 && player.timeline.length >= WIN_LENGTH,
+    won: !!gameWinner && gameWinner.name === player.name,
+    // Passed the winner while playing on.
+    leads: rank === 1 && !!gameWinner && gameWinner.name !== player.name && player.timeline.length >= WIN_LENGTH,
     streak: player.streak || 0,
     bestStreak: Math.max(s.streaks[player.name] || 0, player.streak || 0),
     titles: player.timeline.filter(e => e.bonus).length,
@@ -3375,6 +3416,7 @@ function renderRecap(){
     ['Cards lost', sessionCardsLost],
     ['Accuracy', calcAccuracy()],
     ['Gold coins won', sessionCoinsWon],
+    ...(gameWinner ? [['Winner', gameWinner.name + ' · first to ' + gameWinner.target]] : []),
     ['Year range', yearRangeText],
     ['Average year', avgYearText]
   ];
@@ -3612,9 +3654,9 @@ function buildResultsPoster(){
     html += '</div>';
   }
 
-  const leader = sorted[0];
+  const leader = (gameWinner && sorted.find(p => p.name === gameWinner.name)) || sorted[0];
   if(leader.timeline.length){
-    const won = leader.timeline.length >= WIN_LENGTH;
+    const won = !!gameWinner && gameWinner.name === leader.name;
     html += '<div class="poster-winner"><div class="pw-h">' + escapeHtml(leader.name) + (won ? '\'s winning timeline' : '\'s timeline') + '</div><div class="pw-row">';
     leader.timeline.slice(0, 10).forEach(e => {
       html += '<div class="pw-card' + (e.bonus ? ' coin' : '') + '"><div class="pw-y">' + escapeHtml(String(e.year)) + '</div><div class="pw-t">' + escapeHtml(e.title || '') + '</div></div>';
@@ -3717,6 +3759,9 @@ clipLengthInput.addEventListener('input', () => {
 winLengthInput.addEventListener('input', () => {
   WIN_LENGTH = parseInt(winLengthInput.value, 10);
   winLengthValue.textContent = WIN_LENGTH;
+  // A higher target puts the win back up for grabs; a lower one keeps it.
+  if(gameWinner && WIN_LENGTH > gameWinner.target) gameWinner = null;
+  if(checkWinner()) announceWinner();
   renderScoreboard();
   saveSession();
 });
@@ -4000,6 +4045,7 @@ function resetDeckProgress(){
   lastBetResults = null;
   turnName = null;
   lastEvent = null;
+  gameWinner = null;
   renderChaos();
   clearTimeout(snippetTimer);
   clearInterval(countdownInterval);
@@ -4026,6 +4072,7 @@ resetScoresBtn.addEventListener('click', async () => {
   const hasProgress = players.some(p => p.timeline.length > 0);
   if(hasProgress && !(await showConfirm('Reset every player\'s timeline and start a fresh deck? All songs become drawable again — this can\'t be undone.'))) return;
   players.forEach(p => { p.timeline = []; p.lastAdded = null; p.coinAdj = 0; p.streak = 0; });
+  gameWinner = null;
   resetDeckProgress();
   renderScoreboard();
 });
@@ -4494,6 +4541,7 @@ drawBtn.addEventListener('click', () => {
   renderScoreboard();
   renderBets();
   renderLockin();
+  renderSpot();
   // A song waiting for Start — silence the last one meanwhile.
   if(awaitingStart) stopPlayback();
   else playSnippet(true);
@@ -4549,6 +4597,7 @@ revealBtn.addEventListener('click', () => {
   revealed = true;
   settleVote();
   settleLockin();
+  renderSpot();
   currentCard.revealedOnce = true;
   setDeckLabel(currentCard);
   nowTitle.textContent = currentCard.title;
@@ -4558,6 +4607,7 @@ revealBtn.addEventListener('click', () => {
     currentCard.loggedToHistory = true;
     statsRevealed++;
     sessionHistory.push({
+      id: currentCard.id,
       year: currentCard.year,
       month: currentCard.month || null,
       title: currentCard.title,
@@ -4690,6 +4740,8 @@ function buildStateBlob(){
       round: chaos.round,
       title: chaos.card.title,
       desc: chaos.card.desc,
+      titleI18n: { en: chaos.card.title, da: chaos.card.titleDa || chaos.card.title },
+      descI18n: { en: chaos.card.desc, da: chaos.card.descDa || chaos.card.desc },
       pending: !!chaos.pending,
       song: chaos.len - chaos.left,
       of: chaos.len
@@ -4714,6 +4766,16 @@ function buildStateBlob(){
     blind: chaosActive('blind'),
     event: eventText(),
     recaps: players.map(recapCardData),
+    winner: gameWinner ? { name: gameWinner.name, target: gameWinner.target } : null,
+    spot: spotOn() ? {
+      songId: song.id,
+      turn: song.turn,
+      slot: song.spot != null ? song.spot : null,
+      right: revealed && song.spot != null && !isNaN(parseInt(currentCard.year, 10)) ? spotRight(song.spot) : null
+    } : null,
+    // Tonight's revealed songs, newest first, so phones can open them in Spotify.
+    songs: sessionHistory.filter(e => e.sessionId === currentSessionId).slice(-60).reverse()
+      .map(e => ({ id: e.id || null, title: e.title || '', artist: e.artist || '', year: e.year || '' })),
     shop: shopOpen() ? {
       phase: shopPhase(),
       turn: turnActive() ? turnName : null,
@@ -4925,8 +4987,10 @@ let lastEvent = null; // { text, at: draw count }
 let drawCount = 0;
 // `cardId`: the event is about that card (a streak coin) — taking the card
 // back takes the event with it.
+// `message`: a string, or { en, da } — the DJ screen shows English, each
+// phone picks its own language.
 function gameEvent(message, cardId){
-  lobbyToast(message);
+  lobbyToast(enText(message));
   lastEvent = { text: message, at: drawCount, cardId: cardId || null };
   renderEvent();
 }
@@ -4942,9 +5006,16 @@ function forgetCardEvent(cardId){
 function eventText(){
   return lastEvent && drawCount - lastEvent.at <= 1 ? lastEvent.text : null;
 }
+function enText(text){
+  return text && typeof text === 'object' ? text.en : text;
+}
+// Danish possessive: "Idas", "Lars’".
+function daGen(name){
+  return /[sxz]$/i.test(name) ? name + '’' : name + 's';
+}
 
 function renderEvent(){
-  const text = eventText();
+  const text = enText(eventText());
   document.getElementById('eventBox').hidden = !text;
   document.getElementById('eventLine').textContent = text || '';
   broadcastState();
@@ -5070,6 +5141,7 @@ function hostLobby(){
 
   lobbySocket.on('player:bet', placeBet);
   lobbySocket.on('player:lockin', placeLockin);
+  lobbySocket.on('player:spot', placeSpot);
   lobbySocket.on('player:buy', phoneBuy);
 
   lobbySocket.on('player:vote', (payload) => {
@@ -5191,22 +5263,22 @@ newLobbyBtn.addEventListener('click', async () => {
    playlist are applied here, and undone when the round ends. */
 
 const CHAOS_CARDS = [
-  { id: 'double', title: 'Double coins', desc: 'Name the title or one of the artists and win 2 gold coins instead of 1.' },
-  { id: 'month', title: 'Guess the month', desc: 'Expert mode this round: place it by year and month.' },
+  { id: 'double', title: 'Double coins', desc: 'Name the title or one of the artists and win 2 gold coins instead of 1.', da: { title: 'Dobbelte mønter', desc: 'Nævn titlen eller en af kunstnerne og vind 2 guldmønter i stedet for 1.' } },
+  { id: 'month', title: 'Guess the month', desc: 'Expert mode this round: place it by year and month.', da: { title: 'Gæt måneden', desc: 'Ekspert-tilstand denne runde: placer den efter år og måned.' } },
   // Stands in for 'month' when expert mode is already on: the easy round.
-  { id: 'nomonth', title: 'Year only', desc: 'Expert mode is off this round: just the year counts, not the month.' },
-  { id: 'within', title: 'Within {x} years', xs: [3, 5, 10], desc: 'Forget the timeline: say the year out loud. Within {x} years of the real one wins the card.' },
-  { id: 'swap', title: 'Swap', desc: "Win the card and you may swap it for any card in an opponent's timeline." },
-  { id: 'speed', title: 'Speed round', xs: [5, 10], desc: 'Every clip this round is only {x} seconds.' },
-  { id: 'playlist', title: 'Playlist round', desc: 'Every song this round is from “{playlist}”.' },
-  { id: 'don', title: 'Double or nothing', desc: 'Get it right: the card plus a gold coin. Get it wrong: lose your most recently won card.' },
-  { id: 'shop', title: 'Coin shop', desc: 'The shop is open: spend gold coins on a new song, a hint, passing it on, a speed trap, buying the card or a steal.' },
-  { id: 'catchup', title: 'Catch-up', desc: "Get it wrong and the card goes to whoever has the fewest cards (then fewest coins) — unless it's their own turn." },
-  { id: 'sing', title: 'Sing-along', desc: "Sing along to it and win the card plus a gold coin. Can't? Play it as normal." },
-  { id: 'betster', title: 'Betster', desc: 'Before each song starts, bet gold coins on your phone: right ×2, right + coin ×3, wrong ×2. Lose and you lose your bet.' },
-  { id: 'lockin', title: 'Lock-in', desc: 'Before the reveal, everyone locks in a year on their phone. Closest wins a gold coin.' },
-  { id: 'robin', title: 'Robin Hood', desc: 'Every song nobody wins this round, whoever has the most gold coins gives one to whoever has the fewest.' },
-  { id: 'blind', title: 'Blindfold', desc: 'Every timeline loses its years this round. Place it from memory.' }
+  { id: 'nomonth', title: 'Year only', desc: 'Expert mode is off this round: just the year counts, not the month.', da: { title: 'Kun år', desc: 'Ekspert-tilstand er slået fra denne runde: kun året tæller, ikke måneden.' } },
+  { id: 'within', title: 'Within {x} years', xs: [3, 5, 10], desc: 'Forget the timeline: say the year out loud. Within {x} years of the real one wins the card.', da: { title: 'Inden for {x} år', desc: 'Glem tidslinjen: sig året højt. Højst {x} år fra det rigtige vinder kortet.' } },
+  { id: 'swap', title: 'Swap', desc: "Win the card and you may swap it for any card in an opponent's timeline.", da: { title: 'Byt', desc: 'Vind kortet, og du må bytte det med et hvilket som helst kort i en modstanders tidslinje.' } },
+  { id: 'speed', title: 'Speed round', xs: [5, 10], desc: 'Every clip this round is only {x} seconds.', da: { title: 'Speedrunde', desc: 'Hvert klip denne runde er kun {x} sekunder.' } },
+  { id: 'playlist', title: 'Playlist round', desc: 'Every song this round is from “{playlist}”.', da: { title: 'Playliste-runde', desc: 'Alle sange denne runde er fra “{playlist}”.' } },
+  { id: 'don', title: 'Double or nothing', desc: 'Get it right: the card plus a gold coin. Get it wrong: lose your most recently won card.', da: { title: 'Dobbelt eller intet', desc: 'Gæt rigtigt: kortet plus en guldmønt. Gæt forkert: mist dit senest vundne kort.' } },
+  { id: 'shop', title: 'Coin shop', desc: 'The shop is open: spend gold coins on a new song, a hint, passing it on, a speed trap, buying the card or a steal.', da: { title: 'Møntbutik', desc: 'Butikken er åben: brug guldmønter på en ny sang, et hint, at give videre, en fartfælde, at købe kortet eller at stjæle.' } },
+  { id: 'catchup', title: 'Catch-up', desc: "Get it wrong and the card goes to whoever has the fewest cards (then fewest coins) — unless it's their own turn.", da: { title: 'Indhentning', desc: 'Gæt forkert, og kortet går til den med færrest kort (derefter færrest mønter) — medmindre det er deres egen tur.' } },
+  { id: 'sing', title: 'Sing-along', desc: "Sing along to it and win the card plus a gold coin. Can't? Play it as normal.", da: { title: 'Syng med', desc: 'Syng med på den og vind kortet plus en guldmønt. Kan du ikke? Spil den som normalt.' } },
+  { id: 'betster', title: 'Betster', desc: 'Before each song starts, bet gold coins on your phone: right ×2, right + coin ×3, wrong ×2. Lose and you lose your bet.', da: { title: 'Betster', desc: 'Før hver sang starter, satser I guldmønter på telefonen: rigtigt ×2, rigtigt + mønt ×3, forkert ×2. Taber du, mister du din indsats.' } },
+  { id: 'lockin', title: 'Lock-in', desc: 'Before the reveal, everyone locks in a year on their phone. Closest wins a gold coin.', da: { title: 'Lås fast', desc: 'Før afsløringen låser alle et år på telefonen. Tættest på vinder en guldmønt.' } },
+  { id: 'robin', title: 'Robin Hood', desc: 'Every song nobody wins this round, whoever has the most gold coins gives one to whoever has the fewest.', da: { title: 'Robin Hood', desc: 'Hver sang, som ingen vinder denne runde, giver den med flest guldmønter én til den med færrest.' } },
+  { id: 'blind', title: 'Blindfold', desc: 'Every timeline loses its years this round. Place it from memory.', da: { title: 'Bind for øjnene', desc: 'Alle tidslinjer mister deres årstal denne runde. Placer den efter hukommelsen.' } }
 ];
 
 const chaosChip = document.getElementById('chaosChip');
@@ -5280,7 +5352,7 @@ function pickChaosCard(len, recent, usedPlaylists, bag){
   const def = eligible[Math.floor(Math.random() * eligible.length)];
   bag = bag.filter(id => id !== chaosSlot(def.id));
   recent = recent.concat(chaosSlot(def.id)).slice(-CHAOS_SPACING);
-  const card = { id: def.id, title: def.title, desc: def.desc };
+  const card = { id: def.id, title: def.title, desc: def.desc, titleDa: def.da.title, descDa: def.da.desc };
   if(def.xs){
     const xs = def.id === 'speed' ? def.xs.filter(x => x < CLIP_SECONDS) : def.xs;
     card.x = xs[Math.floor(Math.random() * xs.length)];
@@ -5303,6 +5375,8 @@ function pickChaosCard(len, recent, usedPlaylists, bag){
   const fill = str => str.replace('{x}', card.x).replace('{playlist}', card.playlistName);
   card.title = fill(card.title);
   card.desc = fill(card.desc);
+  card.titleDa = fill(card.titleDa);
+  card.descDa = fill(card.descDa);
   return { card, usedPlaylists, bag, recent };
 }
 
@@ -5427,12 +5501,66 @@ function setTurn(name){
   turnName = name;
   if(song && !song.settled && !song.event){
     song.turn = name;
+    // A pick was about the old turn player's timeline.
+    song.spot = null;
     // Nobody bets on their own turn.
     const p = players.find(p => p.name === name);
     if(song.bets && p && p.deviceId) delete song.bets.placed[p.deviceId];
   }
   renderScoreboard();
   renderBets();
+  renderSpot();
+}
+
+/* ── point to your spot ──────────────────────────────────────────────────
+   With automatic turns, the turn player taps the gap in their own timeline
+   where they think the song goes. The DJ sees the pick, and after the reveal
+   whether it was right — the DJ still gives the card as usual. Slot i is the
+   gap before their i-th card (0 = before the oldest, n = after the newest). */
+
+// The turn player's cards as they were before this song.
+function spotTimeline(){
+  const p = song && players.find(p => p.name === song.turn);
+  return p ? p.timeline.filter(e => e.locked || e.id !== song.id) : [];
+}
+function spotValue(e){
+  return expertMode ? e.year * 12 + (e.month || 1) - 1 : e.year;
+}
+function spotRight(slot){
+  const vals = spotTimeline().map(spotValue);
+  const v = spotValue({ year: parseInt(currentCard.year, 10), month: currentCard.month });
+  return (slot === 0 || vals[slot - 1] <= v) && (slot === vals.length || v <= vals[slot]);
+}
+// "1983 – 2000", "before 1953", "after 2024" — titles in a blindfold round.
+function spotLabel(tl, slot){
+  const name = e => chaosActive('blind') ? '“' + (e.title || '?') + '”' : String(e.year);
+  if(!tl.length) return 'anywhere';
+  if(slot === 0) return 'before ' + name(tl[0]);
+  if(slot === tl.length) return 'after ' + name(tl[tl.length - 1]);
+  return name(tl[slot - 1]) + ' – ' + name(tl[slot]);
+}
+function spotOn(){
+  return autoTurns && !!song && !song.event && !!currentCard && song.id === currentCard.id && !song.skipped;
+}
+function placeSpot(payload){
+  if(!spotOn() || revealed || !payload || payload.songId !== song.id) return;
+  const p = players.find(p => p.deviceId && p.deviceId === payload.deviceId);
+  if(!p || p.name !== song.turn) return;
+  const slot = Math.floor(Number(payload.slot));
+  if(!(slot >= 0 && slot <= spotTimeline().length)) return;
+  song.spot = slot;
+  renderSpot();
+}
+function renderSpot(){
+  const box = document.getElementById('spotBox');
+  const has = spotOn() && song.spot != null;
+  box.hidden = !has;
+  if(has){
+    let line = song.turn + ' points to ' + spotLabel(spotTimeline(), song.spot);
+    if(revealed && !isNaN(parseInt(currentCard.year, 10))) line += spotRight(song.spot) ? ' · ✓ right spot' : ' · ✗ wrong spot';
+    document.getElementById('spotLine').textContent = line;
+  }
+  broadcastState();
 }
 
 /* ── settling a song when the next one is drawn ─────────────────────────── */
@@ -5482,7 +5610,7 @@ function robinMiss(){
   sessionChaos.robin++;
   tally(sessionChaos.robinGave, rich.name);
   tally(sessionChaos.robinGot, poor.name);
-  return 'Robin Hood: ' + rich.name + ' gives ' + poor.name + ' 1 coin';
+  return { en: 'Robin Hood: ' + rich.name + ' gives ' + poor.name + ' 1 coin', da: 'Robin Hood: ' + rich.name + ' giver ' + poor.name + ' 1 mønt' };
 }
 
 function robinUndo(){
@@ -5520,7 +5648,7 @@ function settleSong(){
     if(passer){
       turnPlayer.coinAdj = (turnPlayer.coinAdj || 0) - 1;
       passer.coinAdj = (passer.coinAdj || 0) + 1;
-      notes.push(turnPlayer.name + ' pays ' + passer.name + ' 1 coin');
+      notes.push({ en: turnPlayer.name + ' pays ' + passer.name + ' 1 coin', da: turnPlayer.name + ' betaler ' + passer.name + ' 1 mønt' });
     }
   }
 
@@ -5545,7 +5673,8 @@ function settleSong(){
     if(robin) notes.push(robin);
   }
 
-  if(notes.length) gameEvent(notes.join(' · '));
+  const both = n => typeof n === 'object' ? n : { en: n, da: n };
+  if(notes.length) gameEvent({ en: notes.map(n => both(n).en).join(' · '), da: notes.map(n => both(n).da).join(' · ') });
   renderScoreboard();
 }
 
@@ -5662,6 +5791,8 @@ function shopBuy(buyer, item, opts){
     showTrack(pick.p, pick.t);
     song.id = pick.t.id;
     song.hint = null;
+    song.spot = null;
+    renderSpot();
     if(vote) startVote(pick.t, vote.stakes);
     if(song.lockin){
       song.lockin = newLockin(pick.t);
@@ -5669,14 +5800,16 @@ function shopBuy(buyer, item, opts){
     }
     renderTracklist();
     if(!awaitingStart) playSnippet(true);
-    msg = item === 'force' ? buyer.name + ' forced a new song on ' + turnName + '!' : buyer.name + ' bought a new song';
+    msg = item === 'force'
+      ? { en: buyer.name + ' forced a new song on ' + turnName + '!', da: buyer.name + ' tvang en ny sang på ' + turnName + '!' }
+      : { en: buyer.name + ' bought a new song', da: buyer.name + ' købte en ny sang' };
   }else if(item === 'hint'){
     song.hint = Math.floor(parseInt(currentCard.year, 10) / 10) * 10 + 's';
-    msg = buyer.name + ' bought a hint: ' + song.hint;
+    msg = { en: buyer.name + ' bought a hint: ' + song.hint, da: buyer.name + ' købte et hint: ' + song.hint.replace(/s$/, '’erne') };
   }else if(item === 'pass'){
     song.passedFrom = buyer.name;
     setTurn(other.name);
-    msg = buyer.name + ' passed the song to ' + other.name + '!';
+    msg = { en: buyer.name + ' passed the song to ' + other.name + '!', da: buyer.name + ' gav sangen videre til ' + other.name + '!' };
   }else if(item === 'trap'){
     song.cut = (song.cut || 0) + SPEED_TRAP_CUT;
     song.traps = (song.traps || 0) + 1;
@@ -5690,10 +5823,10 @@ function shopBuy(buyer, item, opts){
         else runClip(left);
       }
     }
-    msg = buyer.name + ' cut ' + SPEED_TRAP_CUT + " seconds off " + turnName + "'s clip!";
+    msg = { en: buyer.name + ' cut ' + SPEED_TRAP_CUT + " seconds off " + turnName + "'s clip!", da: buyer.name + ' skar ' + SPEED_TRAP_CUT + ' sekunder af ' + daGen(turnName) + ' klip!' };
   }else if(item === 'buy'){
     giveCardTo(buyer, true);
-    msg = buyer.name + ' bought the card';
+    msg = { en: buyer.name + ' bought the card', da: buyer.name + ' købte kortet' };
   }else if(item === 'steal'){
     const entry = other.timeline.find(e => e.id === opts.cardId);
     other.timeline.splice(other.timeline.indexOf(entry), 1);
@@ -5705,7 +5838,7 @@ function shopBuy(buyer, item, opts){
     song.skipped = buyer.name + ' stole ' + entry.year + (entry.title ? ' · ' + entry.title : '') + ' from ' + other.name;
     awaitingStart = false;
     stopPlayback();
-    msg = song.skipped;
+    msg = { en: song.skipped, da: buyer.name + ' stjal ' + entry.year + (entry.title ? ' · ' + entry.title : '') + ' fra ' + other.name };
   }
   buyer.coinAdj = (buyer.coinAdj || 0) - price;
   tally(sessionChaos.shop, item);
@@ -6299,7 +6432,7 @@ function renderStandings(){
   const STANDINGS_MAX = 10;
   sorted.slice(0, STANDINGS_MAX).forEach((p, i) => {
     const isLead = leader.timeline.length > 0 && comparePlayers(p, leader) === 0;
-    const wins = isLead && p.timeline.length >= WIN_LENGTH;
+    const wins = winBadge(p, isLead);
     const pct = Math.min(100, Math.round(p.timeline.length / Math.max(1, WIN_LENGTH) * 100));
     const row = document.createElement('div');
     row.className = 'st' + (isLead ? ' lead' : '') + (turnActive() ? ' pickable' : '');
@@ -6309,7 +6442,7 @@ function renderStandings(){
     }
     row.innerHTML =
       '<span class="st-rk">' + String(i + 1).padStart(2, '0') + '</span>' +
-      '<span class="st-nm"><i class="st-on' + (p.online ? '' : ' off') + '"></i><span>' + escapeHtml(p.name) + '</span>' + (wins ? '<b class="st-win">WINS</b>' : '') + (turnActive() && p.name === turnName ? '<b class="st-turn">TURN</b>' : '') + (p.streak >= 2 ? '<b class="st-fire" title="' + p.streak + ' in a row on their own turns">🔥' + p.streak + '</b>' : '') + '</span>' +
+      '<span class="st-nm"><i class="st-on' + (p.online ? '' : ' off') + '"></i><span>' + escapeHtml(p.name) + '</span>' + (wins ? '<b class="st-win">' + wins + '</b>' : '') + (turnActive() && p.name === turnName ? '<b class="st-turn">TURN</b>' : '') + (p.streak >= 2 ? '<b class="st-fire" title="' + p.streak + ' in a row on their own turns">🔥' + p.streak + '</b>' : '') + '</span>' +
       '<span class="st-sc"><span>' + CARD_ICON_SVG + p.timeline.length + '</span><span>' + COIN_SVG + bonusCount(p) + '</span></span>' +
       '<span class="st-bar"><i style="width:' + pct + '%"></i></span>';
     standingsEl.appendChild(row);
@@ -6434,7 +6567,7 @@ function renderGive(){
       lose.addEventListener('click', () => {
         song.donLost = loseLatestCard(turnPlayer);
         sessionChaos.donLost++;
-        gameEvent(turnPlayer.name + ' lost ' + latest.year + ' — double or nothing');
+        gameEvent({ en: turnPlayer.name + ' lost ' + latest.year + ' — double or nothing', da: turnPlayer.name + ' mistede ' + latest.year + ' — dobbelt eller intet' });
         renderScoreboard();
       });
       giveChips.appendChild(lose);

@@ -226,6 +226,10 @@
     font-family:'IBM Plex Mono',monospace;font-size:.55rem;color:#241A0B;background:var(--gold);
     border-radius:20px;padding:.1rem .45rem;flex-shrink:0;
   }
+  .lang-row{display:flex;justify-content:center;align-items:center;gap:.5rem;margin:0 0 1.6rem;font-size:.75rem;color:var(--muted);}
+  .lang-row button{background:none;border:none;padding:.2rem;width:auto;color:var(--muted);font-size:.75rem;}
+  .lang-row button.on{color:var(--gold);text-decoration:underline;text-underline-offset:3px;}
+  .lang-row button:hover{background:none;color:var(--gold);}
   .me-links{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;}
   .switch-link.gold{color:var(--gold);text-decoration-color:var(--gold-dim);}
   .recap-panel{padding:1rem 1rem 1.2rem;max-width:420px;}
@@ -256,6 +260,16 @@
   .bet-step{display:flex;align-items:center;justify-content:center;gap:.8rem;margin:0 0 .8rem;}
   .bet-step button{width:44px;height:44px;padding:0;font-size:1.3rem;}
   .bet-step b{font-family:'IBM Plex Mono',monospace;font-size:1.6rem;color:var(--gold);min-width:2.5ch;text-align:center;}
+  .spot-grid{display:grid;grid-template-columns:1fr 1fr;gap:.45rem;margin:.2rem 0 .3rem;}
+  .spot-grid button{padding:.7rem .4rem;font-size:.85rem;font-family:'IBM Plex Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .spot-grid button.on{background:var(--gold);border-color:var(--gold);color:#241A0B;font-weight:600;}
+  .spot-grid button:only-child,.spot-grid button:last-child:nth-child(odd){grid-column:1 / -1;}
+  .ghost-row{display:flex;align-items:center;gap:1rem;margin:.35rem 0 .35rem 1.2rem;padding:.55rem .8rem;border:1px dashed var(--gold-dim);border-radius:10px;color:var(--muted);animation:rise .4s both;}
+  .ghost-row .y{font-family:'IBM Plex Mono',monospace;color:var(--gold);font-size:.95rem;}
+  .ghost-row b{display:block;font-family:'IBM Plex Mono',monospace;font-weight:400;font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);}
+  .ghost-row small{display:block;font-size:.8rem;color:var(--paper);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:14rem;}
+  .vinyl-card.ghost{border:1px dashed var(--gold-dim);background:transparent;opacity:.85;}
+  .vinyl-card.ghost .fits{font-family:'IBM Plex Mono',monospace;font-size:.55rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);}
   .lock-year{font-family:'IBM Plex Mono',monospace;font-size:2.6rem;font-weight:600;color:var(--gold);line-height:1;margin:.1rem 0 .7rem;}
   .lock-step input{flex:1;min-width:0;accent-color:var(--gold);}
   .lock-card .primary{width:100%;padding:.95rem .5rem;font-size:1.05rem;font-weight:600;}
@@ -279,6 +293,64 @@
   .banner.chaos.open b::after{content:' ▴';}
   .banner.chaos .d{display:none;}
   .banner.chaos.open .d{display:block;}
+  /* How to play: five swipeable slides, each with a little looping scene. */
+  .howto-panel{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:1.2rem 1.2rem 1.3rem;max-width:380px;width:100%;overflow:hidden;}
+  .howto-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;margin:0 -1.2rem;}
+  .howto-track::-webkit-scrollbar{display:none;}
+  .ht-slide{flex:0 0 100%;scroll-snap-align:center;padding:0 1.4rem;text-align:center;}
+  .ht-slide h3{font-family:'Fraunces',serif;font-size:1.7rem;margin:.9rem 0 .45rem;}
+  .ht-slide p{color:var(--muted);font-size:.9rem;line-height:1.5;margin:0;min-height:4.5em;}
+  .ht-stage{position:relative;height:170px;display:grid;place-items:center;border-radius:14px;background:radial-gradient(circle at 50% 60%, rgba(212,162,78,.16), transparent 65%);}
+  .howto-dots{display:flex;justify-content:center;gap:.4rem;margin:1rem 0;}
+  .howto-dots i{width:7px;height:7px;border-radius:50%;background:var(--line);transition:all .25s;}
+  .howto-dots i.on{background:var(--gold);width:20px;border-radius:4px;}
+  /* 1: the record spins, notes drift up */
+  .ht-rec{width:130px;height:130px;border-radius:50%;display:grid;place-items:center;background:repeating-radial-gradient(circle, #120c15 0 2px, #1f1624 2px 3px);box-shadow:0 14px 34px rgba(0,0,0,.55);animation:spin 2.4s linear infinite;}
+  .ht-rec span{width:46px;height:46px;border-radius:50%;background:var(--gold);color:#241A0B;display:grid;place-items:center;font-family:'Fraunces',serif;font-weight:700;font-size:1.3rem;animation:spin 2.4s linear infinite reverse;}
+  .ht-note{position:absolute;font-style:normal;color:var(--gold);font-size:1.4rem;opacity:0;animation:note 2.6s ease-out infinite;}
+  .ht-note.n1{left:22%;bottom:30%;}
+  .ht-note.n2{right:22%;bottom:40%;animation-delay:.9s;font-size:1.1rem;}
+  .ht-note.n3{left:32%;bottom:55%;animation-delay:1.7s;font-size:1rem;}
+  @keyframes note{0%{transform:translateY(0) rotate(-10deg);opacity:0;}20%{opacity:1;}100%{transform:translateY(-70px) rotate(12deg);opacity:0;}}
+  /* 2: a card drops into the gap and turns out to be 1984 */
+  .ht-row{display:flex;align-items:flex-end;gap:.4rem;}
+  .ht-card{width:52px;height:70px;border-radius:9px;background:var(--surface-2);border:1px solid var(--line);display:grid;place-items:center;font-family:'IBM Plex Mono',monospace;font-size:.8rem;color:var(--gold);}
+  .ht-card.drop{position:relative;overflow:hidden;border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,162,78,.2);animation:drop 3.2s cubic-bezier(.3,1.3,.5,1) infinite;}
+  .ht-card.drop b{position:absolute;inset:0;display:grid;place-items:center;font-weight:500;}
+  .ht-card.drop b:first-child{font-family:'Fraunces',serif;font-size:1.3rem;color:var(--paper);animation:qOut 3.2s infinite;}
+  .ht-card.drop b:last-child{opacity:0;animation:yIn 3.2s infinite;}
+  @keyframes drop{0%{width:0;margin:0 -.2rem;transform:translateY(-80px);opacity:0;}25%{width:52px;margin:0;transform:translateY(-80px);opacity:1;}50%,90%{width:52px;transform:none;opacity:1;}100%{width:52px;transform:none;opacity:0;}}
+  @keyframes qOut{0%,60%{opacity:1;}70%,100%{opacity:0;}}
+  @keyframes yIn{0%,60%{opacity:0;}70%,100%{opacity:1;}}
+  /* 3: a flipping gold coin with sparkles */
+  .ht-coin{width:88px;height:88px;border-radius:50%;background:radial-gradient(circle at 35% 30%, #F0C877, var(--gold) 55%, #8C6F3B);box-shadow:inset 0 0 0 6px rgba(36,26,11,.18),0 12px 30px rgba(212,162,78,.3);animation:flip 2.4s ease-in-out infinite;}
+  @keyframes flip{0%,100%{transform:rotateY(0) translateY(0);}50%{transform:rotateY(180deg) translateY(-14px);}}
+  .ht-spark{position:absolute;font-style:normal;color:#F0C877;opacity:0;animation:spark 2.4s infinite;}
+  .ht-spark.s1{left:30%;top:28%;}
+  .ht-spark.s2{right:28%;top:40%;animation-delay:.8s;}
+  .ht-spark.s3{left:38%;bottom:22%;animation-delay:1.6s;}
+  @keyframes spark{0%,100%{opacity:0;transform:scale(.4);}30%{opacity:1;transform:scale(1.2);}60%{opacity:0;transform:scale(.6);}}
+  /* 4: the pips fill up, then the trophy */
+  .ht-pips{display:flex;flex-wrap:wrap;justify-content:center;gap:.35rem;max-width:230px;}
+  .ht-pips i{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--gold-dim);transition:background .2s,border-color .2s;}
+  .ht-pips i.f{background:var(--gold);border-color:var(--gold);}
+  .ht-trophy{position:absolute;font-size:2.6rem;bottom:14px;transform:scale(0);opacity:0;transition:transform .45s cubic-bezier(.3,1.6,.5,1),opacity .2s;}
+  .ht-trophy.on{transform:scale(1);opacity:1;}
+  /* 5: a phone with things popping up on it */
+  .ht-phone{width:104px;height:150px;border-radius:18px;border:2px solid var(--gold-dim);background:#140e17;display:flex;flex-direction:column;justify-content:center;gap:.45rem;padding:.6rem;}
+  .ht-phone i{font-style:normal;height:28px;border-radius:7px;background:rgba(212,162,78,.1);border:1px solid var(--gold-dim);display:flex;align-items:center;justify-content:center;gap:.25rem;font-family:'IBM Plex Mono',monospace;font-size:.55rem;color:var(--gold);opacity:0;animation:pop 3.6s infinite;}
+  .ht-phone i b{font-weight:500;}
+  .ht-phone .b1{background:var(--gold);color:#241A0B;}
+  .ht-phone .b2{animation-delay:.5s;}
+  .ht-phone .b3{animation-delay:1s;}
+  .ht-phone .c{width:10px;height:10px;border-radius:50%;background:var(--gold);}
+  @keyframes pop{0%{opacity:0;transform:translateY(8px) scale(.9);}12%,85%{opacity:1;transform:none;}100%{opacity:0;}}
+  .win-overlay canvas{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;}
+  .win-panel{position:relative;border-color:var(--gold);box-shadow:0 0 0 1px rgba(212,162,78,.3),0 30px 80px rgba(212,162,78,.18);}
+  .win-trophy{font-size:3.6rem;line-height:1;animation:trophy .9s cubic-bezier(.3,1.6,.5,1) both;}
+  .win-panel .k{font-family:'IBM Plex Mono',monospace;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-top:.8rem;}
+  .win-panel h3{font-size:2.3rem;margin:.35rem 0 .5rem;}
+  @keyframes trophy{0%{transform:scale(.2) rotate(-30deg);opacity:0;}100%{transform:none;opacity:1;}}
   .chaos-pop .k{font-family:'IBM Plex Mono',monospace;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);}
   .chaos-pop h3{margin:.5rem 0 .6rem;font-size:1.8rem;}
   .banner.chaos .k{font-family:'IBM Plex Mono',monospace;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);}
@@ -385,6 +457,19 @@
   .now-state{margin-bottom:.35rem;}
   .now-year{font-size:1.9rem;margin-top:.3rem;line-height:1;}
   .now-year,.now-title{animation:rise .4s both cubic-bezier(.3,1.3,.5,1);}
+  .sp-link{display:inline-block;margin-top:.55rem;font-size:.78rem;font-weight:600;color:#1ED760;text-decoration:none;border:1px solid rgba(30,215,96,.4);border-radius:999px;padding:.25rem .7rem;}
+  .songs-card summary{list-style:none;cursor:pointer;}
+  .songs-card summary::-webkit-details-marker{display:none;}
+  .songs-card summary h2{margin:0;}
+  .songs-card summary h2::after{content:' ▾';font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--gold);}
+  .songs-card[open] summary h2::after{content:' ▴';}
+  .songs-card[open] summary{margin-bottom:.6rem;}
+  .song-row{display:flex;align-items:center;gap:.8rem;padding:.55rem 0;border-top:1px solid var(--line);color:var(--paper);text-decoration:none;}
+  .song-row .y{font-family:'IBM Plex Mono',monospace;font-size:.8rem;color:var(--gold);min-width:2.8rem;}
+  .song-row .t{flex:1;min-width:0;display:flex;flex-direction:column;}
+  .song-row .t b{font-family:'Fraunces',serif;font-weight:600;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .song-row .t small{font-size:.75rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .song-row .go{color:#1ED760;font-size:.85rem;}
   @keyframes rise{from{opacity:0;transform:translateY(6px);}}
 
   .spine{position:relative;padding-left:1.2rem;}
@@ -511,8 +596,8 @@
   <!-- ── join: enter code ────────────────────────────────────────────── -->
   <div class="view active view-center" id="viewCode">
     <div class="join-hero" aria-hidden="true"><div class="rec"></div></div>
-    <h1 class="home-title" data-home="direct">Join the party</h1>
-    <p class="tagline">Type the code on the DJ's screen.</p>
+    <h1 class="home-title" data-home="direct" data-i18n="joinTitle">Join the party</h1>
+    <p class="tagline" data-i18n="joinTag">Type the code on the DJ's screen.</p>
     <div class="card">
       <div class="otp" id="otp">
         <input type="text" id="codeInput" maxlength="6" placeholder="——————" aria-label="Lobby code"
@@ -520,35 +605,35 @@
         <div class="otp-boxes" id="otpBoxes" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
       </div>
       <div class="err" id="codeError" style="text-align:center;"></div>
-      <button class="primary block" id="codeNextBtn" style="margin-top:.4rem;">Continue</button>
-      <div class="otp-hint">No code? Scan the QR on the big screen.</div>
+      <button class="primary block" id="codeNextBtn" style="margin-top:.4rem;" data-i18n="continue">Continue</button>
+      <div class="otp-hint" data-i18n="noCode">No code? Scan the QR on the big screen.</div>
     </div>
   </div>
 
   <!-- ── join: pick who you are ──────────────────────────────────────── -->
   <div class="view" id="viewName">
     <h1 class="home-title" data-home="confirm">Vinyl'le</h1>
-    <p class="tagline" id="namePrompt">Who are you? Tap your name, or add yourself.</p>
+    <p class="tagline" id="namePrompt" data-i18n="whoAreYou">Who are you? Tap your name, or add yourself.</p>
     <div class="card">
       <div class="name-list" id="nameList"></div>
-      <div class="divider" id="nameDivider">or</div>
-      <h2>Add yourself</h2>
-      <input type="text" id="nameInput" maxlength="20" placeholder="your name"
+      <div class="divider" id="nameDivider" data-i18n="or">or</div>
+      <h2 data-i18n="addYourself">Add yourself</h2>
+      <input type="text" id="nameInput" maxlength="20" placeholder="your name" data-i18n-ph="yourNamePh"
              autocomplete="off" autocapitalize="words" spellcheck="false">
       <div class="err" id="nameError"></div>
-      <button class="primary block" id="joinBtn" style="margin-top:.4rem;">Join game</button>
-      <button class="block" id="backToCodeBtn" style="margin-top:.6rem;">Use a different code</button>
+      <button class="primary block" id="joinBtn" style="margin-top:.4rem;" data-i18n="joinGame">Join game</button>
+      <button class="block" id="backToCodeBtn" style="margin-top:.6rem;" data-i18n="differentCode">Use a different code</button>
     </div>
   </div>
 
   <!-- ── waiting for the DJ to accept ────────────────────────────────── -->
   <div class="view" id="viewWaiting">
     <h1 class="home-title" data-home="confirm">Vinyl'le</h1>
-    <p class="tagline">Knocking on the door…</p>
+    <p class="tagline" data-i18n="knocking">Knocking on the door…</p>
     <div class="waiting-rec" aria-hidden="true"><div class="rec"></div></div>
     <div class="card">
       <p style="margin:0;color:var(--muted);font-size:.9rem;">
-        <span class="pulse"></span>Waiting for the DJ to let you in.
+        <span class="pulse"></span><span data-i18n="waitingLetIn">Waiting for the DJ to let you in.</span>
       </p>
     </div>
   </div>
@@ -562,8 +647,8 @@
     <div class="me" id="meName">—</div>
     <div class="me-sub" id="meSub"></div>
     <div class="me-links">
-      <button type="button" class="switch-link" id="switchBtn">Not you? Switch player</button>
-      <button type="button" class="switch-link gold" id="recapBtn">Your recap card ›</button>
+      <button type="button" class="switch-link" id="switchBtn" data-i18n="notYou">Not you? Switch player</button>
+      <button type="button" class="switch-link gold" id="recapBtn" data-i18n="recapLink">Your recap card ›</button>
     </div>
     <div class="pips" id="mePips"></div>
 
@@ -574,6 +659,7 @@
         <div class="vote-card" id="voteCard" hidden></div>
         <div class="vote-card" id="betCard" hidden></div>
         <div class="vote-card lock-card" id="lockCard" hidden></div>
+        <div class="vote-card spot-card" id="spotCard" hidden></div>
         <div class="vote-card shop-card" id="shopCard" hidden></div>
 
         <div class="now-card" id="nowCard">
@@ -582,17 +668,17 @@
             <div class="rec mini-rec" id="miniRec"><span id="miniLabel">?</span></div>
           </div>
           <div class="now-text">
-            <div class="now-state" id="nowState">Waiting for the DJ</div>
+            <div class="now-state" id="nowState">…</div>
             <div id="nowBody"></div>
           </div>
         </div>
 
         <div class="card">
           <div class="tl-head">
-            <h2>Your timeline · <span id="myCount">0</span></h2>
+            <h2><span data-i18n="yourTimeline">Your timeline</span> · <span id="myCount">0</span></h2>
             <div class="seg" role="group" aria-label="Timeline view">
-              <button type="button" data-tlview="list" class="on">List</button>
-              <button type="button" data-tlview="cards">Cards</button>
+              <button type="button" data-tlview="list" class="on" data-i18n="list">List</button>
+              <button type="button" data-tlview="cards" data-i18n="cards">Cards</button>
             </div>
           </div>
           <div class="spine" id="myTimeline"></div>
@@ -601,18 +687,25 @@
 
       <div class="game-col">
         <div class="card">
-          <h2>Leaderboard</h2>
+          <h2 data-i18n="leaderboard">Leaderboard</h2>
           <div id="leaderboard"></div>
         </div>
+        <details class="card songs-card" id="songsCard" hidden>
+          <summary><h2><span data-i18n="songsTonight">Songs tonight</span> · <span id="songsCount">0</span></h2></summary>
+          <div id="songsList"></div>
+        </details>
       </div>
     </div>
 
-    <p class="hint" style="text-align:center;">
-      The DJ places cards from the main screen. This view updates on its own.
-    </p>
+    <p class="hint" style="text-align:center;" data-i18n="djPlaces">The DJ places cards from the main screen. This view updates on its own.</p>
     <p style="text-align:center;margin:0 0 1.5rem;"><button type="button" class="switch-link" id="vibeBtn"></button></p>
   </div>
 
+</div>
+
+<div class="lang-row" id="langRow">
+  <button type="button" id="howtoBtn" data-i18n="howTo">How to play</button><span>·</span>
+  <button type="button" data-lang="en">English</button><span>·</span><button type="button" data-lang="da">Dansk</button>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite">
@@ -625,9 +718,53 @@
     <h3 id="switchTitle">Switch player?</h3>
     <p id="switchText"></p>
     <div class="row" style="flex-wrap:nowrap;">
-      <button class="block" id="switchCancelBtn">Cancel</button>
-      <button class="primary block" id="switchConfirmBtn">Switch</button>
+      <button class="block" id="switchCancelBtn" data-i18n="cancel">Cancel</button>
+      <button class="primary block" id="switchConfirmBtn" data-i18n="switch">Switch</button>
     </div>
+  </div>
+</div>
+
+<div class="overlay howto" id="howtoOverlay">
+  <div class="howto-panel">
+    <div class="howto-track" id="howtoTrack">
+      <section class="ht-slide">
+        <div class="ht-stage"><div class="ht-rec"><span>?</span></div><i class="ht-note n1">♪</i><i class="ht-note n2">♫</i><i class="ht-note n3">♪</i></div>
+        <h3 data-i18n="ht1"></h3><p data-i18n="ht1d"></p>
+      </section>
+      <section class="ht-slide">
+        <div class="ht-stage"><div class="ht-row"><div class="ht-card">1975</div><div class="ht-card drop"><b>?</b><b>1984</b></div><div class="ht-card">1992</div><div class="ht-card">2008</div></div></div>
+        <h3 data-i18n="ht2"></h3><p data-i18n="ht2d"></p>
+      </section>
+      <section class="ht-slide">
+        <div class="ht-stage"><div class="ht-coin"></div><i class="ht-spark s1">✦</i><i class="ht-spark s2">✦</i><i class="ht-spark s3">✦</i></div>
+        <h3 data-i18n="ht3"></h3><p data-i18n="ht3d"></p>
+      </section>
+      <section class="ht-slide">
+        <div class="ht-stage"><div class="ht-pips" id="htPips"></div><div class="ht-trophy">🏆</div></div>
+        <h3 id="ht4"></h3><p id="ht4d"></p>
+      </section>
+      <section class="ht-slide">
+        <div class="ht-stage"><div class="ht-phone"><i class="b1"><b data-i18n="htMine"></b></i><i class="b2">Over/under</i><i class="b3"><span class="c"></span>+1</i></div></div>
+        <h3 data-i18n="ht5"></h3><p data-i18n="ht5d"></p>
+      </section>
+    </div>
+    <div class="howto-dots" id="howtoDots"></div>
+    <div class="row" style="flex-wrap:nowrap;">
+      <button class="block" id="howtoSkip" data-i18n="htSkip"></button>
+      <button class="primary block" id="howtoNext" data-i18n="htNext"></button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay win-overlay" id="winOverlay">
+  <canvas id="confetti" aria-hidden="true"></canvas>
+  <div class="overlay-panel win-panel">
+    <div class="win-trophy" aria-hidden="true">🏆</div>
+    <div class="k" id="winKicker" data-i18n="winKicker">We have a winner</div>
+    <h3 id="winTitle"></h3>
+    <p id="winText"></p>
+    <button class="primary block" id="winRecapBtn" data-i18n="seeRecap">See your recap card</button>
+    <button class="block" id="winKeepBtn" style="margin-top:.6rem;" data-i18n="keepPlaying">Keep playing</button>
   </div>
 </div>
 
@@ -636,28 +773,28 @@
     <div class="k" id="chaosPopKicker"></div>
     <h3 id="chaosPopTitle"></h3>
     <p id="chaosPopDesc"></p>
-    <button class="primary block" id="chaosPopBtn">Got it</button>
+    <button class="primary block" id="chaosPopBtn" data-i18n="gotItBtn">Got it</button>
   </div>
 </div>
 
 <div class="overlay" id="recapOverlay">
   <div class="overlay-panel recap-panel">
     <img id="recapImg" alt="Your recap card">
-    <p>It updates as you play, so save it whenever you like. On iPhone, Save picture → Save Image puts it in your camera roll.</p>
+    <p data-i18n="recapNote">It updates as you play, so save it whenever you like. On iPhone, Save picture → Save Image puts it in your camera roll.</p>
     <div class="row" style="flex-wrap:nowrap;">
-      <button class="block" id="recapCloseBtn">Close</button>
-      <button class="primary block" id="recapSaveBtn">Save picture</button>
+      <button class="block" id="recapCloseBtn" data-i18n="close">Close</button>
+      <button class="primary block" id="recapSaveBtn" data-i18n="savePicture">Save picture</button>
     </div>
   </div>
 </div>
 
 <div class="overlay" id="leaveOverlay">
   <div class="overlay-panel">
-    <h3>Leave the game?</h3>
-    <p>You'll go back to the start screen. Your cards stay with the DJ — rejoin with the same code and name to pick them back up.</p>
+    <h3 data-i18n="leaveTitle">Leave the game?</h3>
+    <p data-i18n="leaveText">You'll go back to the start screen. Your cards stay with the DJ — rejoin with the same code and name to pick them back up.</p>
     <div class="row" style="flex-wrap:nowrap;">
-      <button class="block" id="leaveCancelBtn">Stay</button>
-      <button class="primary block" id="leaveConfirmBtn">Leave</button>
+      <button class="block" id="leaveCancelBtn" data-i18n="stay">Stay</button>
+      <button class="primary block" id="leaveConfirmBtn" data-i18n="leave">Leave</button>
     </div>
   </div>
 </div>
@@ -666,7 +803,7 @@
   <div class="overlay-panel">
     <h3 id="endTitle">Game over</h3>
     <p id="endText">The DJ closed the lobby.</p>
-    <button class="primary block" id="endBtn">Join another game</button>
+    <button class="primary block" id="endBtn" data-i18n="joinAnother">Join another game</button>
   </div>
 </div>
 
@@ -675,7 +812,184 @@
 <script>
 const COIN_SVG = '<svg viewBox="0 0 20 20" width="12" height="12" style="display:block;"><circle cx="10" cy="10" r="9" fill="var(--gold)" stroke="#8C6F3B" stroke-width="1.5"/><circle cx="10" cy="10" r="5" fill="none" stroke="#241A0B" stroke-width="1.2"/></svg>';
 const CARD_ICON_SVG = '<svg viewBox="0 0 16 20" width="12" height="15" style="display:block;"><rect x="1" y="1" width="14" height="18" rx="2.5" fill="none" stroke="var(--gold)" stroke-width="1.5"/><circle cx="8" cy="10" r="2" fill="var(--gold)"/></svg>';
-const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+// ── Language: English or Danish. Follows the phone's language (Danish
+// phones get Danish), and the toggle at the bottom of the page overrides it.
+const STR = {
+  en: {
+    joinTitle: 'Join the party', joinTag: "Type the code on the DJ's screen.", continue: 'Continue',
+    noCode: 'No code? Scan the QR on the big screen.', whoAreYou: 'Who are you? Tap your name, or add yourself.',
+    or: 'or', addYourself: 'Add yourself', yourNamePh: 'your name', joinGame: 'Join game', differentCode: 'Use a different code',
+    knocking: 'Knocking on the door…', waitingLetIn: 'Waiting for the DJ to let you in.',
+    codeLen: 'That code needs to be 6 characters.', noGame: "No game with that code — check the DJ's screen.",
+    cantReach: 'Could not reach that game.', tapName: 'Tap your name, or add yourself.',
+    noOneYet: 'The DJ has not added anyone yet — put your name in.', full: 'This game is full (12 players).',
+    typeName: 'Type a name first.', gameEnded: 'That game has ended.', cantJoin: 'Could not join.',
+    nameDeclined: 'The DJ turned that name down.', cleared: 'The DJ cleared the board. Pick a name to jump back in.',
+    removed: 'The DJ removed you from the game. You can join again.', thatsYou: "that's you", taken: 'taken',
+    notYou: 'Not you? Switch player', recapLink: 'Your recap card ›', howTo: 'How to play',
+    waitingDj: 'Waiting for the DJ', noRecord: 'No record on yet', nowPlaying: 'Now playing', mystery: 'Mystery record',
+    whereFit: 'Where does it fit in your timeline?', revealed: 'Revealed', unknownTrack: 'Unknown track', openSpotify: 'Open in Spotify',
+    yourTimeline: 'Your timeline', list: 'List', cards: 'Cards', leaderboard: 'Leaderboard', songsTonight: 'Songs tonight',
+    djPlaces: 'The DJ places cards from the main screen. This view updates on its own.',
+    noCardsYet: 'No cards yet — win one and it lands here.', fitsHere: 'Fits here', nobodyYet: 'Nobody in the game yet.',
+    phoneOn: 'phone connected', phoneOff: 'no phone connected', streakTitle: '{n} in a row on their own turns',
+    of: 'of', targetReached: 'target reached', toGo1: '1 card to go', toGo: '{n} cards to go', yourTurnBang: 'your turn!',
+    gotIt: 'You got it — {year}!', vibration: 'Vibration: {state}', on: 'on', off: 'off',
+    djDropped: 'The DJ dropped out. Game paused — ending in <strong id="graceClock">5:00</strong> unless they come back.',
+    notOnBoard: 'The DJ has not put you on the board yet.', hint: "Hint: it's from the {decade}.", justNow: 'Just now',
+    chaosRound: 'Chaos · round {r}', upNext: 'up next', songOf: 'song {a} of {b}', gotItBtn: 'Got it',
+    ou: 'Over/under', ouHard: 'Over/under · high stakes', beforeOrAfter: 'Before or after ', before: 'Before', after: 'After',
+    beforeLc: 'before', afterLc: 'after',
+    yourVote: 'Your vote: {v} — you can change it until the reveal.', tapOne: 'Tap one — you can change it until the reveal.',
+    ouSettled: 'Over/under settled', safe: 'Safe — you called it!', rightCoin: 'Right! +1 gold coin', wrongMinus: 'Wrong — −1 gold coin',
+    notThisTime: 'Not this time', noVoteMinus: 'No vote — −1 gold coin', noVote: 'No vote this time', ouLine: '{year} is {answer} {pivot}.',
+    spotBefore: 'Before {x}', spotAfter: 'After {x}', yourPick: 'Your pick', rightSpot: 'Right spot!', wrongSpot: 'Wrong spot',
+    pointedTo: 'You pointed to {x}.', spotKicker: 'Your turn · point to your spot', whereGo: 'Where does it go?',
+    spotHint: 'The DJ sees your pick. You can change it until the reveal.', spotPicked: 'Picked — change it any time before the reveal.',
+    lockKicker: 'Lock-in · closest wins a coin', whatYear: 'What year is it?', lockBtn: 'Lock in {y}', lockedSoFar: '{n} locked in so far',
+    resultsAtReveal: ' · results at the reveal', lockedIn: 'Locked in', lockedInY: 'Locked in: {y}', noLock: 'No lock-in this time',
+    onlyYou: 'Only you locked in — no coin', spotOnCoin: 'Spot on! +1 gold coin', closestCoin: 'Closest! +1 gold coin',
+    yearOff: '1 year off', yearsOff: '{n} years off',
+    betRight: 'Right', betCoin: 'Right + coin', betWrong: 'Wrong', betsOpen: 'Betster · bets open', betsLocked: 'Betster · bets locked',
+    lastBet: 'Last bet: {x}', yourTurnBets: "It's your turn — everyone else is betting on you.", betOn: "Bet on {gen} turn",
+    yourBet: 'Your bet: {amount} on {pick}.', noBet: 'No bet this time.', needCoin: 'You need at least 1 gold coin to bet.',
+    yourBetChange: 'Your bet: {amount} on {pick} — change it until the song starts.',
+    betRules: 'Win your bet ×2 (right + coin ×3). Lose and you lose your bet.', betResult: 'Betster · result',
+    betWon: 'You won +{n} gold coins!', betLost: 'Lost your bet: −{n}', betSummary: '{amount} on {pick} for {gen} turn.',
+    needs: 'Needs {n} coins', whenSomeone: "When someone's song is on", beforeStart: 'Before the song starts',
+    vibeNoClip: 'Vibe mode has no clip to cut', shortest: 'The clip is as short as it gets', ownTurn: 'On your own turn',
+    afterReveal: 'After the reveal', someoneHas: 'Someone already has the card', hintShown: 'Hint already shown',
+    alreadyPassed: 'Already passed on', pickWho: 'Pick who gets it', pickCardSteal: 'Pick a card to steal',
+    shopCoins1: 'Coin shop · you have 1 coin', shopCoins: 'Coin shop · you have {n} coins',
+    shopClosed: 'Closed while the song plays.', shopClosedTurn: 'Closed while the song plays — Buy the card opens after the reveal.',
+    pickCard: 'Pick a card…', pickPlayer: 'Pick a player…', buy: 'Buy', coin1: '1 coin', coinsN: '{n} coins', thePlayer: 'the player',
+    lobbyTimeout: 'The lobby closed after five minutes without a DJ.', djEnded: 'The DJ ended the game. Thanks for playing.',
+    djNeverBack: 'The DJ never came back', gameOver: 'Game over', djClosed: 'The DJ closed the lobby.', joinAnother: 'Join another game',
+    reconnecting: 'Reconnecting…', switchTitle: 'Switch to {name}?',
+    switchText: "You'll stop being {me} on this phone. {gen} cards stay on the board, and someone else can pick that name.",
+    cancel: 'Cancel', switch: 'Switch', winKicker: 'We have a winner', youWin: 'You win!', nameWins: '{name} wins!',
+    winTextYou: 'First to {n} cards. Play on if you like — the win stays.',
+    winTextOther: '{name} was first to {n} cards. Play on if you like — the win stays.',
+    seeRecap: 'See your recap card', keepPlaying: 'Keep playing',
+    recapNote: 'It updates as you play, so save it whenever you like. On iPhone, Save picture → Save Image puts it in your camera roll.',
+    close: 'Close', savePicture: 'Save picture', leaveTitle: 'Leave the game?',
+    leaveText: "You'll go back to the start screen. Your cards stay with the DJ — rejoin with the same code and name to pick them back up.",
+    stay: 'Stay', leave: 'Leave',
+    shop_new: 'New song', shop_new_d: 'Swap your song for a new one.', shop_hint: 'Hint', shop_hint_d: 'Show the decade on screen.',
+    shop_pass: 'Pass it on', shop_pass_d: 'Another player has to place it. Wrong = they pay you 1 coin.',
+    shop_buy: 'Buy the card', shop_buy_d: 'Placed it wrong? Keep the card anyway.',
+    shop_steal: 'Steal', shop_steal_d: "Take a card from another player's timeline. Skips your song.",
+    shop_trap: 'Speed trap', shop_trap_d: "Cut 5 seconds off {gen} clip. Every second trap costs 1 more.",
+    shop_force: 'New song', shop_force_d: 'Make {turn} play a different song.',
+    ht1: 'Listen', ht1d: 'The DJ plays a mystery song. Nobody sees the title or the year — just the record spinning.',
+    ht2: 'Place it', ht2d: 'On your turn, say where it goes in your timeline: before, between or after your cards. Right, and the card is yours.',
+    ht3: 'Name it', ht3d: 'Know the title or the artist too? That’s a gold coin. Coins break ties and buy things in the shop.',
+    ht4: 'First to {n}', ht4d: 'First to {n} cards wins. Play on afterwards if you like — the win stays.',
+    ht5: 'Your phone', ht5d: 'Your turn, over/under votes, bets and the coin shop pop up right here. Chaos rounds shake up the rules — each card shows as it starts.',
+    htSkip: 'Skip', htNext: 'Next', htGo: 'Let’s play', htMine: 'Your turn'
+  },
+  da: {
+    joinTitle: 'Kom med til festen', joinTag: 'Skriv koden fra DJ’ens skærm.', continue: 'Fortsæt',
+    noCode: 'Ingen kode? Scan QR-koden på den store skærm.', whoAreYou: 'Hvem er du? Tryk på dit navn, eller tilføj dig selv.',
+    or: 'eller', addYourself: 'Tilføj dig selv', yourNamePh: 'dit navn', joinGame: 'Deltag', differentCode: 'Brug en anden kode',
+    knocking: 'Banker på døren…', waitingLetIn: 'Venter på, at DJ’en lukker dig ind.',
+    codeLen: 'Koden skal være 6 tegn.', noGame: 'Intet spil med den kode — tjek DJ’ens skærm.',
+    cantReach: 'Kunne ikke finde spillet.', tapName: 'Tryk på dit navn, eller tilføj dig selv.',
+    noOneYet: 'DJ’en har ikke tilføjet nogen endnu — skriv dit navn.', full: 'Spillet er fuldt (12 spillere).',
+    typeName: 'Skriv et navn først.', gameEnded: 'Det spil er slut.', cantJoin: 'Kunne ikke deltage.',
+    nameDeclined: 'DJ’en afviste det navn.', cleared: 'DJ’en ryddede brættet. Vælg et navn for at hoppe ind igen.',
+    removed: 'DJ’en fjernede dig fra spillet. Du kan deltage igen.', thatsYou: 'det er dig', taken: 'taget',
+    notYou: 'Ikke dig? Skift spiller', recapLink: 'Dit recap-kort ›', howTo: 'Sådan spiller du',
+    waitingDj: 'Venter på DJ’en', noRecord: 'Ingen plade på endnu', nowPlaying: 'Spiller nu', mystery: 'Mysterieplade',
+    whereFit: 'Hvor passer den ind i din tidslinje?', revealed: 'Afsløret', unknownTrack: 'Ukendt nummer', openSpotify: 'Åbn i Spotify',
+    yourTimeline: 'Din tidslinje', list: 'Liste', cards: 'Kort', leaderboard: 'Stilling', songsTonight: 'Aftenens sange',
+    djPlaces: 'DJ’en placerer kortene fra hovedskærmen. Siden her opdaterer sig selv.',
+    noCardsYet: 'Ingen kort endnu — vind et, så lander det her.', fitsHere: 'Passer her', nobodyYet: 'Ingen i spillet endnu.',
+    phoneOn: 'telefon forbundet', phoneOff: 'ingen telefon forbundet', streakTitle: '{n} i træk på egne ture',
+    of: 'af', targetReached: 'målet er nået', toGo1: '1 kort tilbage', toGo: '{n} kort tilbage', yourTurnBang: 'din tur!',
+    gotIt: 'Du fik den — {year}!', vibration: 'Vibration: {state}', on: 'til', off: 'fra',
+    djDropped: 'DJ’en faldt ud. Spillet er sat på pause — det slutter om <strong id="graceClock">5:00</strong>, hvis DJ’en ikke kommer tilbage.',
+    notOnBoard: 'DJ’en har ikke sat dig på brættet endnu.', hint: 'Hint: den er fra {decade}.', justNow: 'Lige nu',
+    chaosRound: 'Kaos · runde {r}', upNext: 'næste', songOf: 'sang {a} af {b}', gotItBtn: 'Forstået',
+    ou: 'Over/under', ouHard: 'Over/under · høj indsats', beforeOrAfter: 'Før eller efter ', before: 'Før', after: 'Efter',
+    beforeLc: 'før', afterLc: 'efter',
+    yourVote: 'Din stemme: {v} — du kan ændre den indtil afsløringen.', tapOne: 'Vælg én — du kan ændre den indtil afsløringen.',
+    ouSettled: 'Over/under afgjort', safe: 'Sikker — du havde ret!', rightCoin: 'Rigtigt! +1 guldmønt', wrongMinus: 'Forkert — −1 guldmønt',
+    notThisTime: 'Ikke denne gang', noVoteMinus: 'Ingen stemme — −1 guldmønt', noVote: 'Ingen stemme denne gang', ouLine: '{year} er {answer} {pivot}.',
+    spotBefore: 'Før {x}', spotAfter: 'Efter {x}', yourPick: 'Dit valg', rightSpot: 'Rigtig plads!', wrongSpot: 'Forkert plads',
+    pointedTo: 'Du pegede på {x}.', spotKicker: 'Din tur · peg på pladsen', whereGo: 'Hvor skal den hen?',
+    spotHint: 'DJ’en kan se dit valg. Du kan ændre det indtil afsløringen.', spotPicked: 'Valgt — du kan ændre det indtil afsløringen.',
+    lockKicker: 'Lås fast · tættest på vinder en mønt', whatYear: 'Hvilket år er den fra?', lockBtn: 'Lås {y}', lockedSoFar: '{n} har låst indtil nu',
+    resultsAtReveal: ' · resultat ved afsløringen', lockedIn: 'Låst', lockedInY: 'Låst: {y}', noLock: 'Ingen lås denne gang',
+    onlyYou: 'Kun dig låste — ingen mønt', spotOnCoin: 'Plet på! +1 guldmønt', closestCoin: 'Tættest! +1 guldmønt',
+    yearOff: '1 år ved siden af', yearsOff: '{n} år ved siden af',
+    betRight: 'Rigtigt', betCoin: 'Rigtigt + mønt', betWrong: 'Forkert', betsOpen: 'Betster · der kan satses', betsLocked: 'Betster · indsatser låst',
+    lastBet: 'Sidste indsats: {x}', yourTurnBets: 'Det er din tur — alle andre satser på dig.', betOn: 'Sats på {gen} tur',
+    yourBet: 'Din indsats: {amount} på {pick}.', noBet: 'Ingen indsats denne gang.', needCoin: 'Du skal have mindst 1 guldmønt for at satse.',
+    yourBetChange: 'Din indsats: {amount} på {pick} — du kan ændre den, indtil sangen starter.',
+    betRules: 'Vind din indsats ×2 (rigtigt + mønt ×3). Taber du, mister du din indsats.', betResult: 'Betster · resultat',
+    betWon: 'Du vandt +{n} guldmønter!', betLost: 'Tabte din indsats: −{n}', betSummary: '{amount} på {pick} på {gen} tur.',
+    needs: 'Kræver {n} mønter', whenSomeone: 'Når nogens sang er i gang', beforeStart: 'Før sangen starter',
+    vibeNoClip: 'Vibe-tilstand har intet klip at skære i', shortest: 'Klippet kan ikke blive kortere', ownTurn: 'På din egen tur',
+    afterReveal: 'Efter afsløringen', someoneHas: 'Nogen har allerede kortet', hintShown: 'Hintet er allerede vist',
+    alreadyPassed: 'Allerede givet videre', pickWho: 'Vælg hvem der får den', pickCardSteal: 'Vælg et kort at stjæle',
+    shopCoins1: 'Møntbutik · du har 1 mønt', shopCoins: 'Møntbutik · du har {n} mønter',
+    shopClosed: 'Lukket mens sangen spiller.', shopClosedTurn: 'Lukket mens sangen spiller — Køb kortet åbner efter afsløringen.',
+    pickCard: 'Vælg et kort…', pickPlayer: 'Vælg en spiller…', buy: 'Køb', coin1: '1 mønt', coinsN: '{n} mønter', thePlayer: 'spilleren',
+    lobbyTimeout: 'Lobbyen lukkede efter fem minutter uden en DJ.', djEnded: 'DJ’en afsluttede spillet. Tak fordi du spillede med.',
+    djNeverBack: 'DJ’en kom aldrig tilbage', gameOver: 'Spillet er slut', djClosed: 'DJ’en lukkede lobbyen.', joinAnother: 'Deltag i et andet spil',
+    reconnecting: 'Forbinder igen…', switchTitle: 'Skift til {name}?',
+    switchText: 'Du holder op med at være {me} på denne telefon. {gen} kort bliver på brættet, og en anden kan vælge navnet.',
+    cancel: 'Annuller', switch: 'Skift', winKicker: 'Vi har en vinder', youWin: 'Du vinder!', nameWins: '{name} vinder!',
+    winTextYou: 'Først til {n} kort. Spil videre, hvis I vil — sejren er din.',
+    winTextOther: '{name} var først til {n} kort. Spil videre, hvis I vil — sejren bliver stående.',
+    seeRecap: 'Se dit recap-kort', keepPlaying: 'Spil videre',
+    recapNote: 'Det opdateres, mens I spiller, så gem det, når du vil. På iPhone: Gem billede → Arkiver billede lægger det i din kamerarulle.',
+    close: 'Luk', savePicture: 'Gem billede', leaveTitle: 'Forlad spillet?',
+    leaveText: 'Du kommer tilbage til startskærmen. Dine kort bliver hos DJ’en — deltag igen med samme kode og navn for at få dem tilbage.',
+    stay: 'Bliv', leave: 'Forlad',
+    shop_new: 'Ny sang', shop_new_d: 'Skift din sang ud med en ny.', shop_hint: 'Hint', shop_hint_d: 'Vis årtiet på skærmen.',
+    shop_pass: 'Giv videre', shop_pass_d: 'En anden spiller skal placere den. Forkert = de betaler dig 1 mønt.',
+    shop_buy: 'Køb kortet', shop_buy_d: 'Placeret forkert? Behold kortet alligevel.',
+    shop_steal: 'Stjæl', shop_steal_d: 'Tag et kort fra en andens tidslinje. Springer din sang over.',
+    shop_trap: 'Fartfælde', shop_trap_d: 'Skær 5 sekunder af {gen} klip. Hver anden fælde koster 1 mere.',
+    shop_force: 'Ny sang', shop_force_d: 'Tving {turn} til at spille en anden sang.',
+    ht1: 'Lyt', ht1d: 'DJ’en spiller en mysteriesang. Ingen kan se titlen eller året — kun pladen, der drejer.',
+    ht2: 'Placer den', ht2d: 'På din tur siger du, hvor den skal ind i din tidslinje: før, mellem eller efter dine kort. Rigtigt, og kortet er dit.',
+    ht3: 'Nævn den', ht3d: 'Kender du også titlen eller kunstneren? Så får du en guldmønt. Mønter afgør uafgjort og kan bruges i butikken.',
+    ht4: 'Først til {n}', ht4d: 'Først til {n} kort vinder. I kan spille videre bagefter — sejren bliver stående.',
+    ht5: 'Din telefon', ht5d: 'Din tur, over/under, væddemål og møntbutikken dukker op lige her. Kaosrunder ryster reglerne — hvert kort vises, når runden starter.',
+    htSkip: 'Spring over', htNext: 'Næste', htGo: 'Lad os spille', htMine: 'Din tur'
+  }
+};
+let lang = 'en';
+try{
+  const saved = localStorage.getItem('vl_lang');
+  lang = saved === 'da' || saved === 'en' ? saved : (/^da\b/i.test(navigator.language || '') ? 'da' : 'en');
+}catch(e){ lang = /^da\b/i.test(navigator.language || '') ? 'da' : 'en'; }
+document.documentElement.lang = lang;
+function tr(key, vars){
+  let str = (STR[lang] && STR[lang][key]) || STR.en[key] || key;
+  if(vars) Object.keys(vars).forEach(k => { str = str.split('{' + k + '}').join(vars[k]); });
+  return str;
+}
+// "Ida's" / "Idas" — Danish adds a bare s (or an apostrophe after s, x, z).
+function gen(name){
+  if(lang === 'da') return /[sxz]$/i.test(name) ? name + '’' : name + 's';
+  return name + "'s";
+}
+// "the 1980s" / "1980'erne", from the DJ's "1980s".
+function decade(d){
+  return lang === 'da' ? String(d).replace(/s$/, '’erne') : 'the ' + d;
+}
+// Texts from the DJ come as { en, da } (or a plain string from an older DJ).
+function langText(text){
+  return text && typeof text === 'object' ? (text[lang] || text.en || '') : (text || '');
+}
+
+const MONTH_NAMES = lang === 'da'
+  ? ['jan','feb','mar','apr','maj','jun','jul','aug','sep','okt','nov','dec']
+  : ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 // A stable per-phone id, so locking your screen or refreshing gets your slot
 // back instead of creating a duplicate player.
@@ -735,7 +1049,27 @@ const views = {
 function showView(key){
   Object.keys(views).forEach(k => views[k].classList.toggle('active', k === key));
   window.scrollTo(0, 0);
+  if(key === 'game'){
+    keepAwake();
+    if(typeof maybeShowHowto === 'function') maybeShowHowto();
+  }
 }
+
+// Keep the screen on while in a game: a phone that locks drops out of the
+// lobby and misses pop-ups. The lock lapses when the page is hidden, so it's
+// asked for again on the way back (and on the first tap, for browsers that
+// want one).
+let wakeLock = null;
+async function keepAwake(){
+  if(!('wakeLock' in navigator) || wakeLock || document.visibilityState !== 'visible') return;
+  if(!views.game.classList.contains('active')) return;
+  try{
+    wakeLock = await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release', () => { wakeLock = null; });
+  }catch(e){ /* not allowed right now */ }
+}
+document.addEventListener('visibilitychange', keepAwake);
+document.addEventListener('pointerdown', keepAwake);
 
 function escapeHtml(str){
   const div = document.createElement('div');
@@ -771,7 +1105,7 @@ codeInput.addEventListener('blur', () => otpEl.classList.remove('focused'));
 
 codeNextBtn.addEventListener('click', () => {
   const code = codeInput.value.trim().toUpperCase();
-  if(code.length !== 6){ codeError.textContent = 'That code needs to be 6 characters.'; return; }
+  if(code.length !== 6){ codeError.textContent = tr('codeLen'); return; }
   peek(code);
 });
 
@@ -786,9 +1120,9 @@ function peek(code){
         forgetCode();
         if(codeInput.value.toUpperCase() === String(code).toUpperCase()) codeInput.value = '';
         renderOtp();
-        codeError.textContent = "No game with that code — check the DJ's screen.";
+        codeError.textContent = tr('noGame');
       }else{
-        codeError.textContent = 'Could not reach that game.';
+        codeError.textContent = tr('cantReach');
       }
       return;
     }
@@ -811,16 +1145,16 @@ function renderNameOptions(names, full){
   const hasNames = names.length > 0;
   nameDivider.style.display = hasNames ? '' : 'none';
   namePrompt.textContent = hasNames
-    ? 'Tap your name, or add yourself.'
-    : 'The DJ has not added anyone yet — put your name in.';
+    ? tr('tapName')
+    : tr('noOneYet');
 
   names.forEach(entry => {
     const btn = document.createElement('button');
     btn.className = 'name-option' + (entry.mine ? ' mine' : '');
     btn.disabled = entry.claimed;
     btn.innerHTML = '<span>' + escapeHtml(entry.name) + '</span>' +
-      (entry.mine ? '<span class="taken">that\'s you</span>'
-                  : entry.claimed ? '<span class="taken">taken</span>' : '');
+      (entry.mine ? '<span class="taken">' + tr('thatsYou') + '</span>'
+                  : entry.claimed ? '<span class="taken">' + tr('taken') + '</span>' : '');
     btn.addEventListener('click', () => {
       // Your own name: nothing to change, just go back to the game.
       if(entry.mine && joined){ showView('game'); return; }
@@ -831,7 +1165,7 @@ function renderNameOptions(names, full){
 
   joinBtn.disabled = false;
   if(full && !hasNames){
-    nameError.textContent = 'This game is full (12 players).';
+    nameError.textContent = tr('full');
     joinBtn.disabled = true;
   }
 }
@@ -839,7 +1173,7 @@ function renderNameOptions(names, full){
 nameInput.addEventListener('keydown', (e) => { if(e.key === 'Enter') joinBtn.click(); });
 joinBtn.addEventListener('click', () => {
   const name = nameInput.value.trim();
-  if(!name){ nameError.textContent = 'Type a name first.'; return; }
+  if(!name){ nameError.textContent = tr('typeName'); return; }
   pickName(name);
 });
 
@@ -853,8 +1187,8 @@ function pickName(name){
     return;
   }
   switchTo = name;
-  document.getElementById('switchTitle').textContent = 'Switch to ' + name + '?';
-  document.getElementById('switchText').textContent = "You'll stop being " + myName + ' on this phone. ' + myName + "'s cards stay on the board, and someone else can pick that name.";
+  document.getElementById('switchTitle').textContent = tr('switchTitle', { name });
+  document.getElementById('switchText').textContent = tr('switchText', { me: myName, gen: gen(myName) });
   switchOverlay.classList.add('open');
 }
 document.getElementById('switchConfirmBtn').addEventListener('click', () => {
@@ -885,10 +1219,10 @@ function join(name, switching){
   socket.emit('lobby:join', { code: lobbyCode, name, deviceId, switch: !!switching }, (res) => {
     if(!res || !res.ok){
       const msg = {
-        'no-lobby': 'That game has ended.',
-        'full': 'This game is full (12 players).',
-        'no-name': 'Type a name first.'
-      }[res && res.error] || 'Could not join.';
+        'no-lobby': tr('gameEnded'),
+        'full': tr('full'),
+        'no-name': tr('typeName')
+      }[res && res.error] || tr('cantJoin');
       if(res && res.error === 'no-lobby') forgetCode();
       nameError.textContent = msg;
       showView('name');
@@ -913,7 +1247,7 @@ function setLobbyUrl(code){
 // The DJ's verdict on our join.
 socket.on('join:result', (res) => {
   if(!res.ok){
-    nameError.textContent = res.reason || 'The DJ turned that name down.';
+    nameError.textContent = res.reason || tr('nameDeclined');
     joined = false;
     showView('name');
     if(lobbyCode) peekRefresh();
@@ -948,8 +1282,8 @@ socket.on('lobby:kicked', (res) => {
   stopGrace();
   setLobbyUrl(null);
   nameError.textContent = (res && res.reason === 'cleared')
-    ? 'The DJ cleared the board. Pick a name to jump back in.'
-    : 'The DJ removed you from the game. You can join again.';
+    ? tr('cleared')
+    : tr('removed');
   showView('name');
   peekRefresh();
 });
@@ -1089,22 +1423,22 @@ function renderNow(){
   document.getElementById('miniLabel').textContent = (card && card.revealed) ? (card.year || '★') : '?';
 
   if(!card){
-    stateEl.textContent = 'Waiting for the DJ';
-    bodyEl.innerHTML = '<div class="now-title" style="color:var(--muted);">No record on yet</div>';
+    stateEl.textContent = tr('waitingDj');
+    bodyEl.innerHTML = '<div class="now-title" style="color:var(--muted);">' + tr('noRecord') + '</div>';
     return;
   }
 
   if(!card.revealed){
-    stateEl.innerHTML = (lastState.playing ? '<span class="pulse"></span>Now playing' : 'Mystery record');
-    bodyEl.innerHTML = '<div class="now-title">Mystery record</div>' +
-      '<div class="now-artist">Where does it fit in your timeline?</div>';
+    stateEl.innerHTML = (lastState.playing ? '<span class="pulse"></span>' + tr('nowPlaying') : tr('mystery'));
+    bodyEl.innerHTML = '<div class="now-title">' + tr('mystery') + '</div>' +
+      '<div class="now-artist">' + tr('whereFit') + '</div>';
     return;
   }
 
-  stateEl.textContent = 'Revealed';
+  stateEl.textContent = tr('revealed');
   const title = document.createElement('div');
   title.className = 'now-title';
-  title.textContent = card.title || 'Unknown track';
+  title.textContent = card.title || tr('unknownTrack');
   bodyEl.appendChild(title);
 
   if(card.artist){
@@ -1123,6 +1457,58 @@ function renderNow(){
   year.className = 'now-year';
   year.textContent = card.year || '—';
   bodyEl.appendChild(year);
+  if(card.id) bodyEl.appendChild(spotifyLink(card.id, tr('openSpotify')));
+}
+
+// Spotify's own link: opens the app on a phone that has it.
+function spotifyLink(id, text){
+  const a = document.createElement('a');
+  a.className = 'sp-link';
+  a.href = 'https://open.spotify.com/track/' + encodeURIComponent(id);
+  a.target = '_blank';
+  a.rel = 'noopener';
+  a.textContent = text + ' ↗';
+  return a;
+}
+
+// Every song revealed tonight, newest first — tap one to open it in Spotify.
+function songsKey(){
+  return JSON.stringify(lastState && lastState.songs);
+}
+function renderSongs(){
+  const card = document.getElementById('songsCard');
+  const list = document.getElementById('songsList');
+  const songs = (lastState && lastState.songs) || [];
+  card.hidden = !songs.length;
+  document.getElementById('songsCount').textContent = songs.length;
+  list.textContent = '';
+  songs.forEach(s => {
+    const row = document.createElement(s.id ? 'a' : 'div');
+    row.className = 'song-row';
+    if(s.id){
+      row.href = 'https://open.spotify.com/track/' + encodeURIComponent(s.id);
+      row.target = '_blank';
+      row.rel = 'noopener';
+    }
+    const y = document.createElement('span');
+    y.className = 'y';
+    y.textContent = s.year || '—';
+    const t = document.createElement('span');
+    t.className = 't';
+    const b = document.createElement('b');
+    b.textContent = s.title || '—';
+    const small = document.createElement('small');
+    small.textContent = s.artist;
+    t.append(b, small);
+    row.append(y, t);
+    if(s.id){
+      const go = document.createElement('span');
+      go.className = 'go';
+      go.textContent = '↗';
+      row.appendChild(go);
+    }
+    list.appendChild(row);
+  });
 }
 
 // Timeline as a vertical spine — oldest at the top — with the gap between
@@ -1159,7 +1545,7 @@ function buildEntry(entry, isNew){
   const t = document.createElement('span');
   t.className = 't';
   const b = document.createElement('b');
-  b.textContent = entry.title || 'Unknown track';
+  b.textContent = entry.title || tr('unknownTrack');
   t.appendChild(b);
   if(entry.artist){
     const s = document.createElement('small');
@@ -1229,20 +1615,52 @@ function renderMyTimeline(){
   seenLastAdded = mine ? (mine.lastAddedId || null) : null;
 
   if(timeline.length === 0){
-    holder.innerHTML = '<p class="empty">No cards yet — win one and it lands here.</p>';
+    holder.innerHTML = '<p class="empty">' + tr('noCardsYet') + '</p>';
     return;
   }
   const gaps = timeline.map((e, i) => i ? gapMonths(timeline[i - 1], e) : null);
   const tight = timeline.length >= 3 ? Math.min(...gaps.slice(1)) : null;
+  // After a reveal, a dashed "fits here" shows where the song would have gone
+  // in your timeline — unless it's already in it.
+  const card = lastState && lastState.currentCard;
+  let ghostAt = -1;
+  if(card && card.revealed && parseInt(card.year, 10) && !timeline.some(e => e.id === card.id)){
+    const expert = lastState.expertMode;
+    const val = e => expert ? e.year * 12 + (e.month || 1) - 1 : e.year * 12;
+    const v = val({ year: parseInt(card.year, 10), month: card.month });
+    ghostAt = timeline.findIndex(e => val(e) > v);
+    if(ghostAt < 0) ghostAt = timeline.length;
+  }
   if(tlView === 'cards'){
     let newEl = null;
+    const ghostCard = () => {
+      const g = document.createElement('div');
+      g.className = 'vinyl-card ghost';
+      g.innerHTML = '<div class="fits">' + tr('fitsHere') + '</div>';
+      const y = document.createElement('div');
+      y.className = 'vinyl-card-year';
+      y.textContent = card.year;
+      const t = document.createElement('div');
+      t.className = 'vinyl-card-title';
+      t.textContent = card.title || '';
+      g.append(y, t);
+      return g;
+    };
     timeline.forEach((entry, i) => {
+      if(i === ghostAt){
+        if(i > 0) holder.appendChild(buildCardGap(0, false)).textContent = '';
+        holder.appendChild(ghostCard());
+      }
       if(i > 0) holder.appendChild(buildCardGap(gaps[i], gaps[i] === tight));
       const isNew = newest && entry.id === newest.id;
       const c = buildCard(entry, isNew);
       if(isNew) newEl = c;
       holder.appendChild(c);
     });
+    if(ghostAt === timeline.length){
+      holder.appendChild(buildCardGap(0, false)).textContent = '';
+      holder.appendChild(ghostCard());
+    }
     // Jump to a newly won card once; otherwise stay where the player swiped.
     const newId = newEl ? newest.id : null;
     if(newEl && tlScrolledTo !== newId){
@@ -1253,15 +1671,33 @@ function renderMyTimeline(){
     }
     return;
   }
+  const ghostRow = () => {
+    const g = document.createElement('div');
+    g.className = 'ghost-row';
+    const y = document.createElement('span');
+    y.className = 'y';
+    y.textContent = card.year;
+    const t = document.createElement('span');
+    const b = document.createElement('b');
+    b.textContent = tr('fitsHere');
+    const small = document.createElement('small');
+    small.textContent = (card.title || '') + (card.artist ? ' — ' + card.artist : '');
+    t.append(b, small);
+    g.append(y, t);
+    return g;
+  };
   timeline.forEach((entry, i) => {
-    if(i > 0){
+    if(i > 0 && i !== ghostAt){
       const g = document.createElement('div');
       g.className = 'gap-tag' + (gaps[i] === tight ? ' tight' : '');
       g.textContent = gapText(gaps[i]);
+      g.dataset.after = i - 1;
       if(!blind()) holder.appendChild(g);
     }
+    if(i === ghostAt) holder.appendChild(ghostRow());
     holder.appendChild(buildEntry(entry, newest && entry.id === newest.id));
   });
+  if(ghostAt === timeline.length) holder.appendChild(ghostRow());
   placeGapTags();
 }
 
@@ -1274,7 +1710,8 @@ function placeGapTags(){
   // Layout offsets, not screen rects, so the new card's slide-in doesn't skew it.
   const yTop = (ent) => { const y = ent.querySelector('.y'); return ent.offsetTop + y.offsetTop; };
   const yBottom = (ent) => { const y = ent.querySelector('.y'); return ent.offsetTop + y.offsetTop + y.offsetHeight; };
-  holder.querySelectorAll('.gap-tag').forEach((tag, i) => {
+  holder.querySelectorAll('.gap-tag').forEach(tag => {
+    const i = Number(tag.dataset.after);
     if(!ents[i + 1]) return;
     tag.style.top = ((yBottom(ents[i]) + yTop(ents[i + 1])) / 2) + 'px';
   });
@@ -1291,7 +1728,7 @@ function hideToast(){
 document.getElementById('toast').addEventListener('click', hideToast);
 
 function celebrate(entry){
-  document.getElementById('toastTitle').textContent = 'You got it — ' + entry.year + '!';
+  document.getElementById('toastTitle').textContent = tr('gotIt', { year: entry.year });
   document.getElementById('toastSub').textContent = (entry.title || '') + (entry.artist ? ' · ' + entry.artist : '');
   const toast = document.getElementById('toast');
   toast.classList.add('show');
@@ -1310,7 +1747,7 @@ function buzz(pattern){
   try{ if(navigator.vibrate) navigator.vibrate(pattern); }catch(e){ /* not allowed */ }
 }
 function syncVibeBtn(){
-  document.getElementById('vibeBtn').textContent = 'Vibration: ' + (vibeOn ? 'on' : 'off');
+  document.getElementById('vibeBtn').textContent = tr('vibration', { state: vibeOn ? tr('on') : tr('off') });
 }
 document.getElementById('vibeBtn').addEventListener('click', () => {
   vibeOn = !vibeOn;
@@ -1343,13 +1780,148 @@ function buzzCheck(){
   else if(['voteWin', 'lockWin', 'betWin'].some(k => now[k] && now[k] !== was[k])) buzz([60, 40, 140]);
 }
 
+// The win: once per winner, every phone gets the moment — confetti, the
+// name, and a way to your recap card. "Keep playing" when you all agree to
+// go on.
+function winSeenKey(){
+  return 'vl_win_seen_' + lobbyCode;
+}
+function checkWin(){
+  const w = lastState && lastState.winner;
+  if(!w || !me()) return;
+  const key = w.name + '|' + w.target;
+  let seen = null;
+  try{ seen = sessionStorage.getItem(winSeenKey()); }catch(e){}
+  if(seen === key) return;
+  try{ sessionStorage.setItem(winSeenKey(), key); }catch(e){}
+  const mine = me().name === w.name;
+  document.getElementById('winTitle').textContent = mine ? tr('youWin') : tr('nameWins', { name: w.name });
+  document.getElementById('winText').textContent = mine ? tr('winTextYou', { n: w.target }) : tr('winTextOther', { name: w.name, n: w.target });
+  document.getElementById('winOverlay').classList.add('open');
+  buzz([100, 60, 100, 60, 220]);
+  confetti();
+}
+document.getElementById('winKeepBtn').addEventListener('click', () => document.getElementById('winOverlay').classList.remove('open'));
+document.getElementById('winRecapBtn').addEventListener('click', () => {
+  document.getElementById('winOverlay').classList.remove('open');
+  document.getElementById('recapBtn').click();
+});
+
+// A few seconds of falling confetti in the app's colours.
+function confetti(){
+  const canvas = document.getElementById('confetti');
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = innerWidth * dpr;
+  canvas.height = innerHeight * dpr;
+  ctx.scale(dpr, dpr);
+  const colours = ['#D4A24E', '#F0C877', '#F3EADD', '#8C6F3B', '#9B5FB0'];
+  const bits = Array.from({ length: 140 }, () => ({
+    x: Math.random() * innerWidth, y: -20 - Math.random() * innerHeight * .6,
+    w: 5 + Math.random() * 6, h: 8 + Math.random() * 8,
+    vy: 2 + Math.random() * 3, vx: -1.2 + Math.random() * 2.4,
+    r: Math.random() * Math.PI, vr: -.15 + Math.random() * .3,
+    c: colours[Math.floor(Math.random() * colours.length)]
+  }));
+  const end = performance.now() + 4500;
+  (function frame(now){
+    ctx.clearRect(0, 0, innerWidth, innerHeight);
+    bits.forEach(b => {
+      b.x += b.vx; b.y += b.vy; b.r += b.vr;
+      ctx.save();
+      ctx.translate(b.x, b.y);
+      ctx.rotate(b.r);
+      ctx.globalAlpha = Math.max(0, Math.min(1, (end - now) / 800));
+      ctx.fillStyle = b.c;
+      ctx.fillRect(-b.w / 2, -b.h / 2, b.w, b.h);
+      ctx.restore();
+    });
+    if(now < end) requestAnimationFrame(frame);
+    else ctx.clearRect(0, 0, innerWidth, innerHeight);
+  })(performance.now());
+}
+
+// How to play: opens by itself the first time someone joins a game, and from
+// the "How to play" link at the bottom any time.
+const howtoOverlay = document.getElementById('howtoOverlay');
+const howtoTrack = document.getElementById('howtoTrack');
+const howtoSlides = howtoTrack.querySelectorAll('.ht-slide');
+let htTimer = null;
+function howtoIndex(){
+  return Math.round(howtoTrack.scrollLeft / Math.max(1, howtoTrack.clientWidth));
+}
+function syncHowto(){
+  const i = howtoIndex();
+  document.querySelectorAll('#howtoDots i').forEach((d, k) => d.classList.toggle('on', k === i));
+  document.getElementById('howtoNext').textContent = i === howtoSlides.length - 1 ? tr('htGo') : tr('htNext');
+}
+function openHowto(){
+  const n = (lastState && lastState.winLength) || 10;
+  document.getElementById('ht4').textContent = tr('ht4', { n });
+  document.getElementById('ht4d').textContent = tr('ht4d', { n });
+  // One pip per card to win (up to 12), filling in turn.
+  const pips = document.getElementById('htPips');
+  pips.textContent = '';
+  const count = Math.min(n, 12);
+  for(let i = 0; i < count; i++) pips.appendChild(document.createElement('i'));
+  // Fill them one by one, pop the trophy, pause, start over — while open.
+  clearInterval(htTimer);
+  let step = 0;
+  htTimer = setInterval(() => {
+    if(!howtoOverlay.classList.contains('open')){ clearInterval(htTimer); return; }
+    const dots = pips.querySelectorAll('i');
+    step = (step + 1) % (count + 6);
+    dots.forEach((d, k) => d.classList.toggle('f', k < step));
+    document.querySelector('.ht-trophy').classList.toggle('on', step >= count);
+  }, 260);
+  document.getElementById('howtoDots').innerHTML = '<i></i>'.repeat(howtoSlides.length);
+  howtoOverlay.classList.add('open');
+  howtoTrack.scrollLeft = 0;
+  syncHowto();
+}
+function closeHowto(){
+  howtoOverlay.classList.remove('open');
+  try{ localStorage.setItem('vl_howto_seen', '1'); }catch(e){}
+}
+howtoTrack.addEventListener('scroll', syncHowto, { passive: true });
+document.getElementById('howtoNext').addEventListener('click', () => {
+  const i = howtoIndex();
+  if(i >= howtoSlides.length - 1){ closeHowto(); return; }
+  howtoTrack.scrollTo({ left: (i + 1) * howtoTrack.clientWidth, behavior: 'smooth' });
+});
+document.getElementById('howtoSkip').addEventListener('click', closeHowto);
+document.getElementById('howtoBtn').addEventListener('click', openHowto);
+function maybeShowHowto(){
+  let seen = false;
+  try{ seen = !!localStorage.getItem('vl_howto_seen'); }catch(e){}
+  if(!seen && !howtoOverlay.classList.contains('open')) setTimeout(openHowto, 400);
+}
+
+// Static text (data-i18n) and the toggle. Switching redraws everything.
+function applyLang(){
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = tr(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = tr(el.dataset.i18nPh); });
+  document.querySelectorAll('#langRow [data-lang]').forEach(b => b.classList.toggle('on', b.dataset.lang === lang));
+  syncVibeBtn();
+}
+document.querySelectorAll('#langRow [data-lang]').forEach(b => b.addEventListener('click', () => {
+  if(lang === b.dataset.lang) return;
+  lang = b.dataset.lang;
+  try{ localStorage.setItem('vl_lang', lang); }catch(e){}
+  // Month names and bet labels are built once; a reload is the simplest way
+  // to rebuild everything in the new language (the game state comes back).
+  location.reload();
+}));
+applyLang();
+
 // Recap card: drawn from the numbers the DJ sends, saved to the camera roll.
 let recapCanvas = null;
 document.getElementById('recapBtn').addEventListener('click', async () => {
   const mine = me();
   const data = mine && lastState && (lastState.recaps || []).find(r => r.name === mine.name);
   if(!data) return;
-  recapCanvas = await drawRecapCard(data);
+  recapCanvas = await drawRecapCard(data, lang);
   document.getElementById('recapImg').src = recapCanvas.toDataURL('image/png');
   document.getElementById('recapOverlay').classList.add('open');
 });
@@ -1360,6 +1932,7 @@ document.getElementById('chaosPopBtn').addEventListener('click', () => document.
 document.getElementById('recapCloseBtn').addEventListener('click', () => document.getElementById('recapOverlay').classList.remove('open'));
 
 function ordinal(n){
+  if(lang === 'da') return n + '.';
   const s = ['th', 'st', 'nd', 'rd'];
   const v = n % 100;
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
@@ -1378,9 +1951,9 @@ function renderMe(){
   const rank = sorted.findIndex(p => p.deviceId === deviceId) + 1;
   const count = (mine.timeline || []).length;
   const toGo = Math.max(0, winLength - count);
-  sub.innerHTML = '<b>' + ordinal(rank) + '</b> of ' + sorted.length + ' · ' +
-    (toGo === 0 ? 'target reached' : toGo + ' card' + (toGo === 1 ? '' : 's') + ' to go') +
-    (lastState && lastState.turn === mine.name ? ' · <b>your turn!</b>' : '');
+  sub.innerHTML = '<b>' + ordinal(rank) + '</b> ' + tr('of') + ' ' + sorted.length + ' · ' +
+    (toGo === 0 ? tr('targetReached') : toGo === 1 ? tr('toGo1') : tr('toGo', { n: toGo })) +
+    (lastState && lastState.turn === mine.name ? ' · <b>' + tr('yourTurnBang') + '</b>' : '');
   if(winLength > 15){
     pips.innerHTML = '<span class="pips-bar"><i style="width:' + Math.min(100, count / winLength * 100) + '%"></i></span>';
     return;
@@ -1397,7 +1970,7 @@ function renderLeaderboard(){
   holder.innerHTML = '';
   const list = (lastState && lastState.players) || [];
   if(list.length === 0){
-    holder.innerHTML = '<p class="empty">Nobody in the game yet.</p>';
+    holder.innerHTML = '<p class="empty">' + tr('nobodyYet') + '</p>';
     return;
   }
   const sorted = list.slice().sort(comparePlayers);
@@ -1415,7 +1988,7 @@ function renderLeaderboard(){
 
     const dot = document.createElement('span');
     dot.className = 'lb-dot' + (player.online ? '' : ' off');
-    dot.title = player.online ? 'phone connected' : 'no phone connected';
+    dot.title = player.online ? tr('phoneOn') : tr('phoneOff');
     row.appendChild(dot);
 
     const name = document.createElement('span');
@@ -1434,7 +2007,7 @@ function renderLeaderboard(){
       const fire = document.createElement('span');
       fire.className = 'fire-badge';
       fire.textContent = '🔥' + player.streak;
-      fire.title = player.streak + ' in a row on their own turns';
+      fire.title = tr('streakTitle', { n: player.streak });
       row.appendChild(fire);
     }
 
@@ -1464,9 +2037,9 @@ function showChaosPopup(chaos){
   try{ seen = sessionStorage.getItem(chaosSeenKey()); }catch(e){}
   if(seen === String(chaos.round)) return;
   try{ sessionStorage.setItem(chaosSeenKey(), String(chaos.round)); }catch(e){}
-  document.getElementById('chaosPopKicker').textContent = 'Chaos · round ' + chaos.round;
-  document.getElementById('chaosPopTitle').textContent = chaos.title;
-  document.getElementById('chaosPopDesc').textContent = chaos.desc;
+  document.getElementById('chaosPopKicker').textContent = tr('chaosRound', { r: chaos.round });
+  document.getElementById('chaosPopTitle').textContent = langText(chaos.titleI18n) || chaos.title;
+  document.getElementById('chaosPopDesc').textContent = langText(chaos.descI18n) || chaos.desc;
   document.getElementById('chaosOverlay').classList.add('open');
 }
 
@@ -1478,7 +2051,7 @@ function renderBanners(){
     const b = document.createElement('div');
     b.className = 'banner warn';
     b.id = 'graceBanner';
-    b.innerHTML = 'The DJ dropped out. Game paused — ending in <strong id="graceClock">5:00</strong> unless they come back.';
+    b.innerHTML = tr('djDropped');
     holder.appendChild(b);
     updateGraceClock();
     return;
@@ -1486,13 +2059,13 @@ function renderBanners(){
   if(!me() && joined){
     const b = document.createElement('div');
     b.className = 'banner info';
-    b.textContent = 'The DJ has not put you on the board yet.';
+    b.textContent = tr('notOnBoard');
     holder.appendChild(b);
   }
   if(lastState && lastState.hint){
     const b = document.createElement('div');
     b.className = 'banner info';
-    b.textContent = "Hint: it's from the " + lastState.hint + '.';
+    b.textContent = tr('hint', { decade: decade(lastState.hint) });
     holder.appendChild(b);
   }
   if(lastState && lastState.event){
@@ -1500,14 +2073,15 @@ function renderBanners(){
     b.className = 'banner event';
     const k = document.createElement('span');
     k.className = 'k';
-    k.textContent = 'Just now';
+    k.textContent = tr('justNow');
     const t = document.createElement('span');
-    t.textContent = lastState.event;
+    t.textContent = langText(lastState.event);
     b.append(k, t);
     holder.appendChild(b);
   }
   const chaos = lastState && lastState.chaos;
-  if(chaos){
+  // An over/under takes the stage: the chaos banner steps aside meanwhile.
+  if(chaos && !lastState.vote){
     showChaosPopup(chaos);
     // After the pop-up, just the card's name: tap it for the rules again.
     const b = document.createElement('button');
@@ -1515,12 +2089,12 @@ function renderBanners(){
     b.className = 'banner chaos' + (chaosOpen === chaos.round ? ' open' : '');
     const k = document.createElement('span');
     k.className = 'k';
-    k.textContent = 'Chaos · round ' + chaos.round + (chaos.pending ? ' · up next' : ' · song ' + Math.max(1, chaos.song) + ' of ' + chaos.of);
+    k.textContent = tr('chaosRound', { r: chaos.round }) + ' · ' + (chaos.pending ? tr('upNext') : tr('songOf', { a: Math.max(1, chaos.song), b: chaos.of }));
     const t = document.createElement('b');
-    t.textContent = chaos.title;
+    t.textContent = langText(chaos.titleI18n) || chaos.title;
     const d = document.createElement('span');
     d.className = 'd';
-    d.textContent = chaos.desc;
+    d.textContent = langText(chaos.descI18n) || chaos.desc;
     b.append(k, t, d);
     b.addEventListener('click', () => {
       chaosOpen = chaosOpen === chaos.round ? null : chaos.round;
@@ -1546,7 +2120,8 @@ function nowKey(){
 
 function timelineKey(){
   const mine = me();
-  return JSON.stringify([tlView, !!(lastState && lastState.expertMode), blind(), mine && mine.lastAddedId, mine && mine.timeline]);
+  const c = lastState && lastState.currentCard;
+  return JSON.stringify([tlView, !!(lastState && lastState.expertMode), blind(), mine && mine.lastAddedId, mine && mine.timeline, c && c.revealed ? [c.id, c.year, c.month] : null]);
 }
 
 function leaderboardKey(){
@@ -1580,13 +2155,13 @@ function renderVote(){
   const hard = v.stakes === 'hard';
   const k = document.createElement('div');
   k.className = 'k';
-  k.textContent = hard ? 'Over/under · high stakes' : 'Over/under';
+  k.textContent = hard ? tr('ouHard') : tr('ou');
   box.appendChild(k);
 
   if(v.open){
     const q = document.createElement('div');
     q.className = 'q';
-    q.append('Before or after ');
+    q.append(tr('beforeOrAfter'));
     const b = document.createElement('b');
     b.textContent = v.pivot;
     q.append(b, '?');
@@ -1595,12 +2170,17 @@ function renderVote(){
     ['before', 'after'].forEach(choice => {
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.textContent = choice === 'before' ? 'Before' : 'After';
+      btn.textContent = choice === 'before' ? tr('before') : tr('after');
       btn.classList.toggle('on', myVote.choice === choice);
       btn.addEventListener('click', () => castVote(choice));
       btns.appendChild(btn);
     });
-    box.append(q, btns);
+    const s = document.createElement('div');
+    s.className = 's';
+    s.textContent = myVote.choice
+      ? tr('yourVote', { v: myVote.choice === 'before' ? tr('before') : tr('after') })
+      : tr('tapOne');
+    box.append(q, btns, s);
     return;
   }
 
@@ -1609,17 +2189,77 @@ function renderVote(){
   q.className = 'q';
   const s = document.createElement('div');
   s.className = 's';
-  s.textContent = v.year + ' is ' + v.answer + ' ' + v.pivot + '.';
+  s.textContent = tr('ouLine', { year: v.year, answer: v.answer === 'before' ? tr('beforeLc') : tr('afterLc'), pivot: v.pivot });
   if(!r){
-    q.textContent = 'Over/under settled';
+    q.textContent = tr('ouSettled');
   }else if(r.correct){
     box.classList.add('right');
-    q.textContent = hard ? 'Safe — you called it!' : 'Right! +1 gold coin';
+    q.textContent = hard ? tr('safe') : tr('rightCoin');
   }else{
     box.classList.add('wrong');
-    q.textContent = r.choice ? (hard ? 'Wrong — −1 gold coin' : 'Not this time') : (hard ? 'No vote — −1 gold coin' : 'No vote this time');
+    q.textContent = r.choice ? (hard ? tr('wrongMinus') : tr('notThisTime')) : (hard ? tr('noVoteMinus') : tr('noVote'));
   }
   box.append(q, s);
+}
+
+// Point to your spot: on your turn, tap the gap in your timeline where you
+// think the song goes (automatic turns only). Change it until the reveal.
+let mySpot = null; // { songId, slot } sent from this phone
+
+function spotLabel(tl, slot){
+  const name = e => blind() ? '“' + (e.title || '?') + '”' : String(e.year);
+  if(slot === 0) return tr('spotBefore', { x: name(tl[0]) });
+  if(slot === tl.length) return tr('spotAfter', { x: name(tl[tl.length - 1]) });
+  return name(tl[slot - 1]) + ' – ' + name(tl[slot]);
+}
+function spotKey(){
+  const s = lastState;
+  return JSON.stringify([s && s.spot, s && s.revealed, blind(), me() && me().name, me() && me().timeline, mySpot]);
+}
+function renderSpot(){
+  const box = document.getElementById('spotCard');
+  const sp = lastState && lastState.spot;
+  const mine = me();
+  box.className = 'vote-card spot-card';
+  box.textContent = '';
+  const tl = mine ? (mine.timeline || []).filter(e => !sp || e.id !== sp.songId) : [];
+  if(!sp || !mine || sp.turn !== mine.name || !tl.length){ box.hidden = true; return; }
+  const picked = sp.slot != null ? sp.slot : (mySpot && mySpot.songId === sp.songId ? mySpot.slot : null);
+  const add = (cls, text) => {
+    const el = document.createElement('div');
+    el.className = cls;
+    el.textContent = text;
+    box.appendChild(el);
+    return el;
+  };
+  if(lastState.revealed){
+    if(picked == null){ box.hidden = true; return; }
+    box.hidden = false;
+    box.classList.add(sp.right ? 'right' : 'wrong');
+    add('k', tr('yourPick'));
+    add('q', sp.right ? tr('rightSpot') : tr('wrongSpot'));
+    add('s', tr('pointedTo', { x: spotLabel(tl, picked) }));
+    return;
+  }
+  box.hidden = false;
+  add('k', tr('spotKicker'));
+  add('q', tr('whereGo'));
+  const grid = document.createElement('div');
+  grid.className = 'spot-grid';
+  for(let slot = 0; slot <= tl.length; slot++){
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = spotLabel(tl, slot);
+    b.classList.toggle('on', picked === slot);
+    b.addEventListener('click', () => {
+      mySpot = { songId: sp.songId, slot };
+      socket.emit('spot:pick', { songId: sp.songId, slot });
+      renderIfChanged('spot', spotKey(), renderSpot);
+    });
+    grid.appendChild(b);
+  }
+  box.appendChild(grid);
+  add('s', picked == null ? tr('spotHint') : tr('spotPicked'));
 }
 
 // Lock-in: pick a year with the slider (or −/+), lock it in, see how close
@@ -1634,7 +2274,7 @@ function lockKey(){
 }
 
 function lockCountText(l){
-  return l.locked.length + ' locked in so far';
+  return tr('lockedSoFar', { n: l.locked.length });
 }
 
 function renderLock(){
@@ -1651,11 +2291,11 @@ function renderLock(){
     box.appendChild(el);
     return el;
   };
-  add('k', 'Lock-in · closest wins a coin');
+  add('k', tr('lockKicker'));
 
   if(l.open && !l.locked.includes(deviceId) && !(myLock && myLock.id === l.id)){
     if(!lockYear || lockYear.id !== l.id) lockYear = { id: l.id, year: Math.round((l.min + l.max) / 2) };
-    add('q', 'What year is it?');
+    add('q', tr('whatYear'));
     const big = add('lock-year', lockYear.year);
     const step = document.createElement('div');
     step.className = 'bet-step lock-step';
@@ -1682,7 +2322,7 @@ function renderLock(){
       lockYear.year = Math.min(l.max, Math.max(l.min, y));
       big.textContent = lockYear.year;
       slider.value = lockYear.year;
-      go.textContent = 'Lock in ' + lockYear.year;
+      go.textContent = tr('lockBtn', { y: lockYear.year });
     };
     set(lockYear.year);
     slider.addEventListener('input', () => set(Number(slider.value)));
@@ -1698,10 +2338,10 @@ function renderLock(){
   }
 
   if(l.open){
-    add('q', myLock && myLock.id === l.id ? 'Locked in: ' + myLock.year : 'Locked in');
+    add('q', myLock && myLock.id === l.id ? tr('lockedInY', { y: myLock.year }) : tr('lockedIn'));
     const count = add('s', '');
     count.id = 'lockCount';
-    count.dataset.suffix = ' · results at the reveal';
+    count.dataset.suffix = tr('resultsAtReveal');
     count.textContent = lockCountText(l) + count.dataset.suffix;
     return;
   }
@@ -1709,23 +2349,23 @@ function renderLock(){
   const results = l.results || [];
   const mine = results.find(r => r.deviceId === deviceId);
   if(!mine){
-    add('q', 'No lock-in this time');
+    add('q', tr('noLock'));
   }else if(results.length < 2){
-    add('q', 'Only you locked in — no coin');
+    add('q', tr('onlyYou'));
   }else if(mine.win){
     box.classList.add('right');
-    add('q', (mine.off === 0 ? 'Spot on!' : 'Closest!') + ' +1 gold coin');
+    add('q', mine.off === 0 ? tr('spotOnCoin') : tr('closestCoin'));
   }else{
-    add('q', mine.off + (mine.off === 1 ? ' year' : ' years') + ' off');
+    add('q', mine.off === 1 ? tr('yearOff') : tr('yearsOff', { n: mine.off }));
   }
   if(results.length) add('s', l.year + ': ' + results.map(r => r.name + ' ' + r.year + (r.win ? ' ✓' : '')).join(' · '));
 }
 
 // Betster: bet coins on someone else's turn before their song starts.
 const BET_PICKS = [
-  { pick: 'right', label: 'Right', odds: '×2' },
-  { pick: 'coin', label: 'Right + coin', odds: '×3' },
-  { pick: 'wrong', label: 'Wrong', odds: '×2' }
+  { pick: 'right', label: tr('betRight'), odds: '×2' },
+  { pick: 'coin', label: tr('betCoin'), odds: '×3' },
+  { pick: 'wrong', label: tr('betWrong'), odds: '×2' }
 ];
 let betAmount = 1;
 
@@ -1766,23 +2406,23 @@ function renderBet(){
 
   if(b){
     box.hidden = false;
-    add('k', 'Betster · ' + (b.open ? 'bets open' : 'bets locked'));
+    add('k', b.open ? tr('betsOpen') : tr('betsLocked'));
     // Back-to-back betster songs: the last result shows here, not on its own card.
     const last = r && r.results && r.results[deviceId];
-    if(last) add('s', 'Last bet: ' + (last.delta > 0 ? '+' + last.delta + ' ✓' : '−' + last.amount));
+    if(last) add('s', tr('lastBet', { x: last.delta > 0 ? '+' + last.delta + ' ✓' : '−' + last.amount }));
     if(b.turn === mine.name){
-      add('q', "It's your turn — everyone else is betting on you.");
+      add('q', tr('yourTurnBets'));
       return;
     }
     const my = b.placed && b.placed[deviceId];
-    add('q', 'Bet on ' + b.turn + "'s turn");
+    add('q', tr('betOn', { gen: gen(b.turn) }));
     if(!b.open){
-      add('s', my ? 'Your bet: ' + my.amount + ' on ' + betLabel(my.pick) + '.' : 'No bet this time.');
+      add('s', my ? tr('yourBet', { amount: my.amount, pick: betLabel(my.pick) }) : tr('noBet'));
       return;
     }
     const coins = myCoins();
     if(coins < 1){
-      add('s', 'You need at least 1 gold coin to bet.');
+      add('s', tr('needCoin'));
       return;
     }
     betAmount = Math.min(Math.max(1, betAmount), coins);
@@ -1823,8 +2463,8 @@ function renderBet(){
     });
     box.appendChild(picks);
     add('s', my
-      ? 'Your bet: ' + my.amount + ' on ' + betLabel(my.pick) + ' — change it until the song starts.'
-      : 'Win your bet ×2 (right + coin ×3). Lose and you lose your bet.');
+      ? tr('yourBetChange', { amount: my.amount, pick: betLabel(my.pick) })
+      : tr('betRules'));
     return;
   }
 
@@ -1832,9 +2472,9 @@ function renderBet(){
   if(!res){ box.hidden = true; return; }
   box.hidden = false;
   box.classList.add(res.delta > 0 ? 'right' : 'wrong');
-  add('k', 'Betster · result');
-  add('q', res.delta > 0 ? 'You won +' + res.delta + ' gold coins!' : 'Lost your bet: −' + res.amount);
-  add('s', res.amount + ' on ' + betLabel(res.pick) + ' for ' + r.turn + "'s turn.");
+  add('k', tr('betResult'));
+  add('q', res.delta > 0 ? tr('betWon', { n: res.delta }) : tr('betLost', { n: res.amount }));
+  add('s', tr('betSummary', { amount: res.amount, pick: betLabel(res.pick), gen: gen(r.turn) }));
 }
 
 // Coin shop: the same items and rules as the DJ screen (which has the final
@@ -1860,30 +2500,30 @@ function shopPrice(item){
 function shopWhyNot(item, pick){
   const sh = lastState.shop;
   const mine = me();
-  if(myCoins() < shopPrice(item)) return 'Needs ' + shopPrice(item) + ' coins';
+  if(myCoins() < shopPrice(item)) return tr('needs', { n: shopPrice(item) });
   const isTurn = sh.turn === mine.name;
   if(item.who === 'others'){
-    if(!sh.turn) return "When someone's song is on";
-    if(sh.phase !== 'before') return 'Before the song starts';
+    if(!sh.turn) return tr('whenSomeone');
+    if(sh.phase !== 'before') return tr('beforeStart');
     if(item.id === 'trap'){
-      if(sh.vibe) return 'Vibe mode has no clip to cut';
-      if(sh.clip <= 5) return 'The clip is as short as it gets';
+      if(sh.vibe) return tr('vibeNoClip');
+      if(sh.clip <= 5) return tr('shortest');
     }
     return null;
   }
-  if(!isTurn) return 'On your own turn';
+  if(!isTurn) return tr('ownTurn');
   if(item.id === 'buy'){
-    if(sh.phase !== 'after') return 'After the reveal';
-    if(sh.owned) return 'Someone already has the card';
+    if(sh.phase !== 'after') return tr('afterReveal');
+    if(sh.owned) return tr('someoneHas');
     return null;
   }
-  if(sh.phase !== 'before') return 'Before the song starts';
-  if(item.id === 'hint' && sh.hint) return 'Hint already shown';
+  if(sh.phase !== 'before') return tr('beforeStart');
+  if(item.id === 'hint' && sh.hint) return tr('hintShown');
   if(item.id === 'pass'){
-    if(sh.passed) return 'Already passed on';
-    if(!pick) return 'Pick who gets it';
+    if(sh.passed) return tr('alreadyPassed');
+    if(!pick) return tr('pickWho');
   }
-  if(item.id === 'steal' && !pick) return 'Pick a card to steal';
+  if(item.id === 'steal' && !pick) return tr('pickCardSteal');
   return null;
 }
 
@@ -1901,7 +2541,7 @@ function renderShop(){
   box.hidden = false;
   const k = document.createElement('div');
   k.className = 'k';
-  k.textContent = 'Coin shop · you have ' + myCoins() + ' coin' + (myCoins() === 1 ? '' : 's');
+  k.textContent = myCoins() === 1 ? tr('shopCoins1') : tr('shopCoins', { n: myCoins() });
   box.appendChild(k);
   const others = (lastState.players || []).filter(p => p.name !== mine.name);
   const role = sh.turn === mine.name ? 'turn' : 'others';
@@ -1914,7 +2554,7 @@ function renderShop(){
     const s = document.createElement('div');
     s.className = 's';
     s.style.textAlign = 'center';
-    s.textContent = 'Closed while the song plays' + (role === 'turn' ? ' — Buy the card opens after the reveal.' : '.');
+    s.textContent = role === 'turn' ? tr('shopClosedTurn') : tr('shopClosed');
     box.appendChild(s);
     return;
   }
@@ -1923,20 +2563,20 @@ function renderShop(){
     row.className = 'shop-row';
     const n = document.createElement('div');
     n.className = 'n';
-    n.textContent = item.name;
+    n.textContent = tr('shop_' + item.id);
     const cost = shopPrice(item);
     const price = document.createElement('small');
-    price.textContent = cost + (cost === 1 ? ' coin' : ' coins');
+    price.textContent = cost === 1 ? tr('coin1') : tr('coinsN', { n: cost });
     n.appendChild(price);
     const d = document.createElement('div');
     d.className = 'd';
-    d.textContent = item.desc.replace('{turn}', sh.turn || 'the player');
+    d.textContent = tr('shop_' + item.id + '_d', { turn: sh.turn || tr('thePlayer'), gen: sh.turn ? gen(sh.turn) : tr('thePlayer') });
     row.append(n, d);
     if(item.target){
       const sel = document.createElement('select');
       const blank = document.createElement('option');
       blank.value = '';
-      blank.textContent = item.target === 'card' ? 'Pick a card…' : 'Pick a player…';
+      blank.textContent = item.target === 'card' ? tr('pickCard') : tr('pickPlayer');
       sel.appendChild(blank);
       others.forEach(p => {
         if(item.target === 'card'){
@@ -1971,7 +2611,7 @@ function renderShop(){
     const buy = document.createElement('button');
     buy.type = 'button';
     buy.className = 'primary';
-    buy.textContent = 'Buy';
+    buy.textContent = tr('buy');
     buy.disabled = !!why;
     buy.addEventListener('click', () => {
       const payload = { item: item.id, price: shopPrice(item) };
@@ -1997,6 +2637,7 @@ function render(){
   renderIfChanged('vote', voteKey(), renderVote);
   renderIfChanged('bet', betKey(), renderBet);
   renderIfChanged('lock', lockKey(), renderLock);
+  renderIfChanged('spot', spotKey(), renderSpot);
   const lockCount = document.getElementById('lockCount');
   if(lockCount && lastState && lastState.lockin){
     lockCount.textContent = lockCountText(lastState.lockin) + (lockCount.dataset.suffix || '');
@@ -2006,7 +2647,9 @@ function render(){
   renderIfChanged('ring', ringKey(), renderRing);
   renderIfChanged('timeline', timelineKey(), renderMyTimeline);
   renderIfChanged('leaderboard', leaderboardKey(), renderLeaderboard);
+  renderIfChanged('songs', songsKey(), renderSongs);
   buzzCheck();
+  checkWin();
 }
 
 // ── DJ presence ─────────────────────────────────────────────────────────
@@ -2041,10 +2684,10 @@ socket.on('dj:reconnect', () => stopGrace());
 socket.on('lobby:end', (payload) => {
   stopGrace();
   const reason = payload && payload.reason;
-  document.getElementById('endTitle').textContent = reason === 'dj-timeout' ? 'The DJ never came back' : 'Game over';
+  document.getElementById('endTitle').textContent = reason === 'dj-timeout' ? tr('djNeverBack') : tr('gameOver');
   document.getElementById('endText').textContent = reason === 'dj-timeout'
-    ? 'The lobby closed after five minutes without a DJ.'
-    : 'The DJ ended the game. Thanks for playing.';
+    ? tr('lobbyTimeout')
+    : tr('djEnded');
   document.getElementById('endOverlay').classList.add('open');
   joined = false;
 });
@@ -2103,7 +2746,7 @@ socket.on('connect', () => {
 socket.on('disconnect', () => {
   if(!joined) return;
   const holder = document.getElementById('banners');
-  holder.innerHTML = '<div class="banner info">Reconnecting…</div>';
+  holder.innerHTML = '<div class="banner info">' + tr('reconnecting') + '</div>';
 });
 
 // Deep link (?code=ABC123) or a code we used a moment ago.

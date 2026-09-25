@@ -325,6 +325,17 @@ io.on('connection', (socket) => {
     });
   });
 
+  // The turn player points to where the song goes in their timeline.
+  socket.on('spot:pick', (payload) => {
+    const lobby = L.lobbyForPhone(socket.id);
+    if(!lobby || !payload) return;
+    toDj(lobby, 'player:spot', {
+      deviceId: socket.data.deviceId,
+      songId: payload.songId,
+      slot: payload.slot
+    });
+  });
+
   // Coin shop purchase from a phone. The DJ checks the price and the rules.
   socket.on('shop:buy', (payload) => {
     const lobby = L.lobbyForPhone(socket.id);

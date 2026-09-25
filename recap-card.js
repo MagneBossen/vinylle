@@ -15,7 +15,15 @@
   const SERIF = "'Fraunces', serif";
   const MONO = "'IBM Plex Mono', monospace";
 
+  // English or Danish, per drawing (the phone passes its own language).
+  let LANG = 'en';
+  const L = (en, da) => LANG === 'da' ? da : en;
+  // "'80s" (from the DJ) → "80’erne" in Danish.
+  const decadeText = dec => LANG === 'da' ? String(dec).replace(/^'/, '').replace(/s$/, '’erne') : dec;
+  const yrs = n => n + L('y', ' år');
+
   function ordinal(n){
+    if(LANG === 'da') return n + '.';
     const s = ['th', 'st', 'nd', 'rd'];
     const v = n % 100;
     return n + (s[(v - 20) % 10] || s[v] || s[0]);
@@ -92,7 +100,7 @@
     ctx.font = '700 ' + Math.round(lr * .62) + 'px ' + SERIF;
     ctx.fillText(label, cx, cy - lr * .12);
     ctx.font = '500 ' + Math.round(lr * .16) + 'px ' + MONO;
-    spaced(ctx, 'PLACE', cx, cy + lr * .45, 3, 'center');
+    spaced(ctx, L('PLACE', 'PLADS'), cx, cy + lr * .45, 3, 'center');
     ctx.beginPath();
     ctx.arc(cx, cy + lr * .72, 5, 0, Math.PI * 2);
     ctx.fillStyle = C.ink;
@@ -110,47 +118,48 @@
     const years = d.years || [];
     const pct = d.turns ? Math.round(d.turnWins / d.turns * 100) : 0;
 
-    if(d.bestStreak >= 3) add(95, '🔥' + d.bestStreak, 'Best streak');
-    if(d.ou >= 2 && d.ouRight === d.ou) add(92, d.ouRight + '/' + d.ou, 'Perfect over/under');
-    if(d.turns >= 4 && pct === 100) add(91, '100%', 'Never missed');
-    if(d.steals) add(88, d.steals, plural(d.steals, 'Card stolen', 'Cards stolen'));
+    if(d.bestStreak >= 3) add(95, '🔥' + d.bestStreak, L('Best streak', 'Bedste stime'));
+    if(d.ou >= 2 && d.ouRight === d.ou) add(92, d.ouRight + '/' + d.ou, L('Perfect over/under', 'Perfekt over/under'));
+    if(d.turns >= 4 && pct === 100) add(91, '100%', L('Never missed', 'Aldrig forbi'));
+    if(d.steals) add(88, d.steals, L(plural(d.steals, 'Card stolen', 'Cards stolen'), 'Kort stjålet'));
     // Tightest squeeze in months when months were in play, else in years.
     const tm = d.tightestMonths;
-    if(tm === 0) add(88, 'Same month', 'Tightest squeeze');
-    else if(tm > 0 && tm < 12) add(86, tm + (tm === 1 ? ' month' : ' months'), 'Tightest squeeze');
-    else if(tm >= 12) add(52, Math.floor(tm / 12) + 'y' + (tm % 12 ? ' ' + (tm % 12) + 'm' : ''), 'Tightest squeeze');
-    else if(d.tightest === 0) add(86, 'Same year', 'Tightest squeeze');
-    if(d.sabotage) add(84, d.sabotage, plural(d.sabotage, 'Sabotage', 'Sabotages'));
-    if(d.sang) add(82, '🎤' + d.sang, plural(d.sang, 'Song sung', 'Songs sung'));
-    if(d.donWins) add(80, d.donWins, 'Double or nothing wins');
-    if(d.lockWins) add(78, d.lockWins, plural(d.lockWins, 'Lock-in won', 'Lock-ins won'));
-    if(d.robinGot) add(76, '+' + d.robinGot, 'Robin Hood gifts');
-    if(d.robinGave) add(75, '−' + d.robinGave, 'Robbed');
-    if(d.bets > 0) add(74, '+' + d.bets, 'Betting profit');
-    if(d.titles >= 3) add(72, d.titles, 'Titles named');
-    if(d.turns >= 3 && pct < 100) add(70, pct + '%', 'Own-turn hits');
-    if(d.decadeShare >= 50 && years.length >= 4) add(68, d.decadeShare + '%', d.decade + ' specialist');
-    if(d.leap >= 20) add(66, d.leap + 'y', 'Biggest leap');
+    if(tm === 0) add(88, L('Same month', 'Samme måned'), L('Tightest squeeze', 'Tætteste par'));
+    else if(tm > 0 && tm < 12) add(86, tm + (tm === 1 ? L(' month', ' måned') : L(' months', ' måneder')), L('Tightest squeeze', 'Tætteste par'));
+    else if(tm >= 12) add(52, yrs(Math.floor(tm / 12)) + (tm % 12 ? ' ' + (tm % 12) + 'm' : ''), L('Tightest squeeze', 'Tætteste par'));
+    else if(d.tightest === 0) add(86, L('Same year', 'Samme år'), L('Tightest squeeze', 'Tætteste par'));
+    if(d.sabotage) add(84, d.sabotage, L(plural(d.sabotage, 'Sabotage', 'Sabotages'), plural(d.sabotage, 'Sabotage', 'Sabotager')));
+    if(d.sang) add(82, '🎤' + d.sang, L(plural(d.sang, 'Song sung', 'Songs sung'), plural(d.sang, 'Sang sunget', 'Sange sunget')));
+    if(d.donWins) add(80, d.donWins, L('Double or nothing wins', 'Dobbelt eller intet vundet'));
+    if(d.lockWins) add(78, d.lockWins, L(plural(d.lockWins, 'Lock-in won', 'Lock-ins won'), 'Låse vundet'));
+    if(d.robinGot) add(76, '+' + d.robinGot, L('Robin Hood gifts', 'Robin Hood-gaver'));
+    if(d.robinGave) add(75, '−' + d.robinGave, L('Robbed', 'Røvet'));
+    if(d.bets > 0) add(74, '+' + d.bets, L('Betting profit', 'Gevinst på væddemål'));
+    if(d.titles >= 3) add(72, d.titles, L('Titles named', 'Titler nævnt'));
+    if(d.turns >= 3 && pct < 100) add(70, pct + '%', L('Own-turn hits', 'Rigtige på egen tur'));
+    if(d.decadeShare >= 50 && years.length >= 4) add(68, d.decadeShare + '%', decadeText(d.decade) + L(' specialist', '-specialist'));
+    if(d.leap >= 20) add(66, yrs(d.leap), L('Biggest leap', 'Største spring'));
     if(d.ou && d.ouRight < d.ou) add(64, d.ouRight + '/' + d.ou, 'Over/under');
-    if(d.bestStreak === 2) add(60, '🔥2', 'Best streak');
-    if(d.titles && d.titles < 3) add(58, d.titles, plural(d.titles, 'Title named', 'Titles named'));
-    if(d.decade) add(55, d.decade, 'Favourite decade');
-    if(tm == null && d.tightest > 0) add(52, d.tightest + 'y', 'Tightest squeeze');
-    if(d.spent) add(50, d.spent, 'Coins spent');
+    if(d.bestStreak === 2) add(60, '🔥2', L('Best streak', 'Bedste stime'));
+    if(d.titles && d.titles < 3) add(58, d.titles, L(plural(d.titles, 'Title named', 'Titles named'), plural(d.titles, 'Titel nævnt', 'Titler nævnt')));
+    if(d.decade) add(55, decadeText(d.decade), L('Favourite decade', 'Yndlingsårti'));
+    if(tm == null && d.tightest > 0) add(52, yrs(d.tightest), L('Tightest squeeze', 'Tætteste par'));
+    if(d.spent) add(50, d.spent, L('Coins spent', 'Mønter brugt'));
     if(years.length){
-      add(45, years[0], 'Oldest card');
-      add(44, years[years.length - 1], 'Newest card');
+      add(45, years[0], L('Oldest card', 'Ældste kort'));
+      add(44, years[years.length - 1], L('Newest card', 'Nyeste kort'));
     }
-    if(years.length > 1) add(40, (years[years.length - 1] - years[0]) + 'y', 'Years covered');
-    if(d.leap > 0 && d.leap < 20) add(38, d.leap + 'y', 'Biggest leap');
-    if(d.turns) add(36, d.turns, plural(d.turns, 'Turn played', 'Turns played'));
+    if(years.length > 1) add(40, yrs(years[years.length - 1] - years[0]), L('Years covered', 'År dækket'));
+    if(d.leap > 0 && d.leap < 20) add(38, yrs(d.leap), L('Biggest leap', 'Største spring'));
+    if(d.turns) add(36, d.turns, L(plural(d.turns, 'Turn played', 'Turns played'), plural(d.turns, 'Tur spillet', 'Ture spillet')));
 
     const picked = out.sort((a, b) => b.score - a.score).slice(0, 6).map(t => [t.value, t.label]);
-    while(picked.length < 6) picked.push(['—', picked.length % 2 ? 'Keep playing' : 'More to come']);
+    while(picked.length < 6) picked.push(['—', picked.length % 2 ? L('Keep playing', 'Spil videre') : L('More to come', 'Mere på vej')]);
     return picked;
   }
 
-  async function drawRecapCard(d){
+  async function drawRecapCard(d, lang){
+    LANG = lang === 'da' ? 'da' : 'en';
     if(document.fonts){
       try{
         await Promise.all([
@@ -190,7 +199,7 @@
     ctx.fillStyle = C.muted;
     ctx.font = '400 24px ' + MONO;
     const date = new Date(d.date || Date.now());
-    spaced(ctx, ('Night recap · ' + date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })).toUpperCase(), 80, 152, 3);
+    spaced(ctx, (L('Night recap · ', 'Aftenens recap · ') + date.toLocaleDateString(L('en-GB', 'da-DK'), { day: 'numeric', month: 'short', year: 'numeric' })).toUpperCase(), 80, 152, 3);
 
     // Name, big.
     ctx.fillStyle = C.paper;
@@ -202,19 +211,28 @@
     // Rank line, plus a WINNER pill.
     ctx.font = '500 34px ' + MONO;
     ctx.fillStyle = C.gold;
-    let x = 80 + spaced(ctx, (ordinal(d.rank || 1) + ' of ' + (d.of || 1)).toUpperCase(), 80, 400, 4) + 26;
+    let x = 80 + spaced(ctx, (ordinal(d.rank || 1) + L(' of ', ' af ') + (d.of || 1)).toUpperCase(), 80, 400, 4) + 26;
     if(d.won){
       ctx.font = '500 26px ' + MONO;
-      const pw = ctx.measureText('WINNER').width + 60;
+      const pw = ctx.measureText(L('WINNER', 'VINDER')).width + 60;
       roundRect(ctx, x, 368, pw, 46, 23);
       ctx.fillStyle = C.gold;
       ctx.fill();
       ctx.fillStyle = C.ink;
-      spaced(ctx, 'WINNER', x + 26, 400, 3);
+      spaced(ctx, L('WINNER', 'VINDER'), x + 26, 400, 3);
+    }else if(d.leads){
+      ctx.font = '500 26px ' + MONO;
+      const pw = ctx.measureText(L('MOST CARDS', 'FLEST KORT')).width + 60;
+      roundRect(ctx, x, 368, pw, 46, 23);
+      ctx.strokeStyle = C.gold;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = C.gold;
+      spaced(ctx, L('MOST CARDS', 'FLEST KORT'), x + 26, 400, 3);
     }else if(d.streak >= 2){
       ctx.fillStyle = C.muted;
       ctx.font = '400 30px ' + MONO;
-      ctx.fillText('· on a 🔥' + d.streak + ' streak', x - 10, 400);
+      ctx.fillText(L('· on a 🔥' + d.streak + ' streak', '· på en 🔥' + d.streak + '-stime'), x - 10, 400);
     }
 
     // Hero numbers: cards and gold coins.
@@ -228,8 +246,8 @@
       spaced(ctx, label, hx + 6, 690, 4);
       return w;
     };
-    const cardsW = hero(d.cards || 0, d.cards === 1 ? 'CARD' : 'CARDS', 80, C.paper);
-    hero(d.coins || 0, d.coins === 1 ? 'GOLD COIN' : 'GOLD COINS', 600, C.gold);
+    const cardsW = hero(d.cards || 0, L(d.cards === 1 ? 'CARD' : 'CARDS', 'KORT'), 80, C.paper);
+    hero(d.coins || 0, d.coins === 1 ? L('GOLD COIN', 'GULDMØNT') : L('GOLD COINS', 'GULDMØNTER'), 600, C.gold);
     // A little progress ring toward the target, right after the card count.
     const target = d.winLength || 10;
     const pct = Math.min(1, (d.cards || 0) / target);
@@ -313,18 +331,18 @@
       ctx.fillStyle = C.muted;
       ctx.textAlign = 'center';
       ctx.font = '400 22px ' + MONO;
-      ctx.fillText('No cards yet — the night is young', W / 2, ly + 46);
+      ctx.fillText(L('No cards yet — the night is young', 'Ingen kort endnu — aftenen er ung'), W / 2, ly + 46);
       ctx.textAlign = 'left';
     }
 
     // Footer.
     ctx.fillStyle = C.gold;
     ctx.font = '500 22px ' + MONO;
-    spaced(ctx, 'THE MUSIC TIMELINE GAME', 80, H - 50, 4);
+    spaced(ctx, L('THE MUSIC TIMELINE GAME', 'MUSIKKENS TIDSLINJESPIL'), 80, H - 50, 4);
     ctx.fillStyle = C.muted;
     ctx.font = '400 22px ' + MONO;
     ctx.textAlign = 'right';
-    ctx.fillText('first to ' + target, W - 80, H - 50);
+    ctx.fillText(L('first to ', 'først til ') + target, W - 80, H - 50);
     ctx.textAlign = 'left';
     return canvas;
   }
