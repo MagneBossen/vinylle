@@ -379,6 +379,8 @@
   }
   .menu-setting-row .field-label{min-width:110px;flex-shrink:0;}
   .menu-setting-row input[type="range"]{flex:1;margin-bottom:0;}
+  .recap-h{font-family:'IBM Plex Mono',monospace;font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin:1.3rem 0 .4rem;}
+  .recap-v{text-align:right;margin-left:1rem;}
   .menu-setting-value{
     font-family:'IBM Plex Mono',monospace;
     font-size:.9rem;
@@ -2020,6 +2022,7 @@ function flushSession(){
       sessionCardsLost: sessionCardsLost,
       sessionCardsPlaced: sessionCardsPlaced,
       sessionCoinsWon: sessionCoinsWon,
+      sessionChaos: sessionChaos,
       currentSessionId: currentSessionId,
       statsListenSeconds: statsListenSeconds,
       clipSeconds: CLIP_SECONDS,
@@ -2059,6 +2062,7 @@ function loadSession(){
     if(typeof state.sessionCardsLost === 'number') sessionCardsLost = state.sessionCardsLost;
     if(typeof state.sessionCardsPlaced === 'number') sessionCardsPlaced = state.sessionCardsPlaced;
     if(typeof state.sessionCoinsWon === 'number') sessionCoinsWon = state.sessionCoinsWon;
+    if(state.sessionChaos) sessionChaos = Object.assign(freshChaosStats(), state.sessionChaos);
     if(typeof state.currentSessionId === 'number') currentSessionId = state.currentSessionId;
     if(typeof state.statsListenSeconds === 'number') statsListenSeconds = state.statsListenSeconds;
     if(typeof state.clipSeconds === 'number'){
@@ -2687,7 +2691,7 @@ function uncountCoins(entry){
 function playerGaps(player){
   let values;
   if(expertMode){
-    values = player.timeline.map(e => e.year * 12 + ((typeof e.month === 'number' ? e.month : 0) - 1));
+    values = player.timeline.map(e => e.year * 12 + ((e.month || 1) - 1));
   }else{
     values = player.timeline.map(e => e.year);
   }
@@ -2838,7 +2842,7 @@ function renderScoreboard(){
       const idx = draggedFromPlayer.timeline.indexOf(draggedEntry);
       if(idx > -1) draggedFromPlayer.timeline.splice(idx, 1);
       player.timeline.push(draggedEntry);
-      player.timeline.sort((a,b) => (a.year - b.year) || ((a.month||0) - (b.month||0)));
+      player.timeline.sort((a,b) => (a.year - b.year) || ((a.month||1) - (b.month||1)));
       if(draggedFromPlayer.lastAdded === draggedEntry) draggedFromPlayer.lastAdded = null;
       draggedEntry = null;
       draggedFromPlayer = null;
@@ -2992,7 +2996,7 @@ function giveCardTo(player, bought){
     sessionCoinsWon++;
   }
   player.timeline.push(entry);
-  player.timeline.sort((a,b) => (a.year - b.year) || ((a.month||0) - (b.month||0)));
+  player.timeline.sort((a,b) => (a.year - b.year) || ((a.month||1) - (b.month||1)));
   player.lastAdded = entry;
   statsCardsPlaced++;
   sessionCardsPlaced++;
@@ -3095,6 +3099,15 @@ let statsCoinsWon = 0;
 let sessionCardsLost = 0;
 let sessionCardsPlaced = 0;
 let sessionCoinsWon = 0;
+// This session's chaos, coin shop and over/under numbers, for the recap.
+// Per-player tallies are keyed by name.
+function freshChaosStats(){
+  return { rounds: {}, shop: {}, spent: {}, ou: 0, ouRight: {}, lockWins: {}, bets: {}, robin: 0, donLost: 0 };
+}
+let sessionChaos = freshChaosStats();
+function tally(obj, key, n){
+  obj[key] = (obj[key] || 0) + (n === undefined ? 1 : n);
+}
 let draggedEntry = null;
 let draggedFromPlayer = null;
 let autoScrollY = null;
@@ -3173,6 +3186,45 @@ function calcAccuracy(){
   return total > 0 ? Math.round((sessionCardsPlaced / total) * 100) + '%' : '—';
 }
 
+// The recap's "Modes & extras" rows: only what came up this session (or is
+// switched on), so a plain game shows none of it.
+function chaosRecapRows(){
+  const s = sessionChaos;
+  const rows = [];
+  const sum = obj => Object.values(obj).reduce((a, b) => a + b, 0);
+  const ranked = obj => Object.entries(obj).sort((a, b) => (b[1] - a[1]) || a[0].localeCompare(b[0]));
+  const cardName = id => ((CHAOS_CARDS.find(c => c.id === id) || {}).title || id).replace('{x}', 'X');
+  const itemName = id => id === 'force' ? 'Forced song' : (SHOP_ITEMS.find(i => i.id === id) || {}).name || id;
+  const times = n => n + (n === 1 ? ' time' : ' times');
+
+  const rounds = sum(s.rounds);
+  if(rounds){
+    rows.push(['Chaos rounds', rounds]);
+    rows.push(['Most played', ranked(s.rounds).slice(0, 3).map(([id, n]) => cardName(id) + ' ×' + n).join(', ')]);
+  }
+  const buys = sum(s.shop);
+  if(buys || shopEnabled || s.rounds.shop){
+    rows.push(['Shop buys', buys ? buys + ' · ' + ranked(s.shop).map(([id, n]) => itemName(id) + ' ×' + n).join(', ') : 0]);
+    if(buys){
+      rows.push(['Coins spent', sum(s.spent)]);
+      const [name, n] = ranked(s.spent)[0];
+      rows.push(['Big spender', name + ' · ' + n + ' coins']);
+    }
+  }
+  if(s.ou || ouEnabled){
+    rows.push(['Over/unders', s.ou]);
+    const best = ranked(s.ouRight)[0];
+    if(best) rows.push(['Over/under champ', best[0] + ' · ' + best[1] + ' of ' + s.ou + ' right']);
+  }
+  const lock = ranked(s.lockWins)[0];
+  if(lock) rows.push(['Closest lock-ins', lock[0] + ' · won ' + times(lock[1])]);
+  const bettor = ranked(s.bets)[0];
+  if(bettor && bettor[1] > 0) rows.push(['Best bettor', bettor[0] + ' · +' + bettor[1] + ' coins']);
+  if(s.robin) rows.push(['Robin Hood', s.robin + (s.robin === 1 ? ' coin' : ' coins') + ' moved']);
+  if(s.donLost) rows.push(['Lost to double or nothing', s.donLost + (s.donLost === 1 ? ' card' : ' cards')]);
+  return rows;
+}
+
 function renderRecap(){
   const container = document.getElementById('recapStats');
   container.innerHTML = '';
@@ -3206,6 +3258,28 @@ function renderRecap(){
     row.innerHTML = '<span class="field-label" style="margin:0;">' + label + '</span><span class="menu-setting-value">' + value + '</span>';
     container.appendChild(row);
   });
+
+  const extras = chaosRecapRows();
+  if(extras.length){
+    const h = document.createElement('div');
+    h.className = 'recap-h';
+    h.textContent = 'Modes & extras';
+    container.appendChild(h);
+    extras.forEach(([label, value]) => {
+      const row = document.createElement('div');
+      row.className = 'menu-setting-row';
+      row.style.justifyContent = 'space-between';
+      const l = document.createElement('span');
+      l.className = 'field-label';
+      l.style.margin = '0';
+      l.textContent = label;
+      const v = document.createElement('span');
+      v.className = 'menu-setting-value recap-v';
+      v.textContent = value;
+      row.append(l, v);
+      container.appendChild(row);
+    });
+  }
 
   const songList = document.getElementById('recapSongList');
   songList.innerHTML = '';
@@ -3452,6 +3526,12 @@ document.getElementById('saveRecapBtn').addEventListener('click', () => {
   lines.push('Gold coins won: ' + sessionCoinsWon);
   lines.push('Year range: ' + yearRangeText);
   lines.push('Average year: ' + avgYearText);
+  const extras = chaosRecapRows();
+  if(extras.length){
+    lines.push('');
+    lines.push('MODES & EXTRAS');
+    extras.forEach(([label, value]) => lines.push(label + ': ' + value));
+  }
   lines.push('');
   lines.push('LEADERBOARD');
   lines.push('-----------------------------------------');
@@ -3516,9 +3596,11 @@ function positionToggleSlider(container){
 
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
+// Spotify has no release month for some (mostly older) albums: those count
+// as January, and show as January.
 function formatHistoryYear(entry){
   if(!entry.year) return '—';
-  if(expertMode && entry.month) return MONTH_NAMES[entry.month - 1] + ' ' + entry.year;
+  if(expertMode) return MONTH_NAMES[(entry.month || 1) - 1] + ' ' + entry.year;
   return entry.year;
 }
 
@@ -3526,10 +3608,10 @@ function appendCardYear(card, entry){
   const yearEl = document.createElement('div');
   yearEl.className = 'vinyl-card-year';
   yearEl.textContent = entry.year;
-  if(expertMode && entry.month){
+  if(expertMode){
     const monthEl = document.createElement('div');
     monthEl.className = 'vinyl-card-month';
-    monthEl.textContent = MONTH_NAMES[entry.month - 1] || '';
+    monthEl.textContent = MONTH_NAMES[(entry.month || 1) - 1];
     yearEl.appendChild(monthEl);
   }
   card.appendChild(yearEl);
@@ -3735,6 +3817,7 @@ function resetDeckProgress(){
   sessionCardsLost = 0;
   sessionCardsPlaced = 0;
   sessionCoinsWon = 0;
+  sessionChaos = freshChaosStats();
   currentSessionId++;
   endChaosCard();
   chaos = null;
@@ -4255,12 +4338,12 @@ newPointBtn.addEventListener('click', () => playSnippet(true));
 function refreshNowYearDisplay(){
   if(!currentCard || !revealed) return;
   setDeckLabel(currentCard);
-  const showMonth = expertMode && currentCard.month;
+  const showMonth = expertMode && currentCard.year;
   nowYear.classList.toggle('with-month', !!showMonth);
   if(!currentCard.year){
     nowYear.textContent = 'year not set';
   }else if(showMonth){
-    nowYear.innerHTML = '<span>' + escapeHtml(MONTH_NAMES[currentCard.month - 1]) + ',</span><span>' + escapeHtml(String(currentCard.year)) + '</span>';
+    nowYear.innerHTML = '<span>' + escapeHtml(MONTH_NAMES[(currentCard.month || 1) - 1]) + ',</span><span>' + escapeHtml(String(currentCard.year)) + '</span>';
   }else{
     nowYear.textContent = currentCard.year;
   }
@@ -4373,7 +4456,7 @@ function buildStateBlob(){
           title: currentCard.title || '',
           artist: currentCard.artist || '',
           year: currentCard.year || null,
-          month: currentCard.month || null
+          month: currentCard.month || 1
         }
       : { revealed: false };
   }
@@ -4387,7 +4470,7 @@ function buildStateBlob(){
       timeline: (p.timeline || []).map(e => ({
         id: e.id,
         year: e.year,
-        month: e.month || null,
+        month: e.month || 1,
         title: e.title || '',
         artist: e.artist || '',
         bonus: !!e.bonus,
@@ -4992,6 +5075,7 @@ function chaosBeforeDraw(){
   if(chaos && chaos.pending){
     chaos.pending = false;
     applyChaosCard();
+    tally(sessionChaos.rounds, chaos.card.id);
     renderChaos();
     return false;
   }
@@ -5125,7 +5209,7 @@ function latestCard(player){
 
 function restoreCard(player, entry){
   player.timeline.push(entry);
-  player.timeline.sort((a,b) => (a.year - b.year) || ((a.month||0) - (b.month||0)));
+  player.timeline.sort((a,b) => (a.year - b.year) || ((a.month||1) - (b.month||1)));
   statsCardsPlaced++;
   sessionCardsPlaced++;
   statsCoinsWon += coinValue(entry);
@@ -5182,6 +5266,7 @@ function settleSong(){
       const hit = bet.pick === 'wrong' ? !won : bet.pick === 'coin' ? !!(won && won.bonus) : !!won;
       const delta = hit ? bet.amount * (bet.pick === 'coin' ? 3 : 2) : -bet.amount;
       bettor.coinAdj = (bettor.coinAdj || 0) + delta;
+      tally(sessionChaos.bets, bettor.name, delta);
       if(delta > 0){ statsCoinsWon += delta; sessionCoinsWon += delta; }
       results[deviceId] = { pick: bet.pick, amount: bet.amount, delta };
       notes.push(bettor.name + ' ' + (delta > 0 ? '+' : '−') + Math.abs(delta));
@@ -5191,7 +5276,10 @@ function settleSong(){
 
   if(chaosActive('robin') && !song.event && !players.some(p => p.timeline.some(e => e.id === song.id && !e.locked))){
     const robin = robinHood();
-    if(robin) notes.push('Robin Hood: ' + robin);
+    if(robin){
+      notes.push('Robin Hood: ' + robin);
+      sessionChaos.robin++;
+    }
   }
 
   if(notes.length) lobbyToast(notes.join(' · '));
@@ -5342,13 +5430,15 @@ function shopBuy(buyer, item, opts){
     entry.locked = true;
     entry.addedAt = Date.now();
     buyer.timeline.push(entry);
-    buyer.timeline.sort((a,b) => (a.year - b.year) || ((a.month||0) - (b.month||0)));
+    buyer.timeline.sort((a,b) => (a.year - b.year) || ((a.month||1) - (b.month||1)));
     song.skipped = buyer.name + ' stole ' + entry.year + (entry.title ? ' · ' + entry.title : '') + ' from ' + other.name;
     awaitingStart = false;
     stopPlayback();
     msg = song.skipped;
   }
   buyer.coinAdj = (buyer.coinAdj || 0) - price;
+  tally(sessionChaos.shop, item);
+  tally(sessionChaos.spent, buyer.name, price);
   lobbyToast(msg);
   renderScoreboard();
   renderShopWindow();
@@ -5560,6 +5650,7 @@ function settleLockin(){
       r.win = r.off === l.results[0].off;
       const p = r.win && players.find(p => p.deviceId === r.deviceId);
       if(!p) return;
+      tally(sessionChaos.lockWins, p.name);
       p.coinAdj = (p.coinAdj || 0) + 1;
       statsCoinsWon++;
       sessionCoinsWon++;
@@ -5630,11 +5721,13 @@ function settleVote(){
   vote.year = parseInt(currentCard.year, 10);
   vote.answer = vote.year < vote.pivot ? 'before' : 'after';
   vote.results = {};
+  sessionChaos.ou++;
   players.forEach(p => {
     if(!p.deviceId) return;
     const choice = vote.votes[p.deviceId] || null;
     if(!choice && !vote.voters.includes(p.deviceId)) return;
     const correct = choice === vote.answer;
+    if(correct) tally(sessionChaos.ouRight, p.name);
     const delta = vote.stakes === 'hard' ? (correct ? 0 : -1) : (correct ? 1 : 0);
     p.coinAdj = (p.coinAdj || 0) + delta;
     if(delta > 0){ statsCoinsWon++; sessionCoinsWon++; }
@@ -5837,7 +5930,7 @@ function setDeckLabel(card){
   vinylLabel.textContent = '?';
   if(card){
     deckLabelYear.textContent = card.year || '★';
-    deckLabelMonth.textContent = (expertMode && card.month) ? MONTH_NAMES[card.month - 1] : '';
+    deckLabelMonth.textContent = (expertMode && card.year) ? MONTH_NAMES[(card.month || 1) - 1] : '';
   }
   syncStage();
 }
@@ -5997,6 +6090,7 @@ function renderGive(){
       back.addEventListener('click', () => {
         restoreCard(turnPlayer, lost);
         song.donLost = null;
+        sessionChaos.donLost = Math.max(0, sessionChaos.donLost - 1);
         renderScoreboard();
       });
       giveChips.appendChild(back);
@@ -6010,6 +6104,7 @@ function renderGive(){
       lose.title = 'Double or nothing: wrong, so ' + latest.year + (latest.title ? ' · ' + latest.title : '') + ' goes';
       lose.addEventListener('click', () => {
         song.donLost = loseLatestCard(turnPlayer);
+        sessionChaos.donLost++;
         lobbyToast(turnPlayer.name + ' lost ' + latest.year + ' — double or nothing');
         renderScoreboard();
       });
