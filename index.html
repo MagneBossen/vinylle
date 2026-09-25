@@ -4616,6 +4616,13 @@ revealBtn.addEventListener('click', () => {
   settleVote();
   settleLockin();
   renderSpot();
+  // A right pick on the phone wins the card straight away — the phone gets
+  // its "You got it". The DJ can still take it back (or give it by hand to
+  // someone who said their spot out loud instead).
+  if(spotOn() && song.spot != null && !isNaN(parseInt(currentCard.year, 10)) && spotRight(song.spot)){
+    const tp = players.find(p => p.name === song.turn);
+    if(tp && !tp.timeline.some(e => e.id === currentCard.id)) giveCardTo(tp);
+  }
   currentCard.revealedOnce = true;
   setDeckLabel(currentCard);
   nowTitle.textContent = currentCard.title;
@@ -5582,7 +5589,7 @@ function renderSpot(){
   box.hidden = !has;
   if(has){
     let line = song.turn + ' points to ' + spotLabel(spotTimeline(), song.spot);
-    if(revealed && !isNaN(parseInt(currentCard.year, 10))) line += spotRight(song.spot) ? ' · ✓ right spot' : ' · ✗ wrong spot';
+    if(revealed && !isNaN(parseInt(currentCard.year, 10))) line += spotRight(song.spot) ? ' · ✓ right, card given' : ' · ✗ wrong spot';
     document.getElementById('spotLine').textContent = line;
   }
   broadcastState();
@@ -6211,7 +6218,7 @@ function renderVote(){
   const ids = Object.keys(vote.results || {});
   const gained = ids.filter(id => vote.results[id].delta > 0).map(name).filter(Boolean);
   const lost = ids.filter(id => vote.results[id].delta < 0).map(name).filter(Boolean);
-  let line = vote.year + ' is ' + vote.answer + ' ' + vote.pivot + '. ';
+  let line = 'Answer: ' + vote.year + ' · ';
   if(vote.stakes === 'hard') line += lost.length ? '−1 coin: ' + lost.join(', ') : 'Nobody lost a coin.';
   else line += gained.length ? '+1 coin: ' + gained.join(', ') : 'Nobody got it.';
   el.textContent = line;

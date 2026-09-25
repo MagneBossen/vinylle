@@ -859,7 +859,7 @@ const STR = {
     beforeLc: 'before', afterLc: 'after',
     yourVote: 'Your vote: {v} — you can change it until the reveal.', tapOne: 'Tap one — you can change it until the reveal.',
     ouSettled: 'Over/under settled', safe: 'Safe — you called it!', rightCoin: 'Right! +1 gold coin', wrongMinus: 'Wrong — −1 gold coin',
-    notThisTime: 'Not this time', noVoteMinus: 'No vote — −1 gold coin', noVote: 'No vote this time', ouLine: '{year} is {answer} {pivot}.',
+    notThisTime: 'Not this time', noVoteMinus: 'No vote — −1 gold coin', noVote: 'No vote this time', ouLine: '{year} is {answer} {pivot}.', ouAnswer: 'Correct answer: {year}',
     spotBefore: 'Before {x}', spotAfter: 'After {x}', yourPick: 'Your pick', rightSpot: 'Right spot!', wrongSpot: 'Wrong spot',
     pointedTo: 'You pointed to {x}.', spotKicker: 'Your turn · point to your spot', whereGo: 'Where does it go?',
     spotHint: 'The DJ sees your pick. You can change it until the reveal.', spotPicked: 'Picked — change it any time before the reveal.',
@@ -935,7 +935,7 @@ const STR = {
     beforeLc: 'før', afterLc: 'efter',
     yourVote: 'Din stemme: {v} — du kan ændre den indtil afsløringen.', tapOne: 'Vælg én — du kan ændre den indtil afsløringen.',
     ouSettled: 'Over/under afgjort', safe: 'Sikker — du havde ret!', rightCoin: 'Rigtigt! +1 guldmønt', wrongMinus: 'Forkert — −1 guldmønt',
-    notThisTime: 'Ikke denne gang', noVoteMinus: 'Ingen stemme — −1 guldmønt', noVote: 'Ingen stemme denne gang', ouLine: '{year} er {answer} {pivot}.',
+    notThisTime: 'Ikke denne gang', noVoteMinus: 'Ingen stemme — −1 guldmønt', noVote: 'Ingen stemme denne gang', ouLine: '{year} er {answer} {pivot}.', ouAnswer: 'Rigtigt svar: {year}',
     spotBefore: 'Før {x}', spotAfter: 'Efter {x}', yourPick: 'Dit valg', rightSpot: 'Rigtig plads!', wrongSpot: 'Forkert plads',
     pointedTo: 'Du pegede på {x}.', spotKicker: 'Din tur · peg på pladsen', whereGo: 'Hvor skal den hen?',
     spotHint: 'DJ’en kan se dit valg. Du kan ændre det indtil afsløringen.', spotPicked: 'Valgt — du kan ændre det indtil afsløringen.',
@@ -1650,12 +1650,9 @@ function renderMyTimeline(){
   }
   const pick = myPick();
   const picking = !!pick && pick.open;
-  if(pick && !pick.open && pick.slot != null && pick.right != null){
-    // After the reveal: how the pick went (the ghost below shows where it fits).
-    bar.hidden = false;
-    bar.className = 'pick-bar result' + (pick.right ? '' : ' wrong');
-    bar.textContent = tr('pickResult', { x: spotLabel(pick.tl, pick.slot) }) + ' · ' + (pick.right ? '✓ ' + tr('rightSpot') : '✗ ' + tr('wrongSpot'));
-  }else if(picking){
+  // After the reveal there's nothing to say here: a right pick gets the card
+  // (and the yellow "You got it"), a wrong one shows "fits here" below.
+  if(picking){
     bar.hidden = false;
     bar.textContent = tlView === 'cards' ? tr('slideToPlace') : tr('tapToPlace');
   }
@@ -2299,7 +2296,7 @@ function renderVote(){
   q.className = 'q';
   const s = document.createElement('div');
   s.className = 's';
-  s.textContent = tr('ouLine', { year: v.year, answer: v.answer === 'before' ? tr('beforeLc') : tr('afterLc'), pivot: v.pivot });
+  s.textContent = tr('ouAnswer', { year: v.year });
   if(!r){
     q.textContent = tr('ouSettled');
   }else if(r.correct){
