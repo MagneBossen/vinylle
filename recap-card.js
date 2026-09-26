@@ -38,6 +38,14 @@
     return size;
   }
 
+  // Cut text to fit maxW, leaving tailW free for whatever marks the cut.
+  function clip(ctx, text, maxW, tailW){
+    if(ctx.measureText(text).width <= maxW) return text;
+    const chars = Array.from(text);
+    while(chars.length > 1 && ctx.measureText(chars.join('')).width > maxW - tailW) chars.pop();
+    return chars.join('').trimEnd();
+  }
+
   // Letter-spaced caps, drawn by hand (canvas letterSpacing isn't everywhere).
   function spaced(ctx, text, x, y, spacing, align){
     const chars = text.split('');
@@ -204,9 +212,23 @@
     // Name, big.
     ctx.fillStyle = C.paper;
     ctx.textAlign = 'left';
-    const nameSize = fit(ctx, d.name, '700', SERIF, 150, 600, 60);
-    ctx.font = '700 ' + nameSize + 'px ' + SERIF;
-    ctx.fillText(d.name, 76, 330);
+    // 150px when the name fits before the record, otherwise 120px; anything still
+    // too long is cut and ends in two small, faint dots.
+    const name = d.name || '', nameMax = 500;
+    ctx.font = '700 150px ' + SERIF;
+    const nameSize = ctx.measureText(name).width <= nameMax ? 150 : 120;
+    const nameFont = '700 ' + nameSize + 'px ' + SERIF, dotsFont = '700 ' + Math.round(nameSize * .47) + 'px ' + SERIF;
+    ctx.font = dotsFont;
+    const dotsW = ctx.measureText('..').width + 6;
+    ctx.font = nameFont;
+    const shown = clip(ctx, name, nameMax, dotsW);
+    ctx.fillText(shown, 76, 330);
+    if(shown !== name){
+      const w = ctx.measureText(shown).width;
+      ctx.font = dotsFont;
+      ctx.fillStyle = 'rgba(243,236,221,.4)';
+      ctx.fillText('..', 76 + w + 6, 330);
+    }
 
     // Rank line, plus a WINNER pill.
     ctx.font = '500 34px ' + MONO;
@@ -247,11 +269,11 @@
       return w;
     };
     const cardsW = hero(d.cards || 0, L(d.cards === 1 ? 'CARD' : 'CARDS', 'KORT'), 80, C.paper);
-    hero(d.coins || 0, d.coins === 1 ? L('GOLD COIN', 'GULDMØNT') : L('GOLD COINS', 'GULDMØNTER'), 600, C.gold);
+    hero(d.coins || 0, d.coins === 1 ? L('GOLD COIN', 'GULDMØNT') : L('GOLD COINS', 'GULDMØNTER'), 520, C.gold);
     // A little progress ring toward the target, right after the card count.
     const target = d.winLength || 10;
     const pct = Math.min(1, (d.cards || 0) / target);
-    const rx = Math.min(80 + cardsW + 70, 520);
+    const rx = Math.min(80 + cardsW + 70, 450);
     ctx.lineWidth = 10;
     ctx.strokeStyle = 'rgba(255,255,255,.08)';
     ctx.beginPath(); ctx.arc(rx, 580, 44, 0, Math.PI * 2); ctx.stroke();
