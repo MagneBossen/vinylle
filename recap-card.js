@@ -30,6 +30,15 @@
   const decadeText = dec => LANG === 'da' ? String(dec).replace(/^'/, '').replace(/s$/, '’erne') : dec;
   const yrs = n => n + L('y', ' år');
 
+  // The site's address for the bottom of a story card. Taken from the page's
+  // own address, except on the temporary host (and local testing), which
+  // show the real name instead.
+  function siteLabel(){
+    const host = (location.hostname || '').replace(/^www\./, '');
+    const temporary = !host || /\.onrender\.com$/.test(host) || /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host) || /\.local$/.test(host);
+    return temporary ? 'vinylle.com' : host;
+  }
+
   function ordinal(n){
     if(LANG === 'da') return n + '.';
     const s = ['th', 'st', 'nd', 'rd'];
@@ -378,6 +387,12 @@
     ctx.textAlign = 'right';
     ctx.fillText(L('first to ', 'først til ') + target, W - 80, H - F.foot);
     ctx.textAlign = 'left';
+    // A story has room under the footer: the site's address, centred.
+    if(format === 'story'){
+      ctx.fillStyle = C.muted;
+      ctx.font = '500 28px ' + MONO;
+      spaced(ctx, siteLabel(), W / 2, H - 80, 3, 'center');
+    }
     return canvas;
   }
 
