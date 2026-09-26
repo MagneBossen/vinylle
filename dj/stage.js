@@ -356,8 +356,6 @@ function renderGive(){
     extra.title = 'Nobody got it — hide these';
     extra.addEventListener('click', () => {
       giveDismissedFor = currentCard.id;
-      const robin = robinMiss();
-      if(robin) gameEvent(robin);
       renderScoreboard();
     });
   }
@@ -424,7 +422,9 @@ function catchUpPlayer(){
   const coins = p => settled(p).reduce((sum, e) => sum + coinValue(e), 0) + (p.coinAdj || 0);
   const key = p => cards(p) * 100000 + coins(p);
   const low = Math.min(...players.map(key));
-  const tied = players.filter(p => key(p) === low);
+  // The card never goes to the player whose turn it was. If they're the only
+  // one at the bottom, nobody gets it; if they share it, the others do.
+  const tied = players.filter(p => key(p) === low && p.name !== turnName);
   // A tie is settled by a random pick, kept for the rest of the song so the
   // chip doesn't jump around.
   let last = song && tied.find(p => p.name === song.catchUpPick);
@@ -432,7 +432,7 @@ function catchUpPlayer(){
     last = pickRandom(tied);
     if(song && last) song.catchUpPick = last.name;
   }
-  return last && last.name !== turnName ? last : null;
+  return last || null;
 }
 
 // Catch-up: going to the next song without handing out the card gives it to

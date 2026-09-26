@@ -19,7 +19,7 @@ const CHAOS_CARDS = [
   { id: 'sing', title: 'Sing-along', desc: "Sing along to it and win the card plus a gold coin. Can't? Play it as normal.", da: { title: 'Syng med', desc: 'Syng med på den og vind kortet plus en guldmønt. Kan du ikke? Spil den som normalt.' } },
   { id: 'betster', title: 'Betster', desc: 'Before each song starts, bet gold coins on your phone: right ×2, right + coin ×3, wrong ×2. Lose and you lose your bet.', da: { title: 'Betster', desc: 'Før hver sang starter, satser I guldmønter på telefonen: rigtigt ×2, rigtigt + mønt ×3, forkert ×2. Taber du, mister du din indsats.' } },
   { id: 'lockin', title: 'Lock-in', desc: 'Before the reveal, everyone locks in a year on their phone. Closest wins a gold coin.', da: { title: 'Lås fast', desc: 'Før afsløringen låser alle et år på telefonen. Tættest på vinder en guldmønt.' } },
-  { id: 'robin', title: 'Robin Hood', desc: 'Every song nobody wins this round, whoever has the most gold coins gives one to whoever has the fewest.', da: { title: 'Robin Hood', desc: 'Hver sang, som ingen vinder denne runde, giver den med flest guldmønter én til den med færrest.' } },
+  { id: 'robin', title: 'Robin Hood', desc: 'After every song this round, whoever has the most gold coins gives one to whoever has the fewest.', da: { title: 'Robin Hood', desc: 'Efter hver sang denne runde giver den med flest guldmønter én til den med færrest.' } },
   { id: 'blind', title: 'Blindfold', desc: 'Every timeline loses its years this round. Place it from memory.', da: { title: 'Bind for øjnene', desc: 'Alle tidslinjer mister deres årstal denne runde. Placer den efter hukommelsen.' } }
 ];
 
@@ -341,13 +341,13 @@ function loseLatestCard(player){
   return latest;
 }
 
-// Robin Hood: the player with the most coins gives one to the player with the
-// fewest. Ties: more cards counts as richer, fewer as poorer, then by name.
-// Nothing moves when everyone has the same. It fires once per song — the
-// moment the DJ taps "nobody", or at the next draw if the card was never
-// given — and is undone if the card gets handed out after all.
-function robinMiss(){
-  if(!chaosActive('robin') || !song || song.event || song.robin || currentCard.id !== song.id) return null;
+// Robin Hood: after every song of the round, the player with the most coins
+// gives one to the player with the fewest. Ties: more cards counts as richer,
+// fewer as poorer, then a random pick. Nothing moves when everyone has the
+// same. It fires once per song, when the song is settled at the next draw,
+// so that song's own coins are already counted.
+function robinSong(){
+  if(!chaosActive('robin') || !song || song.event || song.robin) return null;
   const coins = p => bonusCount(p);
   // Most coins, then most cards — and a random pick if that's still a tie.
   const key = p => coins(p) * 1000 + p.timeline.length;
@@ -365,24 +365,19 @@ function robinMiss(){
   return { en: 'Robin Hood: ' + rich.name + ' gives ' + poor.name + ' 1 coin', da: 'Robin Hood: ' + rich.name + ' giver ' + poor.name + ' 1 mønt' };
 }
 
-function robinUndo(){
-  const move = song && song.robin;
-  if(!move) return;
-  const rich = players.find(p => p.name === move.rich);
-  const poor = players.find(p => p.name === move.poor);
-  if(rich) rich.coinAdj = (rich.coinAdj || 0) + 1;
-  if(poor) poor.coinAdj = (poor.coinAdj || 0) - 1;
-  song.robin = null;
-  sessionChaos.robin = Math.max(0, sessionChaos.robin - 1);
-  tally(sessionChaos.robinGave, move.rich, -1);
-  tally(sessionChaos.robinGot, move.poor, -1);
-}
-
 function settleSong(){
   if(!song || song.settled) return;
   song.settled = true;
-  // Skipped without a reveal: nothing to judge, bets are off.
-  if(!revealed || !currentCard || currentCard.id !== song.id) return;
+  // Skipped without a reveal: nothing to judge, bets are off. Robin Hood
+  // still takes its coin — it does after every song.
+  if(!revealed || !currentCard || currentCard.id !== song.id){
+    const robin = robinSong();
+    if(robin){
+      gameEvent(robin);
+      renderScoreboard();
+    }
+    return;
+  }
   const turnPlayer = players.find(p => p.name === song.turn);
   const won = turnPlayer ? turnPlayer.timeline.find(e => e.id === song.id && !e.locked) : null;
   const notes = [];
@@ -421,10 +416,9 @@ function settleSong(){
     lastBetResults = { id: song.bets.id, turn: song.turn, results };
   }
 
-  if(!players.some(p => p.timeline.some(e => e.id === song.id && !e.locked))){
-    const robin = robinMiss();
-    if(robin) notes.push(robin);
-  }
+  // Robin Hood last, so this song's own coins (and bets) are counted.
+  const robin = robinSong();
+  if(robin) notes.push(robin);
 
   const both = n => typeof n === 'object' ? n : { en: n, da: n };
   if(notes.length) gameEvent({ en: notes.map(n => both(n).en).join(' · '), da: notes.map(n => both(n).da).join(' · ') });

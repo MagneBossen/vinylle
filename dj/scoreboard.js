@@ -524,8 +524,6 @@ function ownTurnCard(player, bought){
 
 function giveCardTo(player, bought){
   if(!currentCard) return;
-  // Robin Hood already moved a coin for "nobody got it": not any more.
-  if(song && song.id === currentCard.id) robinUndo();
   const entry = {
     id: currentCard.id,
     year: parseInt(currentCard.year, 10),

@@ -420,7 +420,11 @@ drawBtn.addEventListener('click', () => {
   autoCatchUp();
   settleSong();
   // A new chaos round shows its card first; the next press starts the song.
-  if(chaosBeforeDraw()) return;
+  // The last round's song is done with: stop it and clear the deck.
+  if(chaosBeforeDraw()){
+    clearDeck();
+    return;
+  }
   const { p, t } = pickTrack();
   t.drawn = true;
   // An over/under pop-up is a bonus song: it doesn't use up anyone's turn or
@@ -481,6 +485,44 @@ function pickTrack(){
   const p = available[Math.floor(Math.random() * available.length)];
   const tracks = p.tracks.filter(t => !t.drawn);
   return { p, t: tracks[Math.floor(Math.random() * tracks.length)] };
+}
+
+// Back to an empty deck between chaos rounds: the last song stops, its
+// title and year go, and nothing is left to give or bet on until the new
+// round's Start.
+function clearDeck(){
+  stopPlayback();
+  if(currentCard && !(song && song.event)){
+    const wasPlaced = players.some(pl => pl.timeline.some(e => e.id === currentCard.id));
+    if(!wasPlaced) sessionCardsLost++;
+  }
+  players.forEach(pl => {
+    pl.timeline.forEach(entry => { entry.locked = true; });
+    pl.lastAdded = null;
+  });
+  currentCard = null;
+  revealed = false;
+  song = null;
+  vote = null;
+  awaitingStart = false;
+  clipEndMs = 0;
+  nowTitle.textContent = '—';
+  nowArtist.textContent = '';
+  nowYear.textContent = '';
+  replayBtn.disabled = true;
+  newPointBtn.disabled = true;
+  revealBtn.disabled = true;
+  stopBtn.disabled = true;
+  resetClipVisual();
+  setDeckLabel(null);
+  renderVote();
+  renderBets();
+  renderLockin();
+  renderSpot();
+  renderHint();
+  renderTracklist();
+  renderScoreboard();
+  saveSession();
 }
 
 function showTrack(p, t){
