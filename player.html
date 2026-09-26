@@ -523,7 +523,8 @@
   .song-row .t{flex:1;min-width:0;display:flex;flex-direction:column;}
   .song-row .t b{font-family:'Fraunces',serif;font-weight:600;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .song-row .t small{font-size:.75rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .song-row .go{color:#1ED760;font-size:.85rem;}
+  .song-row .go{color:#1ED760;display:flex;align-items:center;flex-shrink:0;}
+  .song-row .go svg{display:block;}
   @keyframes rise{from{opacity:0;transform:translateY(6px);}}
 
   .spine{position:relative;padding-left:1.2rem;}
@@ -709,6 +710,7 @@
         <button type="button" class="switch-link gold" id="recapBtn" data-i18n="recapLink">Your recap card ›</button>
         <button type="button" class="switch-link" id="switchBtn" data-i18n="notYou">Not you? Switch player</button>
         <button type="button" class="switch-link" id="vibeBtn"></button>
+        <button type="button" class="switch-link" id="pickOptBtn"></button>
         <button type="button" class="switch-link" data-home="confirm" data-i18n="leaveGame">Leave the game</button>
       </div>
     </div>
@@ -903,7 +905,7 @@ const STR = {
     noCardsYet: 'No cards yet — win one and it lands here.', fitsHere: 'Fits here', nobodyYet: 'Nobody in the game yet.',
     phoneOn: 'phone connected', phoneOff: 'no phone connected', streakTitle: '{n} in a row on their own turns',
     of: 'of', targetReached: 'target reached', toGo1: '1 card to go', toGo: '{n} cards to go',
-    gotIt: 'You got it — {year}!', vibration: 'Vibration: {state}', on: 'on', off: 'off',
+    gotIt: 'You got it — {year}!', vibration: 'Vibration: {state}', pickOpt: 'Point to my spot: {state}', on: 'on', off: 'off',
     djDropped: 'The DJ dropped out. Game paused — ending in <strong id="graceClock">5:00</strong> unless they come back.',
     notOnBoard: 'The DJ has not put you on the board yet.', hint: "Hint: it's from the {decade}.", justNow: 'Just now',
     chaosRound: 'Chaos · round {r}', upNext: 'up next', songOf: 'song {a} of {b}', gotItBtn: 'Got it',
@@ -982,7 +984,7 @@ const STR = {
     noCardsYet: 'Ingen kort endnu — vind et, så lander det her.', fitsHere: 'Passer her', nobodyYet: 'Ingen i spillet endnu.',
     phoneOn: 'telefon forbundet', phoneOff: 'ingen telefon forbundet', streakTitle: '{n} i træk på egne ture',
     of: 'af', targetReached: 'målet er nået', toGo1: '1 kort tilbage', toGo: '{n} kort tilbage',
-    gotIt: 'Du fik den — {year}!', vibration: 'Vibration: {state}', on: 'til', off: 'fra',
+    gotIt: 'Du fik den — {year}!', vibration: 'Vibration: {state}', pickOpt: 'Peg selv på pladsen: {state}', on: 'til', off: 'fra',
     djDropped: 'DJ’en faldt ud. Spillet er sat på pause — det slutter om <strong id="graceClock">5:00</strong>, hvis DJ’en ikke kommer tilbage.',
     notOnBoard: 'DJ’en har ikke sat dig på brættet endnu.', hint: 'Hint: den er fra {decade}.', justNow: 'Lige nu',
     chaosRound: 'Kaos · runde {r}', upNext: 'næste', songOf: 'sang {a} af {b}', gotItBtn: 'Forstået',
@@ -1567,6 +1569,9 @@ document.querySelectorAll('#lbSwitch [data-lbview]').forEach(b => b.addEventList
   syncLbView(true);
 }));
 
+// Lucide's "external-link" icon (lucide.dev, ISC licence), inlined.
+const EXTERNAL_LINK_ICON = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>';
+
 // Every song revealed tonight, newest first — tap one to open it in Spotify.
 function songsKey(){
   return JSON.stringify(lastState && lastState.songs);
@@ -1600,7 +1605,7 @@ function renderSongs(){
     if(s.id){
       const go = document.createElement('span');
       go.className = 'go';
-      go.textContent = '↗';
+      go.innerHTML = EXTERNAL_LINK_ICON;
       row.appendChild(go);
     }
     list.appendChild(row);
@@ -1926,7 +1931,19 @@ function buzz(pattern){
 }
 function syncVibeBtn(){
   document.getElementById('vibeBtn').textContent = tr('vibration', { state: vibeOn ? tr('on') : tr('off') });
+  document.getElementById('pickOptBtn').textContent = tr('pickOpt', { state: pickOn ? tr('on') : tr('off') });
 }
+// Pointing to your own spot on your turn (the + gaps and the ??? slider).
+// Off: nothing to place on the phone, the DJ places the card as usual.
+let pickOn = true;
+try{ pickOn = localStorage.getItem('vl_pick') !== 'off'; }catch(e){}
+document.getElementById('pickOptBtn').addEventListener('click', () => {
+  pickOn = !pickOn;
+  try{ localStorage.setItem('vl_pick', pickOn ? 'on' : 'off'); }catch(e){}
+  syncVibeBtn();
+  renderKeys.timeline = null;
+  if(joined) render();
+});
 document.getElementById('vibeBtn').addEventListener('click', () => {
   vibeOn = !vibeOn;
   try{ localStorage.setItem('vl_vibrate', vibeOn ? 'on' : 'off'); }catch(e){}
@@ -2442,7 +2459,7 @@ function spotLabel(tl, slot){
 function myPick(){
   const sp = lastState && lastState.spot;
   const mine = me();
-  if(!sp || !mine || sp.turn !== mine.name) return null;
+  if(!pickOn || !sp || !mine || sp.turn !== mine.name) return null;
   const tl = (mine.timeline || []).filter(e => e.id !== sp.songId);
   if(!tl.length) return null;
   const open = !lastState.revealed;
@@ -2879,7 +2896,7 @@ function setMeMenu(open){
 }
 meMoreBtn.addEventListener('click', (e) => { e.stopPropagation(); setMeMenu(meMenu.hidden); });
 document.addEventListener('click', (e) => { if(!meMenu.hidden && !meMenu.contains(e.target)) setMeMenu(false); });
-meMenu.addEventListener('click', (e) => { if(e.target.closest('button') && e.target.id !== 'vibeBtn') setMeMenu(false); });
+meMenu.addEventListener('click', (e) => { if(e.target.closest('button') && e.target.id !== 'vibeBtn' && e.target.id !== 'pickOptBtn') setMeMenu(false); });
 
 function render(){
   renderBanners();

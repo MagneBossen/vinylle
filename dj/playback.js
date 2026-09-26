@@ -455,10 +455,22 @@ drawBtn.addEventListener('click', () => {
   renderBets();
   renderLockin();
   renderSpot();
-  // A song waiting for Start — silence the last one meanwhile.
-  if(awaitingStart) stopPlayback();
+  // A song waiting for Start — silence the last one meanwhile, and put the
+  // ring back to a full clip now rather than when Start is pressed.
+  if(awaitingStart){
+    stopPlayback();
+    resetClipVisual();
+  }
   else playSnippet(true);
 });
+
+// A fresh, untouched clip: full bar and ring, full time on the label.
+function resetClipVisual(){
+  clipBar.style.transition = 'none';
+  clipBar.style.width = '100%';
+  timerLine.textContent = untimedMode ? '∞' : clipSeconds() + 's';
+  setClipRun(untimedMode ? null : clipSeconds() * 1000, false);
+}
 
 // A random undrawn song: from the playlist round's playlist when one is on.
 function pickTrack(){

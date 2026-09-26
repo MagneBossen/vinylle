@@ -460,9 +460,15 @@ function startVote(track, stakes){
   const year = parseInt(track.year, 10);
   if(!stakes || isNaN(year)){ renderVote(); return; }
   const shift = (1 + Math.floor(Math.random() * 8)) * (Math.random() < .5 ? -1 : 1);
+  // Hard roof at last year: "before or after 2029" gives the answer away.
+  // A song from the roof year itself would be asked about its own year, so
+  // that one goes the other way instead.
+  const roof = new Date().getFullYear() - 1;
+  let pivot = Math.min(year + shift, roof);
+  if(pivot === year) pivot = year - shift;
   vote = {
     id: track.id + ':' + Date.now(),
-    pivot: year + shift,
+    pivot,
     stakes,
     open: true,
     votes: {},
