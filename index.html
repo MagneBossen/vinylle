@@ -172,7 +172,8 @@
     margin-left:.6rem;
     font-weight:400;
   }
-  .plist-tracks{list-style:none;margin:.6rem 0 1.1rem;padding:0 0 0 1.4rem;}
+  .plist-tracks{list-style:none;margin:.6rem 0 1.1rem;padding:0 0 0 1.4rem;max-height:24rem;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;}
+  .plist-tracks::-webkit-scrollbar{display:none;}
   .footer-link{color:var(--muted);text-decoration:none;}
   .footer-link:hover{color:var(--gold);text-decoration:underline;}
   .plist-close-row-inline{cursor:pointer;}
@@ -1662,31 +1663,35 @@
     </div>
 
     <div id="rulesView" style="display:none;">
-      <p class="hint" style="margin-top:0;">Vinyl'le doesn't enforce rules for you — the DJ and players agree on what to use before starting. Here's the base game, plus a few optional variants.</p>
+      <p class="hint" style="margin-top:0;">The DJ runs the game on this screen; everyone else follows along (and votes, bets and shops) on their phone.</p>
 
       <div class="history-scroll-box" style="padding:0 1rem 1rem 0; margin-top:.5rem;">
-      <h3 class="rules-h3">Base rules</h3>
-      <p class="hint" style="margin:0 0 .5rem;">One player draws and plays a mystery clip. That player will then have to guess what year the song came out in, or around in, they'll have to place it into their own timeline in the spot they think is chronologically correct. Say the player has a 1974, 1984, and a 2012 card in their timeline, the player has to guess where in that timeline the song fits in, if the played song is from 1982, and the player guessed it was from between 1984 and 2012, they lose their round and cannot add the card to their timeline. The answer of the song is revealed after a guess has been locked in. First to the target number of cards (set in Settings) wins. Default & recommended is 10 cards.</p>
+      <h3 class="rules-h3">A turn</h3>
+      <p class="hint" style="margin:0 0 .5rem;">The DJ plays a mystery song. Whoever's turn it is (shown on the big screen and their phone) says where it goes in their own timeline — before, between or after their cards — or points to the spot on their phone. After the reveal, a right spot wins the card. A right pick on the phone wins it automatically; otherwise the DJ gives it (Who placed it right?).</p>
 
-      <h3 class="rules-h3">Gold coin (bonus point)</h3>
-      <p class="hint" style="margin:0 0 .5rem;">If a player can also name the song's title and/or one of the artist(s) (if multiple) before it's revealed, they earn a gold coin. Tap the gold coin on their card to mark it as a bonus. What a bonus is actually worth (an extra card, a skip, a steal, nothing at all) is entirely up to your group — else it's merely a tiebreaker.</p>
+      <h3 class="rules-h3">Gold coins</h3>
+      <p class="hint" style="margin:0 0 .5rem;">Name the title or one of the artists before the reveal and the card comes with a gold coin (the coin chip, or C). Coins break ties, and in the extras below they buy things in the coin shop and are what you bet with.</p>
 
-      <h3 class="rules-h3">Scoring System</h3>
-      <p class="hint" style="margin:0 0 .5rem;">The first player to the agreed number of cards in their timeline (default 10) wins the game. In case of a tie on cards, the winner is decided by gold coins. If still tied, the winner is decided by whoever has the closest year-gaps (or if on expert mode, closest months-gap) in their timeline — so a 2012 and a 2013 beats a 2012 and a 2014, by the difference in years. If tied again, this continues until a winner is found, and in the rare case both players have identical years, it's a coin toss.</p>
+      <h3 class="rules-h3">Hot streak</h3>
+      <p class="hint" style="margin:0 0 .5rem;">From the 3rd card in a row won on your own turns, every card comes with a bonus coin. One miss ends the streak. 🔥 shows the run.</p>
 
-      <h3 class="rules-h3">Gamemodes</h3>
+      <h3 class="rules-h3">Winning</h3>
+      <p class="hint" style="margin:0 0 .5rem;">The first player to the target (Settings → Cards to win) wins, and keeps the win (WON) even if you play on. Whoever leads after that shows WINS. In the standings, a tie on cards goes to the most coins, then the closest gaps between cards (a 2012 and a 2013 beats a 2012 and a 2014), then a coin toss.</p>
 
-      <h3 class="rules-h3-sub">Steal</h3>
-      <p class="hint" style="margin:0 0 .5rem;">Cards can be dragged from one player's timeline to another at any time. A common house rule: if a player guesses a year exactly right, they may steal any one card from an opponent's timeline instead of adding their own — yes, if the stolen card has a gold coin you steal that as well!</p>
-
-      <h3 class="rules-h3-sub">Hard mode</h3>
-      <p class="hint" style="margin:0 0 .5rem;">Instead of scoring on the standard "was it placed correctly" basis, require players to also guess a specific year out loud before revealing and be within an agreed span of years, e.g. 5 years — not only just the correct relative position.</p>
-
-      <h3 class="rules-h3-sub">Teams</h3>
-      <p class="hint" style="margin:0 0 .5rem;">Two or more players share one timeline slot on the scoreboard, against a team of equal size and/or skill, instead of playing individually — useful for uneven group sizes or mixed skill levels.</p>
-
+      <h3 class="rules-h3">Extras</h3>
+      <h3 class="rules-h3-sub">Presets</h3>
+      <p class="hint" style="margin:0 0 .5rem;">Classic (the plain game), Casual (over/under and the coin shop) or Party (chaos and over/under) — one tap in Settings.</p>
       <h3 class="rules-h3-sub">Chaos</h3>
-      <p class="hint" style="margin:0 0 .5rem;">Turn on under Settings → Game mode. Each round (one song per player) starts with a random rule card that applies to everyone: double coins, guess the month, within X years of the year, swap a won card for an opponent's, a speed round with short clips, a playlist round where every song comes from one of your loaded playlists (an '80s playlist makes it a decade round), double or nothing (wrong = lose your most recently won card), a coin shop (1 coin swaps a hard song), catch-up (a missed card goes to last place), sing-along (card + coin), betster (everyone bets coins on each turn from their phone; right ×2, right + coin ×3, wrong ×2), lock-in (everyone locks in a year on their phone; closest wins a coin), Robin Hood (every song nobody wins moves a coin from the richest player to the poorest) or blindfold (the timelines lose their years for the round). Separately, over/under pop-ups can be switched on in Settings in any mode. The DJ judges the spoken ones just like a normal placement; double coins, the month, clip length and the playlist are handled by the app.</p>
+      <p class="hint" style="margin:0 0 .5rem;">Every round (one song per player) starts with a random rule card: double coins, guess the month, within X years, swap, speed round, playlist round, double or nothing, coin shop, catch-up, sing-along, betster, lock-in, Robin Hood or blindfold. The card explains itself on screen and on every phone.</p>
+      <h3 class="rules-h3-sub">Over/under</h3>
+      <p class="hint" style="margin:0 0 .5rem;">Now and then a bonus song where everyone votes on their phone: released before or after the year on screen? Right = +1 coin. 1 in 4 is high stakes: wrong (or no vote) = −1.</p>
+      <h3 class="rules-h3-sub">Coin shop</h3>
+      <p class="hint" style="margin:0 0 .5rem;">On your turn: a new song, a hint (the decade), pass it on, steal a card, or buy the card after a wrong placement. On someone else's turn: a speed trap (−5 s off their clip) or force a new song on them.</p>
+      <h3 class="rules-h3-sub">House rules</h3>
+      <p class="hint" style="margin:0 0 .5rem;">Teams share one name on the board. Cards can be dragged from one timeline to another if your group plays steals by hand.</p>
+
+      <h3 class="rules-h3">DJ keys</h3>
+      <p class="hint" style="margin:0 0 .5rem;">Enter: the big button (play, reveal, next). Space: play/pause. Tab: timelines. Esc: close. N: nobody. C: coin. R: replay. B: coin shop.</p>
       </div>
     </div>
 
@@ -1870,9 +1875,9 @@
   </div>
 
   <footer class="page-foot">
-    <p style="color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:.72rem; margin:0;">Vinyl'le — v14.0.1</p>
+    <p style="color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:.72rem; margin:0;">Vinyl'le — v15.1.0</p>
     <p style="color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:.65rem; margin-top:.3rem; opacity:.7;">Vibe coded by MB</p>
-    <p style="font-family:'IBM Plex Mono',monospace; font-size:.7rem; margin-top:.6rem; opacity:.7;">
+    <p style="font-family:'IBM Plex Mono',monospace; font-size:.7rem; margin-top:.6rem; opacity:.7;" hidden>
       <a href="#" class="footer-link">Feedback</a> · <a href="#" class="footer-link">Reach out</a> · <a href="#" class="footer-link">Buy me a coffee</a>
     </p>
   </footer>
@@ -4523,6 +4528,7 @@ drawBtn.addEventListener('click', () => {
   // Moving on settles the last song: double or nothing, bets. Bet results
   // from the song before that have had their moment.
   lastBetResults = null;
+  autoCatchUp();
   settleSong();
   // A new chaos round shows its card first; the next press starts the song.
   if(chaosBeforeDraw()) return;
@@ -4790,7 +4796,7 @@ function buildStateBlob(){
       results: song.lockin.results
     } : null,
     blind: chaosActive('blind'),
-    event: eventText(),
+    event: eventText() ? { text: lastEvent.text, id: lastEvent.shownAt } : null,
     recaps: players.map(recapCardData),
     winner: gameWinner ? { name: gameWinner.name, target: gameWinner.target } : null,
     spot: spotOn() ? {
@@ -5739,6 +5745,9 @@ function shopItemsFor(buyer){
   const mine = !!buyer && turnActive() && buyer.name === turnName;
   const phase = shopPhase();
   if(phase === 'after') return mine && !shopOwner() ? SHOP_ITEMS.filter(i => i.id === 'buy') : [];
+  // While the song plays only the turn player's shop is open (a new song or
+  // a hint only makes sense then); sabotage is before Start only.
+  if(phase === 'playing') return mine ? SHOP_ITEMS.filter(i => i.who === 'turn' && i.id !== 'buy') : [];
   if(phase !== 'before') return [];
   return SHOP_ITEMS.filter(i => i.who === (mine ? 'turn' : 'others') && i.id !== 'buy');
 }
@@ -5779,7 +5788,7 @@ function shopWhyNot(buyer, item, opts){
   const def = SHOP_ITEMS.find(i => i.id === item);
   if(!shopOpen()) return 'The shop is closed';
   if(!buyer || !def) return 'Pick a player';
-  if(bonusCount(buyer) < shopPrice(item)) return 'Needs ' + shopPrice(item) + ' coins';
+  if(bonusCount(buyer) < shopPrice(item)) return 'Needs ' + shopPrice(item) + (shopPrice(item) === 1 ? ' coin' : ' coins');
   const phase = shopPhase();
   const isTurn = turnActive() && buyer.name === turnName;
   const other = players.find(p => p.name === opts.target && p !== buyer);
@@ -5799,7 +5808,7 @@ function shopWhyNot(buyer, item, opts){
     if(shopOwner()) return 'Someone already has the card';
     return null;
   }
-  if(phase !== 'before') return 'Before the song starts';
+  if(phase !== 'before' && phase !== 'playing') return 'Before the reveal';
   if(item === 'hint'){
     if(song.hint) return 'Hint already shown';
     if(isNaN(parseInt(currentCard.year, 10))) return 'This song has no year';
@@ -5929,7 +5938,7 @@ function renderShopWindow(){
     const p = document.createElement('p');
     p.className = 'hint';
     p.textContent = shopPhase() === 'playing'
-      ? 'Closed while the song plays. Buy the card opens after the reveal.'
+      ? 'Only the player whose turn it is can shop while the song plays.'
       : shopPhase() === 'after' ? (shopOwner() ? 'The card has an owner — the shop reopens next song.' : 'Only the player whose turn it was can buy the card now.') : 'Nothing to buy right now.';
     list.appendChild(p);
   }
@@ -6659,6 +6668,18 @@ function catchUpPlayer(){
     if(song && last) song.catchUpPick = last.name;
   }
   return last && last.name !== turnName ? last : null;
+}
+
+// Catch-up: going to the next song without handing out the card gives it to
+// the catch-up player — the app already knows who that is.
+function autoCatchUp(){
+  if(!chaosActive('catchup') || !turnActive() || !revealed || !currentCard || !song || song.event || song.id !== currentCard.id) return;
+  if(isNaN(parseInt(currentCard.year, 10))) return;
+  if(players.some(p => p.timeline.some(e => e.id === currentCard.id && !e.locked))) return;
+  const who = catchUpPlayer();
+  if(!who) return;
+  giveCardTo(who);
+  gameEvent({ en: who.name + ' gets the card — catch-up', da: who.name + ' får kortet — indhentning' });
 }
 
 function takeCardBack(player, entry){

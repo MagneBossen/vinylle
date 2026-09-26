@@ -479,6 +479,8 @@
   .songs-card summary h2::after{content:' ▾';font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--gold);}
   .songs-card[open] summary h2::after{content:' ▴';}
   .songs-card[open] summary{margin-bottom:.6rem;}
+  #songsList{max-height:31rem;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+  #songsList::-webkit-scrollbar{display:none;}
   .song-row{display:flex;align-items:center;gap:.8rem;padding:.55rem 0;border-top:1px solid var(--line);color:var(--paper);text-decoration:none;}
   .song-row .y{font-family:'IBM Plex Mono',monospace;font-size:.8rem;color:var(--gold);min-width:2.8rem;}
   .song-row .t{flex:1;min-width:0;display:flex;flex-direction:column;}
@@ -845,6 +847,7 @@ const STR = {
     notYou: 'Not you? Switch player', recapLink: 'Your recap card ›', howTo: 'How to play',
     waitingDj: 'Waiting for the DJ', noRecord: 'No record on yet', nowPlaying: 'Now playing', mystery: 'Mystery record',
     whereFit: 'Where does it fit in your timeline?', ouAsk: 'Was this song released before or after {y}?',
+    ouToast: 'Over/under!', ouToastSub: 'Before or after {y}? Vote now.',
     turnToast: 'Your turn!', turnToastSub: 'Where does this one fit in your timeline?', revealed: 'Revealed', unknownTrack: 'Unknown track', openSpotify: 'Open in Spotify',
     yourTimeline: 'Your timeline', list: 'List', cards: 'Cards', leaderboard: 'Leaderboard', songsTonight: 'Songs tonight',
     djPlaces: 'The DJ places cards from the main screen. This view updates on its own.',
@@ -873,7 +876,7 @@ const STR = {
     yourBetChange: 'Your bet: {amount} on {pick} — change it until the song starts.',
     betRules: 'Win your bet ×2 (right + coin ×3). Lose and you lose your bet.', betResult: 'Betster · result',
     betWon: 'You won +{n} gold coins!', betLost: 'Lost your bet: −{n}', betSummary: '{amount} on {pick} for {gen} turn.',
-    needs: 'Needs {n} coins', whenSomeone: "When someone's song is on", beforeStart: 'Before the song starts',
+    needs: 'Needs {n} coins', needs1: 'Needs 1 coin', beforeReveal: 'Before the reveal', whenSomeone: "When someone's song is on", beforeStart: 'Before the song starts',
     vibeNoClip: 'Vibe mode has no clip to cut', shortest: 'The clip is as short as it gets', ownTurn: 'On your own turn',
     afterReveal: 'After the reveal', someoneHas: 'Someone already has the card', hintShown: 'Hint already shown',
     alreadyPassed: 'Already passed on', pickWho: 'Pick who gets it', pickCardSteal: 'Pick a card to steal',
@@ -921,6 +924,7 @@ const STR = {
     notYou: 'Ikke dig? Skift spiller', recapLink: 'Dit recap-kort ›', howTo: 'Sådan spiller du',
     waitingDj: 'Venter på DJ’en', noRecord: 'Ingen plade på endnu', nowPlaying: 'Spiller nu', mystery: 'Mysterieplade',
     whereFit: 'Hvor passer den ind i din tidslinje?', ouAsk: 'Udkom sangen før eller efter {y}?',
+    ouToast: 'Over/under!', ouToastSub: 'Før eller efter {y}? Stem nu.',
     turnToast: 'Din tur!', turnToastSub: 'Hvor passer den her ind i din tidslinje?', revealed: 'Afsløret', unknownTrack: 'Ukendt nummer', openSpotify: 'Åbn i Spotify',
     yourTimeline: 'Din tidslinje', list: 'Liste', cards: 'Kort', leaderboard: 'Stilling', songsTonight: 'Aftenens sange',
     djPlaces: 'DJ’en placerer kortene fra hovedskærmen. Siden her opdaterer sig selv.',
@@ -949,7 +953,7 @@ const STR = {
     yourBetChange: 'Din indsats: {amount} på {pick} — du kan ændre den, indtil sangen starter.',
     betRules: 'Vind din indsats ×2 (rigtigt + mønt ×3). Taber du, mister du din indsats.', betResult: 'Betster · resultat',
     betWon: 'Du vandt +{n} guldmønter!', betLost: 'Tabte din indsats: −{n}', betSummary: '{amount} på {pick} på {gen} tur.',
-    needs: 'Kræver {n} mønter', whenSomeone: 'Når nogens sang er i gang', beforeStart: 'Før sangen starter',
+    needs: 'Kræver {n} mønter', needs1: 'Kræver 1 mønt', beforeReveal: 'Før afsløringen', whenSomeone: 'Når nogens sang er i gang', beforeStart: 'Før sangen starter',
     vibeNoClip: 'Vibe-tilstand har intet klip at skære i', shortest: 'Klippet kan ikke blive kortere', ownTurn: 'På din egen tur',
     afterReveal: 'Efter afsløringen', someoneHas: 'Nogen har allerede kortet', hintShown: 'Hintet er allerede vist',
     alreadyPassed: 'Allerede givet videre', pickWho: 'Vælg hvem der får den', pickCardSteal: 'Vælg et kort at stjæle',
@@ -1886,7 +1890,11 @@ function buzzCheck(){
     buzz([80, 70, 80]);
     showToast(tr('turnToast'), tr('turnToastSub'), 3500);
   }
-  else if((now.vote && now.vote !== was.vote) || (now.lock && now.lock !== was.lock)) buzz(120);
+  else if(now.vote && now.vote !== was.vote){
+    buzz(120);
+    showToast(tr('ouToast'), tr('ouToastSub', { y: lastState.vote.pivot }), 3500);
+  }
+  else if(now.lock && now.lock !== was.lock) buzz(120);
   else if(['voteWin', 'lockWin', 'betWin'].some(k => now[k] && now[k] !== was[k])) buzz([60, 40, 140]);
 }
 
@@ -2136,6 +2144,22 @@ function renderLeaderboard(){
   });
 }
 
+// "Just now" notices show for 10 s from when this phone first saw them,
+// then get out of the way.
+const EVENT_MS = 10000;
+const eventSeen = {};
+let eventTimer = null;
+function eventFresh(){
+  const ev = lastState && lastState.event;
+  if(!ev) return false;
+  const id = ev.id || JSON.stringify(ev);
+  if(!eventSeen[id]) eventSeen[id] = Date.now();
+  const left = EVENT_MS - (Date.now() - eventSeen[id]);
+  clearTimeout(eventTimer);
+  if(left > 0) eventTimer = setTimeout(renderBanners, left + 50);
+  return left > 0;
+}
+
 // Chaos: each round's card pops up once in the middle of the screen; after
 // that the banner only shows its name (tap to read the rules again).
 let chaosOpen = null;
@@ -2178,14 +2202,14 @@ function renderBanners(){
     b.textContent = tr('hint', { decade: decade(lastState.hint) });
     holder.appendChild(b);
   }
-  if(lastState && lastState.event){
+  if(eventFresh()){
     const b = document.createElement('div');
     b.className = 'banner event';
     const k = document.createElement('span');
     k.className = 'k';
     k.textContent = tr('justNow');
     const t = document.createElement('span');
-    t.textContent = langText(lastState.event);
+    t.textContent = langText(lastState.event.text !== undefined ? lastState.event.text : lastState.event);
     b.append(k, t);
     holder.appendChild(b);
   }
@@ -2576,7 +2600,7 @@ function shopPrice(item){
 function shopWhyNot(item, pick){
   const sh = lastState.shop;
   const mine = me();
-  if(myCoins() < shopPrice(item)) return tr('needs', { n: shopPrice(item) });
+  if(myCoins() < shopPrice(item)) return shopPrice(item) === 1 ? tr('needs1') : tr('needs', { n: shopPrice(item) });
   const isTurn = sh.turn === mine.name;
   if(item.who === 'others'){
     if(!sh.turn) return tr('whenSomeone');
@@ -2593,7 +2617,7 @@ function shopWhyNot(item, pick){
     if(sh.owned) return tr('someoneHas');
     return null;
   }
-  if(sh.phase !== 'before') return tr('beforeStart');
+  if(sh.phase !== 'before' && sh.phase !== 'playing') return tr('beforeReveal');
   if(item.id === 'hint' && sh.hint) return tr('hintShown');
   if(item.id === 'pass'){
     if(sh.passed) return tr('alreadyPassed');
@@ -2623,17 +2647,12 @@ function renderShop(){
   const role = sh.turn === mine.name ? 'turn' : 'others';
   // Before the song starts: your items. While it plays: closed. After the
   // reveal: only Buy the card, for the player whose turn it was.
+  // Before Start: everyone's items. While the song plays: only the turn
+  // player's (a new song, a hint…). After the reveal: Buy the card.
   const items = sh.phase === 'before' ? SHOP_ITEMS.filter(i => i.who === role && i.id !== 'buy')
+    : sh.phase === 'playing' && role === 'turn' ? SHOP_ITEMS.filter(i => i.who === 'turn' && i.id !== 'buy')
     : sh.phase === 'after' && role === 'turn' && !sh.owned ? SHOP_ITEMS.filter(i => i.id === 'buy') : [];
-  if(!items.length){
-    if(sh.phase !== 'playing'){ box.hidden = true; return; }
-    const s = document.createElement('div');
-    s.className = 's';
-    s.style.textAlign = 'center';
-    s.textContent = role === 'turn' ? tr('shopClosedTurn') : tr('shopClosed');
-    box.appendChild(s);
-    return;
-  }
+  if(!items.length){ box.hidden = true; return; }
   items.forEach(item => {
     const row = document.createElement('div');
     row.className = 'shop-row';
