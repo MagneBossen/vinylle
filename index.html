@@ -78,23 +78,26 @@
         <div id="podiumRest"></div>
       </div>
       <div class="row" style="margin-top:1.2rem; max-width:760px; margin-left:auto; margin-right:auto; justify-content:center;">
-        <button class="primary" id="savePodiumBtn" title="Saves as .png">Save results</button>
+        <button class="primary" id="savePodiumBtn" title="A 4:5 picture for a post">Save post</button>
+        <button class="primary" id="savePodiumStoryBtn" title="A 9:16 picture for a story">Save story</button>
       </div>
       <div id="ad-slot-bottom-podium" class="ad-slot ad-slot-bottom"><span class="ad-slot-label">Ad</span></div>
     </div>
 
     <div id="sbRecapView" style="display:none;">
-      <div id="recapCapture">
-        <div style="text-align:center; margin-bottom:1.8rem;">
-          <div class="capture-title">Vinyl'le</div>
-          <div class="capture-subtitle">Session Recap</div>
+      <div class="nr" id="nightRecap"></div>
+      <div class="nr-more-wrap">
+        <details class="nr-more" id="recapExtrasBox" hidden>
+          <summary>Modes &amp; extras</summary>
+          <div id="recapExtras"></div>
+        </details>
+        <details class="nr-more">
+          <summary>Songs tonight · <span id="recapSongCount">0</span></summary>
+          <div id="recapSongList" class="history-scroll-box"></div>
+        </details>
+        <div class="nr-foot">
+          <button class="primary" id="saveRecapBtn" title="Saves the recap as a picture">Save recap</button>
         </div>
-        <div id="recapStats"></div>
-        <div id="recapCards"></div>
-        <div id="recapSongList" class="history-scroll-box" style="margin-top:1rem;"></div>
-      </div>
-      <div class="row" style="margin-top:1.2rem;">
-        <button class="primary" id="saveRecapBtn" title="Saves as .txt">Save recap</button>
       </div>
       <div id="ad-slot-bottom-recap" class="ad-slot ad-slot-bottom"><span class="ad-slot-label">Ad</span></div>
     </div>
@@ -468,7 +471,7 @@
   </div>
 
   <footer class="page-foot">
-    <p style="color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:.72rem; margin:0;">Vinyl'le — v16.3.1</p>
+    <p style="color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:.72rem; margin:0;">Vinyl'le — v16.4.0</p>
     <p style="color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:.65rem; margin-top:.3rem; opacity:.7;">Vibe coded by MB</p>
     <p style="font-family:'IBM Plex Mono',monospace; font-size:.7rem; margin-top:.6rem; opacity:.7;" hidden>
       <a href="#" class="footer-link">Feedback</a> · <a href="#" class="footer-link">Reach out</a> · <a href="#" class="footer-link">Buy me a coffee</a>
@@ -569,6 +572,7 @@ https://open.spotify.com/playlist/yyyyyyyy"></textarea>
 <script src="/dj/chaos.js"></script>
 <script src="/dj/shop.js"></script>
 <script src="/dj/stage.js"></script>
+<script src="/dj/night.js"></script>
 <!-- Loaded last so onSpotifyIframeApiReady (dj/playback.js) exists when it fires. -->
 <script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
 </body>

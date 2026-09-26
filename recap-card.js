@@ -76,7 +76,8 @@
     ctx.closePath();
   }
 
-  function drawRecord(ctx, cx, cy, r, label){
+  // `tone`: label colours, gold by default ({ hi, base } for silver/bronze).
+  function drawRecord(ctx, cx, cy, r, label, tone){
     ctx.save();
     ctx.shadowColor = 'rgba(0,0,0,.55)';
     ctx.shadowBlur = 60;
@@ -104,8 +105,8 @@
     // The gold label.
     const lr = r * .34;
     const lg = ctx.createRadialGradient(cx - lr * .3, cy - lr * .3, lr * .1, cx, cy, lr);
-    lg.addColorStop(0, C.goldHi);
-    lg.addColorStop(1, C.gold);
+    lg.addColorStop(0, (tone && tone.hi) || C.goldHi);
+    lg.addColorStop(1, (tone && tone.base) || C.gold);
     ctx.beginPath();
     ctx.arc(cx, cy, lr, 0, Math.PI * 2);
     ctx.fillStyle = lg;
@@ -401,4 +402,9 @@
 
   window.drawRecapCard = drawRecapCard;
   window.saveRecapCard = saveRecapCard;
+  // The same pieces, for the DJ's leaderboard and night recap pictures.
+  window.recapDraw = {
+    C, SERIF, MONO, fit, clip, spaced, roundRect,
+    drawRecord: (ctx, cx, cy, r, label, tone, lang) => { LANG = lang === 'da' ? 'da' : 'en'; drawRecord(ctx, cx, cy, r, label, tone); }
+  };
 })();

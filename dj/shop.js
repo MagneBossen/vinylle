@@ -7,9 +7,9 @@
 // `who`: 'turn' items are for the player whose song it is; 'others' are the
 // sabotage the rest can buy against them. Each player only sees their own.
 const SHOP_ITEMS = [
-  { id: 'new', who: 'turn', name: 'New song', price: 1, desc: 'Swap your song for a new one.' },
+  { id: 'new', who: 'turn', name: 'New song', price: 2, desc: 'Swap your song for a new one.' },
   { id: 'hint', who: 'turn', name: 'Hint', price: 1, desc: 'Show the decade on screen.' },
-  { id: 'pass', who: 'turn', name: 'Pass it on', price: 2, desc: 'Another player has to place it. Wrong = they pay you 1 coin.', target: 'player' },
+  { id: 'pass', who: 'turn', name: 'Pass it on', price: 3, desc: 'Another player has to place it. Wrong = they pay you 1 coin.', target: 'player' },
   { id: 'buy', who: 'turn', name: 'Buy the card', price: 3, desc: 'Placed it wrong? Keep the card anyway.' },
   { id: 'steal', who: 'turn', name: 'Steal', price: 5, desc: "Take a card from another player's timeline. Skips your song.", target: 'card' },
   { id: 'trap', who: 'others', name: 'Speed trap', price: 1, desc: 'Cut ' + SPEED_TRAP_CUT + " seconds off {turn}'s clip. Every second trap costs 1 more." },
