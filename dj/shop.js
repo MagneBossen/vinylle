@@ -16,17 +16,17 @@ const SHOP_ITEMS = [
   { id: 'force', who: 'others', name: 'New song', price: 2, desc: 'Make {turn} play a different song.' }
 ];
 
-// The items `buyer` gets to see: their own on their turn, sabotage otherwise
-// — before the song starts. After the reveal only Buy the card is left.
+// The items `buyer` gets to see: their own on their turn, sabotage otherwise.
+// The shop stays up the whole round: everything can be bought until the
+// reveal, and after it Buy the card joins the list (the rest stay, greyed out).
 function shopItemsFor(buyer){
   const mine = !!buyer && turnActive() && buyer.name === turnName;
   const phase = shopPhase();
-  if(phase === 'after') return mine && !shopOwner() ? SHOP_ITEMS.filter(i => i.id === 'buy') : [];
-  // While the song plays only the turn player's shop is open (a new song or
-  // a hint only makes sense then); sabotage is before Start only.
-  if(phase === 'playing') return mine ? SHOP_ITEMS.filter(i => i.who === 'turn' && i.id !== 'buy') : [];
-  if(phase !== 'before') return [];
-  return SHOP_ITEMS.filter(i => i.who === (mine ? 'turn' : 'others') && i.id !== 'buy');
+  if(phase === 'none') return [];
+  const items = SHOP_ITEMS.filter(i => i.who === (mine ? 'turn' : 'others'));
+  if(phase !== 'after') return items.filter(i => i.id !== 'buy');
+  const owned = !!shopOwner();
+  return items.filter(i => i.id !== 'buy' || !owned).sort((a, b) => (b.id === 'buy') - (a.id === 'buy'));
 }
 
 function shopDesc(item){
@@ -38,10 +38,9 @@ function shopOpen(){
   return autoTurns && (shopEnabled || chaosActive('shop'));
 }
 
-// 'before' the reveal, 'after' it, or 'none' (no song, a pop-up, stolen).
 // 'before' the song starts (it waits for Start while the shop is open),
-// 'playing' (the shop is closed), 'after' the reveal (only Buy the card), or
-// 'none' (no song, a pop-up, a stolen song).
+// 'playing', 'after' the reveal (Buy the card), or 'none' (no song, a
+// pop-up, a stolen song).
 function shopPhase(){
   if(!currentCard || !song || song.event || song.skipped) return 'none';
   if(revealed) return 'after';
@@ -72,7 +71,7 @@ function shopWhyNot(buyer, item, opts){
   if(def.who === 'others'){
     if(!turnActive()) return "When someone's song is on";
     if(isTurn) return "Not on your own turn";
-    if(phase !== 'before') return 'Before the song starts';
+    if(phase !== 'before' && phase !== 'playing') return 'Before the reveal';
     if(item === 'trap'){
       if(untimedMode) return 'Vibe mode has no clip to cut';
       if(clipSeconds() <= CLIP_FLOOR) return 'The clip is as short as it gets';
@@ -214,9 +213,7 @@ function renderShopWindow(){
   if(!items.length){
     const p = document.createElement('p');
     p.className = 'hint';
-    p.textContent = shopPhase() === 'playing'
-      ? 'Only the player whose turn it is can shop while the song plays.'
-      : shopPhase() === 'after' ? (shopOwner() ? 'The card has an owner — the shop reopens next song.' : 'Only the player whose turn it was can buy the card now.') : 'Nothing to buy right now.';
+    p.textContent = 'Nothing to buy right now.';
     list.appendChild(p);
   }
   items.forEach(item => {

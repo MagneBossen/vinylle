@@ -509,7 +509,11 @@
   .now-state{margin-bottom:.35rem;}
   .now-year{font-size:1.9rem;margin-top:.3rem;line-height:1;}
   .now-year,.now-title{animation:rise .4s both cubic-bezier(.3,1.3,.5,1);}
-  .sp-link{display:inline-block;margin-top:.55rem;font-size:.78rem;font-weight:600;color:#1ED760;text-decoration:none;border:1px solid rgba(30,215,96,.4);border-radius:999px;padding:.25rem .7rem;}
+  /* Open in Spotify: a small round button in the corner of the revealed card. */
+  .now-card{position:relative;}
+  .now-card:has(.sp-link) .now-text{padding-right:2.2rem;}
+  .sp-link{position:absolute;top:.7rem;right:.7rem;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#1ED760;background:rgba(30,215,96,.1);border:1px solid rgba(30,215,96,.35);text-decoration:none;}
+  .sp-link:active{background:rgba(30,215,96,.2);}
   .songs-card summary{list-style:none;cursor:pointer;}
   .songs-card summary::-webkit-details-marker{display:none;}
   .songs-card summary h2{margin:0;}
@@ -1494,6 +1498,7 @@ function renderNow(){
   const stateEl = document.getElementById('nowState');
   const bodyEl = document.getElementById('nowBody');
   bodyEl.innerHTML = '';
+  document.querySelectorAll('#nowCard .sp-link').forEach(a => a.remove());
   const card = lastState && lastState.currentCard;
   // The game has moved on (a new mystery record is up) — clear "You got it".
   if(!card || !card.revealed) hideToast();
@@ -1541,7 +1546,7 @@ function renderNow(){
   year.className = 'now-year';
   year.textContent = card.year || '—';
   bodyEl.appendChild(year);
-  if(card.id) bodyEl.appendChild(spotifyLink(card.id, tr('openSpotify')));
+  if(card.id) document.getElementById('nowCard').appendChild(spotifyLink(card.id, tr('openSpotify')));
 }
 
 // Spotify's own link: opens the app on a phone that has it.
@@ -1551,7 +1556,9 @@ function spotifyLink(id, text){
   a.href = 'https://open.spotify.com/track/' + encodeURIComponent(id);
   a.target = '_blank';
   a.rel = 'noopener';
-  a.textContent = text + ' ↗';
+  a.setAttribute('aria-label', text);
+  a.title = text;
+  a.innerHTML = EXTERNAL_LINK_ICON;
   return a;
 }
 
@@ -1940,6 +1947,13 @@ try{ pickOn = localStorage.getItem('vl_pick') !== 'off'; }catch(e){}
 document.getElementById('pickOptBtn').addEventListener('click', () => {
   pickOn = !pickOn;
   try{ localStorage.setItem('vl_pick', pickOn ? 'on' : 'off'); }catch(e){}
+  // Turning it off takes back a pick already made for this song.
+  const sp = lastState && lastState.spot;
+  const mine = me();
+  if(!pickOn && sp && mine && sp.turn === mine.name && !lastState.revealed &&
+     (sp.slot != null || (mySpot && mySpot.songId === sp.songId && mySpot.slot != null))){
+    sendSpot(sp.songId, null);
+  }
   syncVibeBtn();
   renderKeys.timeline = null;
   if(joined) render();
@@ -2713,7 +2727,7 @@ function shopWhyNot(item, pick){
   const isTurn = sh.turn === mine.name;
   if(item.who === 'others'){
     if(!sh.turn) return tr('whenSomeone');
-    if(sh.phase !== 'before') return tr('beforeStart');
+    if(sh.phase !== 'before' && sh.phase !== 'playing') return tr('beforeReveal');
     if(item.id === 'trap'){
       if(sh.vibe) return tr('vibeNoClip');
       if(sh.clip <= 5) return tr('shortest');
@@ -2754,13 +2768,12 @@ function renderShop(){
   box.appendChild(k);
   const others = (lastState.players || []).filter(p => p.name !== mine.name);
   const role = sh.turn === mine.name ? 'turn' : 'others';
-  // Before the song starts: your items. While it plays: closed. After the
-  // reveal: only Buy the card, for the player whose turn it was.
-  // Before Start: everyone's items. While the song plays: only the turn
-  // player's (a new song, a hint…). After the reveal: Buy the card.
-  const items = sh.phase === 'before' ? SHOP_ITEMS.filter(i => i.who === role && i.id !== 'buy')
-    : sh.phase === 'playing' && role === 'turn' ? SHOP_ITEMS.filter(i => i.who === 'turn' && i.id !== 'buy')
-    : sh.phase === 'after' && role === 'turn' && !sh.owned ? SHOP_ITEMS.filter(i => i.id === 'buy') : [];
+  // Your items (or the sabotage, when it's not your turn) stay up the whole
+  // round. After the reveal Buy the card joins the top; the rest grey out.
+  const roleItems = SHOP_ITEMS.filter(i => i.who === role);
+  const items = sh.phase === 'after'
+    ? roleItems.filter(i => i.id !== 'buy' || !sh.owned).sort((a, b) => (b.id === 'buy') - (a.id === 'buy'))
+    : roleItems.filter(i => i.id !== 'buy');
   if(!items.length){ box.hidden = true; return; }
   items.forEach(item => {
     const row = document.createElement('div');

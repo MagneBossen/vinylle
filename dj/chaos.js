@@ -288,6 +288,12 @@ function placeSpot(payload){
   if(!spotOn() || revealed || !payload || payload.songId !== song.id) return;
   const p = players.find(p => p.deviceId && p.deviceId === payload.deviceId);
   if(!p || p.name !== song.turn) return;
+  // null: the player took their pick back (turned pointing off on the phone).
+  if(payload.slot === null){
+    song.spot = null;
+    renderSpot();
+    return;
+  }
   const slot = Math.floor(Number(payload.slot));
   if(!(slot >= 0 && slot <= spotTimeline().length)) return;
   song.spot = slot;
