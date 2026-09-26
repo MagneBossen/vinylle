@@ -236,10 +236,10 @@
   .lang-row button{background:none;border:none;padding:.2rem;width:auto;color:var(--muted);font-size:.75rem;}
   .lang-row button.on{color:var(--gold);text-decoration:underline;text-underline-offset:3px;}
   .lang-row button:hover{background:none;color:var(--gold);}
-  .me-links{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;}
   .switch-link.gold{color:var(--gold);text-decoration-color:var(--gold-dim);}
   .recap-panel{padding:1rem 1rem 1.2rem;max-width:420px;}
-  .recap-panel img{display:block;width:100%;border-radius:12px;margin:0 0 .9rem;}
+  .recap-panel img{display:block;max-width:100%;max-height:62vh;margin:0 auto .9rem;border-radius:12px;}
+  .recap-panel .seg{display:flex;width:max-content;margin:0 auto .8rem;}
   .recap-panel p{margin:0 0 1rem;font-size:.8rem;}
   .switch-link{background:none;border:none;padding:0;margin-top:.35rem;font-size:.75rem;color:var(--muted);text-decoration:underline;text-underline-offset:3px;width:auto;}
   .switch-link:hover{background:none;color:var(--gold);}
@@ -368,8 +368,10 @@
   @keyframes trophy{0%{transform:scale(.2) rotate(-30deg);opacity:0;}100%{transform:none;opacity:1;}}
   .chaos-pop .k{font-family:'IBM Plex Mono',monospace;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);}
   .chaos-pop h3{margin:.5rem 0 .6rem;font-size:1.8rem;}
-  .banner.chaos .k{font-family:'IBM Plex Mono',monospace;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);}
-  .banner.chaos b{font-family:'Fraunces',serif;font-size:1.1rem;color:var(--paper);}
+  .banner.chaos{flex-direction:row;flex-wrap:wrap;align-items:baseline;column-gap:.6rem;row-gap:.35rem;padding:.55rem .85rem;}
+  .banner.chaos .k{order:2;margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:.62rem;letter-spacing:.08em;color:var(--muted);}
+  .banner.chaos b{order:1;font-family:'Work Sans',sans-serif;font-weight:600;font-size:.9rem;color:var(--gold);}
+  .banner.chaos .d{order:3;flex-basis:100%;}
 
   .overlay{
     position:fixed;inset:0;background:rgba(12,8,15,.92);
@@ -448,6 +450,41 @@
   .me-sub{font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--muted);letter-spacing:.06em;min-height:1em;}
   .me-sub b{color:var(--gold);font-weight:500;}
   .pips{display:flex;gap:5px;flex-wrap:wrap;margin:.75rem 0 1.2rem;min-height:18px;}
+  /* Compact header: name and place, cards and coins, the rest behind ⋯ */
+  .me-head{position:relative;display:flex;align-items:center;gap:.6rem;padding:.4rem 0 .8rem;border-bottom:1px solid var(--line);}
+  .me-head .me{margin:0;line-height:1.05;}
+  .me-head .me-sub{margin-top:.3rem;}
+  .me-id{min-width:0;}
+  .me-stats{margin-left:auto;display:flex;align-items:center;gap:.35rem;flex-shrink:0;}
+  .me-pill{font-family:'IBM Plex Mono',monospace;font-size:.72rem;white-space:nowrap;border:1px solid var(--line);border-radius:999px;padding:.2rem .55rem;}
+  .me-pill.gold{color:var(--gold);border-color:var(--gold-dim);}
+  .me-pill:empty{display:none;}
+  .me-more{width:32px;height:32px;padding:0;border-radius:50%;border:1px solid var(--line);background:none;color:var(--muted);font-size:1rem;line-height:1;display:grid;place-items:center;}
+  .me-more[aria-expanded="true"]{color:var(--gold);border-color:var(--gold-dim);}
+  .me-menu{position:absolute;right:0;top:calc(100% + .4rem);z-index:30;min-width:13rem;display:flex;flex-direction:column;align-items:flex-start;gap:.75rem;padding:.9rem 1rem;background:var(--surface-2);border:1px solid var(--line);border-radius:14px;box-shadow:0 14px 40px rgba(0,0,0,.45);}
+  .me-menu[hidden]{display:none;}
+  .me-menu-top{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;width:100%;padding-bottom:.6rem;border-bottom:1px solid var(--line);}
+  .me-menu-top .code{font-family:'IBM Plex Mono',monospace;font-size:.75rem;color:var(--muted);letter-spacing:.12em;}
+  .me-menu .switch-link{text-align:left;}
+  /* Stage: one thing at a time, the rest wait as tabs */
+  .stage-tabs{display:flex;flex-wrap:wrap;gap:.4rem;margin:0 0 .7rem;}
+  .stage-tabs[hidden]{display:none;}
+  .stage-tabs button{width:auto;padding:.35rem .8rem;border-radius:999px;font-size:.78rem;background:var(--surface-2);border:1px solid var(--line);color:var(--muted);}
+  .stage-tabs button.on{background:var(--gold);border-color:var(--gold);color:var(--ink);font-weight:600;}
+  .stage-tabs button .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--gold);margin-left:.4rem;vertical-align:middle;}
+  .stage-off{display:none !important;}
+  /* Over/under up front */
+  #voteCard.ou-open{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,162,78,.12);text-align:left;}
+  #voteCard.ou-open .q{font-family:'Fraunces',serif;font-weight:700;font-size:1.6rem;line-height:1.15;margin:.3rem 0 1rem;}
+  #voteCard.ou-open .q b{color:var(--gold);}
+  #voteCard.ou-open .vote-btns button{padding:1rem 0;font-size:1rem;font-weight:600;}
+  #voteCard.ou-open .vote-btns button:first-child::before{content:'◀ ';}
+  #voteCard.ou-open .vote-btns button:last-child::after{content:' ▶';}
+  .ou-voted{font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--muted);text-align:center;margin-top:.8rem;}
+  /* Standings / songs tonight in one card */
+  .lb-switch{display:flex;width:100%;margin:0 0 .9rem;}
+  .lb-switch[hidden]{display:none;}
+  .lb-switch button{flex:1;}
   .pip{width:18px;height:18px;border-radius:50%;border:1px solid var(--gold-dim);box-sizing:border-box;}
   .pip.f{background:radial-gradient(circle, var(--vinyl) 0 16%, var(--gold) 22%);border-color:var(--gold);}
   .pips-bar{display:block;width:100%;height:6px;border-radius:6px;background:var(--line);overflow:hidden;}
@@ -657,15 +694,23 @@
 
   <!-- ── the game ────────────────────────────────────────────────────── -->
   <div class="view" id="viewGame">
-    <div class="topbar">
-      <span class="home-mark" data-home="confirm">Vinyl'le</span>
-      <span class="code" id="meCode"></span>
-    </div>
-    <div class="me" id="meName">—</div>
-    <div class="me-sub" id="meSub"></div>
-    <div class="me-links">
-      <button type="button" class="switch-link" id="switchBtn" data-i18n="notYou">Not you? Switch player</button>
-      <button type="button" class="switch-link gold" id="recapBtn" data-i18n="recapLink">Your recap card ›</button>
+    <div class="me-head">
+      <div class="me-id">
+        <div class="me" id="meName">—</div>
+        <div class="me-sub" id="meSub"></div>
+      </div>
+      <div class="me-stats">
+        <span class="me-pill" id="meCards"></span>
+        <span class="me-pill gold" id="meCoins"></span>
+        <button type="button" class="me-more" id="meMoreBtn" aria-label="More" aria-expanded="false">⋯</button>
+      </div>
+      <div class="me-menu" id="meMenu" hidden>
+        <div class="me-menu-top"><span class="home-mark">Vinyl'le</span><span class="code" id="meCode"></span></div>
+        <button type="button" class="switch-link gold" id="recapBtn" data-i18n="recapLink">Your recap card ›</button>
+        <button type="button" class="switch-link" id="switchBtn" data-i18n="notYou">Not you? Switch player</button>
+        <button type="button" class="switch-link" id="vibeBtn"></button>
+        <button type="button" class="switch-link" data-home="confirm" data-i18n="leaveGame">Leave the game</button>
+      </div>
     </div>
     <div class="pips" id="mePips"></div>
 
@@ -673,6 +718,7 @@
 
     <div class="game-grid">
       <div class="game-col">
+        <div class="stage-tabs" id="stageTabs" hidden></div>
         <div class="vote-card" id="voteCard" hidden></div>
         <div class="vote-card" id="betCard" hidden></div>
         <div class="vote-card lock-card" id="lockCard" hidden></div>
@@ -705,18 +751,17 @@
 
       <div class="game-col">
         <div class="card">
-          <h2 data-i18n="leaderboard">Leaderboard</h2>
+          <h2 data-i18n="leaderboard" id="lbTitle">Leaderboard</h2>
+          <div class="seg lb-switch" role="group" id="lbSwitch" hidden>
+            <button type="button" data-lbview="standings" class="on" data-i18n="standings">Standings</button>
+            <button type="button" data-lbview="songs"><span data-i18n="songsTonight">Songs tonight</span> · <span id="songsCount">0</span></button>
+          </div>
           <div id="leaderboard"></div>
+          <div id="songsList" hidden></div>
         </div>
-        <details class="card songs-card" id="songsCard" hidden>
-          <summary><h2><span data-i18n="songsTonight">Songs tonight</span> · <span id="songsCount">0</span></h2></summary>
-          <div id="songsList"></div>
-        </details>
       </div>
     </div>
 
-    <p class="hint" style="text-align:center;" data-i18n="djPlaces">The DJ places cards from the main screen. This view updates on its own.</p>
-    <p style="text-align:center;margin:0 0 1.5rem;"><button type="button" class="switch-link" id="vibeBtn"></button></p>
   </div>
 
 </div>
@@ -797,6 +842,10 @@
 
 <div class="overlay" id="recapOverlay">
   <div class="overlay-panel recap-panel">
+    <div class="seg" role="group" aria-label="Picture format" id="recapFormat">
+      <button type="button" class="on" data-format="post" data-i18n="fmtPost">Post 4:5</button>
+      <button type="button" data-format="story" data-i18n="fmtStory">Story 9:16</button>
+    </div>
     <img id="recapImg" alt="Your recap card">
     <p data-i18n="recapNote">It updates as you play, so save it whenever you like. On iPhone, Save picture → Save Image puts it in your camera roll.</p>
     <div class="row" style="flex-wrap:nowrap;">
@@ -853,7 +902,7 @@ const STR = {
     djPlaces: 'The DJ places cards from the main screen. This view updates on its own.',
     noCardsYet: 'No cards yet — win one and it lands here.', fitsHere: 'Fits here', nobodyYet: 'Nobody in the game yet.',
     phoneOn: 'phone connected', phoneOff: 'no phone connected', streakTitle: '{n} in a row on their own turns',
-    of: 'of', targetReached: 'target reached', toGo1: '1 card to go', toGo: '{n} cards to go', yourTurnBang: 'your turn!',
+    of: 'of', targetReached: 'target reached', toGo1: '1 card to go', toGo: '{n} cards to go',
     gotIt: 'You got it — {year}!', vibration: 'Vibration: {state}', on: 'on', off: 'off',
     djDropped: 'The DJ dropped out. Game paused — ending in <strong id="graceClock">5:00</strong> unless they come back.',
     notOnBoard: 'The DJ has not put you on the board yet.', hint: "Hint: it's from the {decade}.", justNow: 'Just now',
@@ -892,7 +941,7 @@ const STR = {
     winTextOther: '{name} was first to {n} cards. Play on if you like — the win stays.',
     seeRecap: 'See your recap card', keepPlaying: 'Keep playing',
     recapNote: 'It updates as you play, so save it whenever you like. On iPhone, Save picture → Save Image puts it in your camera roll.',
-    close: 'Close', savePicture: 'Save picture', leaveTitle: 'Leave the game?',
+    close: 'Close', savePicture: 'Save picture', fmtPost: 'Post 4:5', fmtStory: 'Story 9:16', leaveTitle: 'Leave the game?',
     leaveText: "You'll go back to the start screen. Your cards stay with the DJ — rejoin with the same code and name to pick them back up.",
     stay: 'Stay', leave: 'Leave',
     shop_new: 'New song', shop_new_d: 'Swap your song for a new one.', shop_hint: 'Hint', shop_hint_d: 'Show the decade on screen.',
@@ -906,7 +955,9 @@ const STR = {
     ht3: 'Name it', ht3d: 'Know the title or the artist too? That’s a gold coin. Coins break ties and buy things in the shop.',
     ht4: 'First to {n}', ht4d: 'First to {n} cards wins. Play on afterwards if you like — the win stays.',
     ht5: 'Your phone', ht5d: 'Your turn, over/under votes, bets and the coin shop pop up right here. Chaos rounds shake up the rules — each card shows as it starts.',
-    tapToPlace: 'Your turn · tap + where it goes', slideToPlace: 'Your turn · slide the ??? card',
+    tapToPlace: 'Tap + where it goes', slideToPlace: 'Slide the ??? card',
+    tabNow: 'Now playing', tabOu: 'Over/under', tabLock: 'Lock-in', tabBet: 'Bet', tabShop: 'Shop', standings: 'Standings', leaveGame: 'Leave the game',
+    nCards: '{n} cards', nCards1: '1 card', ouVoted: '{a} of {b} voted',
     slideCap: 'Slide to place it', pickResult: 'Your pick: {x}',
     htSkip: 'Skip', htNext: 'Next', htGo: 'Let’s play', htMine: 'Your turn'
   },
@@ -930,7 +981,7 @@ const STR = {
     djPlaces: 'DJ’en placerer kortene fra hovedskærmen. Siden her opdaterer sig selv.',
     noCardsYet: 'Ingen kort endnu — vind et, så lander det her.', fitsHere: 'Passer her', nobodyYet: 'Ingen i spillet endnu.',
     phoneOn: 'telefon forbundet', phoneOff: 'ingen telefon forbundet', streakTitle: '{n} i træk på egne ture',
-    of: 'af', targetReached: 'målet er nået', toGo1: '1 kort tilbage', toGo: '{n} kort tilbage', yourTurnBang: 'din tur!',
+    of: 'af', targetReached: 'målet er nået', toGo1: '1 kort tilbage', toGo: '{n} kort tilbage',
     gotIt: 'Du fik den — {year}!', vibration: 'Vibration: {state}', on: 'til', off: 'fra',
     djDropped: 'DJ’en faldt ud. Spillet er sat på pause — det slutter om <strong id="graceClock">5:00</strong>, hvis DJ’en ikke kommer tilbage.',
     notOnBoard: 'DJ’en har ikke sat dig på brættet endnu.', hint: 'Hint: den er fra {decade}.', justNow: 'Lige nu',
@@ -969,7 +1020,7 @@ const STR = {
     winTextOther: '{name} var først til {n} kort. Spil videre, hvis I vil — sejren bliver stående.',
     seeRecap: 'Se dit recap-kort', keepPlaying: 'Spil videre',
     recapNote: 'Det opdateres, mens I spiller, så gem det, når du vil. På iPhone: Gem billede → Arkiver billede lægger det i din kamerarulle.',
-    close: 'Luk', savePicture: 'Gem billede', leaveTitle: 'Forlad spillet?',
+    close: 'Luk', savePicture: 'Gem billede', fmtPost: 'Opslag 4:5', fmtStory: 'Story 9:16', leaveTitle: 'Forlad spillet?',
     leaveText: 'Du kommer tilbage til startskærmen. Dine kort bliver hos DJ’en — deltag igen med samme kode og navn for at få dem tilbage.',
     stay: 'Bliv', leave: 'Forlad',
     shop_new: 'Ny sang', shop_new_d: 'Skift din sang ud med en ny.', shop_hint: 'Hint', shop_hint_d: 'Vis årtiet på skærmen.',
@@ -983,7 +1034,9 @@ const STR = {
     ht3: 'Nævn den', ht3d: 'Kender du også titlen eller kunstneren? Så får du en guldmønt. Mønter afgør uafgjort og kan bruges i butikken.',
     ht4: 'Først til {n}', ht4d: 'Først til {n} kort vinder. I kan spille videre bagefter — sejren bliver stående.',
     ht5: 'Din telefon', ht5d: 'Din tur, over/under, væddemål og møntbutikken dukker op lige her. Kaosrunder ryster reglerne — hvert kort vises, når runden starter.',
-    tapToPlace: 'Din tur · tryk på + hvor den skal ind', slideToPlace: 'Din tur · flyt ???-kortet',
+    tapToPlace: 'Tryk på + hvor den skal ind', slideToPlace: 'Flyt ???-kortet',
+    tabNow: 'Spiller nu', tabOu: 'Over/under', tabLock: 'Lås fast', tabBet: 'Væddemål', tabShop: 'Butik', standings: 'Stilling', leaveGame: 'Forlad spillet',
+    nCards: '{n} kort', nCards1: '1 kort', ouVoted: '{a} af {b} har stemt',
     slideCap: 'Træk for at placere den', pickResult: 'Dit valg: {x}',
     htSkip: 'Spring over', htNext: 'Næste', htGo: 'Lad os spille', htMine: 'Din tur'
   }
@@ -1500,15 +1553,29 @@ function spotifyLink(id, text){
   return a;
 }
 
+// Standings and tonight's songs share one card; the switch shows once there are songs.
+let lbView = 'standings';
+function syncLbView(hasSongs){
+  document.getElementById('lbSwitch').hidden = !hasSongs;
+  document.getElementById('lbTitle').hidden = hasSongs;
+  document.querySelectorAll('#lbSwitch [data-lbview]').forEach(b => b.classList.toggle('on', b.dataset.lbview === lbView));
+  document.getElementById('leaderboard').hidden = lbView !== 'standings';
+  document.getElementById('songsList').hidden = lbView !== 'songs';
+}
+document.querySelectorAll('#lbSwitch [data-lbview]').forEach(b => b.addEventListener('click', () => {
+  lbView = b.dataset.lbview;
+  syncLbView(true);
+}));
+
 // Every song revealed tonight, newest first — tap one to open it in Spotify.
 function songsKey(){
   return JSON.stringify(lastState && lastState.songs);
 }
 function renderSongs(){
-  const card = document.getElementById('songsCard');
   const list = document.getElementById('songsList');
   const songs = (lastState && lastState.songs) || [];
-  card.hidden = !songs.length;
+  if(!songs.length) lbView = 'standings';
+  syncLbView(songs.length > 0);
   document.getElementById('songsCount').textContent = songs.length;
   list.textContent = '';
   songs.forEach(s => {
@@ -2034,15 +2101,30 @@ document.querySelectorAll('#langRow [data-lang]').forEach(b => b.addEventListene
 applyLang();
 
 // Recap card: drawn from the numbers the DJ sends, saved to the camera roll.
-let recapCanvas = null;
-document.getElementById('recapBtn').addEventListener('click', async () => {
-  const mine = me();
-  const data = mine && lastState && (lastState.recaps || []).find(r => r.name === mine.name);
-  if(!data) return;
-  recapCanvas = await drawRecapCard(data, lang);
+let recapCanvas = null, recapData = null;
+let recapFormat = 'post';
+try{ recapFormat = localStorage.getItem('vl_recap_fmt') === 'story' ? 'story' : 'post'; }catch(e){}
+
+async function showRecap(){
+  recapCanvas = await drawRecapCard(recapData, lang, recapFormat);
   document.getElementById('recapImg').src = recapCanvas.toDataURL('image/png');
+  document.querySelectorAll('#recapFormat [data-format]').forEach(b => b.classList.toggle('on', b.dataset.format === recapFormat));
+}
+document.getElementById('recapBtn').addEventListener('click', async () => {
+  if(!me()) return;
+  // The DJ holds the numbers; ask for them only when the card is opened.
+  const data = await new Promise(resolve => socket.timeout(5000).emit('recap:get', {}, (err, res) => resolve(err ? null : res)));
+  if(!data) return;
+  recapData = data;
+  await showRecap();
   document.getElementById('recapOverlay').classList.add('open');
 });
+document.querySelectorAll('#recapFormat [data-format]').forEach(b => b.addEventListener('click', () => {
+  if(recapFormat === b.dataset.format || !recapData) return;
+  recapFormat = b.dataset.format;
+  try{ localStorage.setItem('vl_recap_fmt', recapFormat); }catch(e){}
+  showRecap();
+}));
 document.getElementById('recapSaveBtn').addEventListener('click', () => {
   if(recapCanvas) saveRecapCard(recapCanvas, me() ? me().name : 'me');
 });
@@ -2062,7 +2144,12 @@ function renderMe(){
   const pips = document.getElementById('mePips');
   const mine = me();
   pips.innerHTML = '';
-  if(!mine){ sub.textContent = ''; return; }
+  if(!mine){
+    sub.textContent = '';
+    document.getElementById('meCards').textContent = '';
+    document.getElementById('meCoins').textContent = '';
+    return;
+  }
   const list = (lastState && lastState.players) || [];
   const winLength = (lastState && lastState.winLength) || 10;
   const sorted = list.slice().sort(comparePlayers);
@@ -2070,8 +2157,9 @@ function renderMe(){
   const count = (mine.timeline || []).length;
   const toGo = Math.max(0, winLength - count);
   sub.innerHTML = '<b>' + ordinal(rank) + '</b> ' + tr('of') + ' ' + sorted.length + ' · ' +
-    (toGo === 0 ? tr('targetReached') : toGo === 1 ? tr('toGo1') : tr('toGo', { n: toGo })) +
-    (lastState && lastState.turn === mine.name ? ' · <b>' + tr('yourTurnBang') + '</b>' : '');
+    (toGo === 0 ? tr('targetReached') : toGo === 1 ? tr('toGo1') : tr('toGo', { n: toGo }));
+  document.getElementById('meCards').textContent = count === 1 ? tr('nCards1') : tr('nCards', { n: count });
+  document.getElementById('meCoins').textContent = '● ' + myCoins();
   if(winLength > 15){
     pips.innerHTML = '<span class="pips-bar"><i style="width:' + Math.min(100, count / winLength * 100) + '%"></i></span>';
     return;
@@ -2311,7 +2399,11 @@ function renderVote(){
       btn.addEventListener('click', () => castVote(choice));
       btns.appendChild(btn);
     });
-    box.append(q, btns);
+    const count = document.createElement('div');
+    count.className = 'ou-voted';
+    count.textContent = tr('ouVoted', { a: (v.voted || []).length, b: ((lastState && lastState.players) || []).length });
+    box.classList.add('ou-open');
+    box.append(q, btns, count);
     return;
   }
 
@@ -2726,6 +2818,69 @@ function renderShop(){
   });
 }
 
+// ── the stage: one card at a time ──────────────────────────────────────
+// Whatever's open (vote, lock-in, bet, shop, now playing) shares one spot;
+// the rest wait as tabs with a dot. A new over/under or lock-in, and the
+// start of your own turn, pull their card to the front. Otherwise the phone
+// stays on what you picked, falling back to Now playing.
+const STAGE = [
+  { id: 'nowCard', label: 'tabNow' },
+  { id: 'voteCard', label: 'tabOu' },
+  { id: 'lockCard', label: 'tabLock' },
+  { id: 'betCard', label: 'tabBet' },
+  { id: 'shopCard', label: 'tabShop' }
+];
+let stagePick = null;
+let stageSeen = { vote: null, lock: null, turn: null };
+
+function renderStage(){
+  const s = lastState || {};
+  const vote = s.vote && s.vote.open ? s.vote.id : null;
+  const lock = s.lockin && s.lockin.open ? s.lockin.id : null;
+  const mine = me();
+  const turn = mine && s.turn === mine.name ? (s.spot && s.spot.songId) || 'turn' : null;
+  if(vote && vote !== stageSeen.vote) stagePick = 'voteCard';
+  else if(lock && lock !== stageSeen.lock) stagePick = 'lockCard';
+  else if(turn && turn !== stageSeen.turn) stagePick = 'nowCard';
+  stageSeen = { vote, lock, turn };
+
+  const open = STAGE.filter(t => !document.getElementById(t.id).hidden);
+  if(!open.some(t => t.id === stagePick)) stagePick = null;
+  const active = stagePick || (open.some(t => t.id === 'nowCard') ? 'nowCard' : open.length ? open[0].id : null);
+  STAGE.forEach(t => document.getElementById(t.id).classList.toggle('stage-off', t.id !== active));
+
+  const tabs = document.getElementById('stageTabs');
+  tabs.hidden = open.length < 2;
+  const key = open.map(t => t.id).join() + '|' + active + '|' + lang;
+  if(tabs.dataset.key === key) return;
+  tabs.dataset.key = key;
+  tabs.textContent = '';
+  open.forEach(t => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = t.id === active ? 'on' : '';
+    b.textContent = tr(t.label);
+    if(t.id !== active && t.id !== 'nowCard'){
+      const dot = document.createElement('span');
+      dot.className = 'dot';
+      b.appendChild(dot);
+    }
+    b.addEventListener('click', () => { stagePick = t.id; renderStage(); });
+    tabs.appendChild(b);
+  });
+}
+
+// The ⋯ menu: recap card, switch player, vibration, leave.
+const meMenu = document.getElementById('meMenu');
+const meMoreBtn = document.getElementById('meMoreBtn');
+function setMeMenu(open){
+  meMenu.hidden = !open;
+  meMoreBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+meMoreBtn.addEventListener('click', (e) => { e.stopPropagation(); setMeMenu(meMenu.hidden); });
+document.addEventListener('click', (e) => { if(!meMenu.hidden && !meMenu.contains(e.target)) setMeMenu(false); });
+meMenu.addEventListener('click', (e) => { if(e.target.closest('button') && e.target.id !== 'vibeBtn') setMeMenu(false); });
+
 function render(){
   renderBanners();
   renderIfChanged('shop', shopKey(), renderShop);
@@ -2742,6 +2897,7 @@ function render(){
   renderIfChanged('timeline', timelineKey(), renderMyTimeline);
   renderIfChanged('leaderboard', leaderboardKey(), renderLeaderboard);
   renderIfChanged('songs', songsKey(), renderSongs);
+  renderStage();
   buzzCheck();
   checkWin();
 }

@@ -1,13 +1,21 @@
 /* Vinyl'le — a player's recap card, drawn on a canvas so it saves as a crisp
-   1080×1350 picture (a camera-roll / Instagram portrait). Shared by the DJ
-   page and the phones: both pass the same data the DJ computes.
+   picture: 1080×1350 for a post (4:5) or 1080×1920 for a story (9:16).
+   Shared by the DJ page and the phones: both pass the same data the DJ computes.
 
-   drawRecapCard(data) → Promise<HTMLCanvasElement>
+   drawRecapCard(data, lang, format) → Promise<HTMLCanvasElement>
+   format: 'post' (default) or 'story'
    data: { name, rank, of, cards, coins, winLength, won, streak, bestStreak,
            titles, ouRight, ou, lockWins, spent, bets, decade, years, date } */
 
 (function(){
-  const W = 1080, H = 1350;
+  const W = 1080;
+  // Per format: canvas height, how far the whole layout drops (a story keeps
+  // clear of Instagram's top and bottom bars), the stat grid, and where the
+  // timeline and footer sit.
+  const FORMATS = {
+    post:  { H: 1350, oy: 0,   cols: 3, tileH: 170, tilesTop: 760, line: 1195, lineTwo: 1150, foot: 50 },
+    story: { H: 1920, oy: 190, cols: 2, tileH: 160, tilesTop: 950, line: 1575, lineTwo: 1540, foot: 250 }
+  };
   const C = {
     bg: '#1B1420', surface: 'rgba(255,255,255,.045)', line: 'rgba(212,162,78,.28)',
     gold: '#D4A24E', goldHi: '#F0C877', paper: '#F3EADD', muted: '#9C8FA3', ink: '#241A0B'
@@ -166,8 +174,10 @@
     return picked;
   }
 
-  async function drawRecapCard(d, lang){
+  async function drawRecapCard(d, lang, format){
     LANG = lang === 'da' ? 'da' : 'en';
+    const F = FORMATS[format] || FORMATS.post;
+    const H = F.H, oy = F.oy;
     if(document.fonts){
       try{
         await Promise.all([
@@ -186,7 +196,7 @@
     // Background: plum, a gold glow from the top, a violet one from below.
     ctx.fillStyle = C.bg;
     ctx.fillRect(0, 0, W, H);
-    let g = ctx.createRadialGradient(W * .78, 120, 40, W * .78, 120, 900);
+    let g = ctx.createRadialGradient(W * .78, 120 + oy, 40, W * .78, 120 + oy, 900 + oy);
     g.addColorStop(0, 'rgba(212,162,78,.34)');
     g.addColorStop(1, 'rgba(212,162,78,0)');
     ctx.fillStyle = g;
@@ -198,16 +208,16 @@
     ctx.fillRect(0, 0, W, H);
 
     // The record, bleeding off the top-right corner, with the rank on its label.
-    drawRecord(ctx, W - 150, 250, 330, ordinal(d.rank || 1));
+    drawRecord(ctx, W - 150, 250 + oy, 330, ordinal(d.rank || 1));
 
     // Masthead.
     ctx.fillStyle = C.gold;
     ctx.font = '500 30px ' + MONO;
-    spaced(ctx, "VINYL'LE", 80, 110, 8);
+    spaced(ctx, "VINYL'LE", 80, 110 + oy, 8);
     ctx.fillStyle = C.muted;
     ctx.font = '400 24px ' + MONO;
     const date = new Date(d.date || Date.now());
-    spaced(ctx, (L('Night recap · ', 'Aftenens recap · ') + date.toLocaleDateString(L('en-GB', 'da-DK'), { day: 'numeric', month: 'short', year: 'numeric' })).toUpperCase(), 80, 152, 3);
+    spaced(ctx, (L('Night recap · ', 'Aftenens recap · ') + date.toLocaleDateString(L('en-GB', 'da-DK'), { day: 'numeric', month: 'short', year: 'numeric' })).toUpperCase(), 80, 152 + oy, 3);
 
     // Name, big.
     ctx.fillStyle = C.paper;
@@ -222,50 +232,50 @@
     const dotsW = ctx.measureText('..').width + 6;
     ctx.font = nameFont;
     const shown = clip(ctx, name, nameMax, dotsW);
-    ctx.fillText(shown, 76, 330);
+    ctx.fillText(shown, 76, 330 + oy);
     if(shown !== name){
       const w = ctx.measureText(shown).width;
       ctx.font = dotsFont;
       ctx.fillStyle = 'rgba(243,236,221,.4)';
-      ctx.fillText('..', 76 + w + 6, 330);
+      ctx.fillText('..', 76 + w + 6, 330 + oy);
     }
 
     // Rank line, plus a WINNER pill.
     ctx.font = '500 34px ' + MONO;
     ctx.fillStyle = C.gold;
-    let x = 80 + spaced(ctx, (ordinal(d.rank || 1) + L(' of ', ' af ') + (d.of || 1)).toUpperCase(), 80, 400, 4) + 26;
+    let x = 80 + spaced(ctx, (ordinal(d.rank || 1) + L(' of ', ' af ') + (d.of || 1)).toUpperCase(), 80, 400 + oy, 4) + 26;
     if(d.won){
       ctx.font = '500 26px ' + MONO;
       const pw = ctx.measureText(L('WINNER', 'VINDER')).width + 60;
-      roundRect(ctx, x, 368, pw, 46, 23);
+      roundRect(ctx, x, 368 + oy, pw, 46, 23);
       ctx.fillStyle = C.gold;
       ctx.fill();
       ctx.fillStyle = C.ink;
-      spaced(ctx, L('WINNER', 'VINDER'), x + 26, 400, 3);
+      spaced(ctx, L('WINNER', 'VINDER'), x + 26, 400 + oy, 3);
     }else if(d.leads){
       ctx.font = '500 26px ' + MONO;
       const pw = ctx.measureText(L('MOST CARDS', 'FLEST KORT')).width + 60;
-      roundRect(ctx, x, 368, pw, 46, 23);
+      roundRect(ctx, x, 368 + oy, pw, 46, 23);
       ctx.strokeStyle = C.gold;
       ctx.lineWidth = 2;
       ctx.stroke();
       ctx.fillStyle = C.gold;
-      spaced(ctx, L('MOST CARDS', 'FLEST KORT'), x + 26, 400, 3);
+      spaced(ctx, L('MOST CARDS', 'FLEST KORT'), x + 26, 400 + oy, 3);
     }else if(d.streak >= 2){
       ctx.fillStyle = C.muted;
       ctx.font = '400 30px ' + MONO;
-      ctx.fillText(L('· on a 🔥' + d.streak + ' streak', '· på en 🔥' + d.streak + '-stime'), x - 10, 400);
+      ctx.fillText(L('· on a 🔥' + d.streak + ' streak', '· på en 🔥' + d.streak + '-stime'), x - 10, 400 + oy);
     }
 
     // Hero numbers: cards and gold coins.
     const hero = (value, label, hx, color) => {
       ctx.fillStyle = color;
       ctx.font = '700 190px ' + SERIF;
-      ctx.fillText(String(value), hx, 640);
+      ctx.fillText(String(value), hx, 640 + oy);
       const w = ctx.measureText(String(value)).width;
       ctx.fillStyle = C.muted;
       ctx.font = '500 26px ' + MONO;
-      spaced(ctx, label, hx + 6, 690, 4);
+      spaced(ctx, label, hx + 6, 690 + oy, 4);
       return w;
     };
     const cardsW = hero(d.cards || 0, L(d.cards === 1 ? 'CARD' : 'CARDS', 'KORT'), 80, C.paper);
@@ -276,22 +286,23 @@
     const rx = Math.min(80 + cardsW + 70, 450);
     ctx.lineWidth = 10;
     ctx.strokeStyle = 'rgba(255,255,255,.08)';
-    ctx.beginPath(); ctx.arc(rx, 580, 44, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(rx, 580 + oy, 44, 0, Math.PI * 2); ctx.stroke();
     ctx.strokeStyle = C.gold;
     ctx.lineCap = 'round';
-    if(pct > 0){ ctx.beginPath(); ctx.arc(rx, 580, 44, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * pct); ctx.stroke(); }
+    if(pct > 0){ ctx.beginPath(); ctx.arc(rx, 580 + oy, 44, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * pct); ctx.stroke(); }
     ctx.lineCap = 'butt';
     ctx.fillStyle = C.muted;
     ctx.textAlign = 'center';
     ctx.font = '500 22px ' + MONO;
-    ctx.fillText('/' + target, rx, 588);
+    ctx.fillText('/' + target, rx, 588 + oy);
     ctx.textAlign = 'left';
 
-    // Six stat tiles.
-    const tw = 293, th = 170, gap = 20, top = 760;
+    // Six stat tiles: three across on a post, two across on a story.
+    const gap = 20, th = F.tileH, top = F.tilesTop;
+    const tw = (W - 160 - gap * (F.cols - 1)) / F.cols;
     tiles(d).forEach(([value, label], i) => {
-      const tx = 80 + (i % 3) * (tw + gap);
-      const ty = top + Math.floor(i / 3) * (th + gap);
+      const tx = 80 + (i % F.cols) * (tw + gap);
+      const ty = top + Math.floor(i / F.cols) * (th + gap);
       roundRect(ctx, tx, ty, tw, th, 22);
       ctx.fillStyle = C.surface;
       ctx.fill();
@@ -301,7 +312,7 @@
       ctx.fillStyle = value === '—' ? C.muted : C.paper;
       const vs = fit(ctx, String(value), '600', SERIF, 76, tw - 48, 36);
       ctx.font = '600 ' + vs + 'px ' + SERIF;
-      ctx.fillText(String(value), tx + 26, ty + 94);
+      ctx.fillText(String(value), tx + 26, ty + th * .55);
       ctx.fillStyle = C.muted;
       // Long labels shrink to stay inside the tile.
       const text = label.toUpperCase();
@@ -310,7 +321,7 @@
         ctx.font = '500 ' + ls + 'px ' + MONO;
         if(ctx.measureText(text).width + text.length * 2.5 <= tw - 52) break;
       }
-      spaced(ctx, text, tx + 28, ty + 140, 2.5);
+      spaced(ctx, text, tx + 28, ty + th * .82, 2.5);
     });
 
     // Their whole timeline as little records, oldest to newest: one row up
@@ -320,7 +331,7 @@
     if(years.length > MAX) years = Array.from({ length: MAX }, (_, i) => years[Math.round(i * (years.length - 1) / (MAX - 1))]);
     const two = years.length > 16;
     const rows = two ? [years.slice(0, Math.ceil(years.length / 2)), years.slice(Math.ceil(years.length / 2))] : [years];
-    const ly = two ? 1150 : 1195;
+    const ly = two ? F.lineTwo : F.line;
     const disc = two ? 12 : years.length > 12 ? 14 : 17;
     const font = two || years.length > 12 ? 17 : 19;
     if(years.length){
@@ -360,11 +371,11 @@
     // Footer.
     ctx.fillStyle = C.gold;
     ctx.font = '500 22px ' + MONO;
-    spaced(ctx, L('THE MUSIC TIMELINE GAME', 'MUSIKKENS TIDSLINJESPIL'), 80, H - 50, 4);
+    spaced(ctx, L('THE MUSIC TIMELINE GAME', 'MUSIKKENS TIDSLINJESPIL'), 80, H - F.foot, 4);
     ctx.fillStyle = C.muted;
     ctx.font = '400 22px ' + MONO;
     ctx.textAlign = 'right';
-    ctx.fillText(L('first to ', 'først til ') + target, W - 80, H - 50);
+    ctx.fillText(L('first to ', 'først til ') + target, W - 80, H - F.foot);
     ctx.textAlign = 'left';
     return canvas;
   }
@@ -372,7 +383,7 @@
   // Save the card: the share sheet where there is one (on iPhone that's
   // "Save Image" → camera roll), otherwise a download.
   async function saveRecapCard(canvas, name){
-    const file = 'vinylle-recap-' + (name || 'player').replace(/[^a-z0-9]+/gi, '-').toLowerCase() + '.png';
+    const file = 'vinylle-recap-' + (name || 'player').replace(/[^a-z0-9]+/gi, '-').toLowerCase() + (canvas.height > 1500 ? '-story' : '') + '.png';
     const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
     if(blob && navigator.canShare && window.File){
       const f = new File([blob], file, { type: 'image/png' });

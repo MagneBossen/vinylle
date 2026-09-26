@@ -57,6 +57,8 @@ app.get('/', (req, res) => res.sendFile(path.join(ROOT, 'index.html')));
 app.get('/player', (req, res) => res.sendFile(path.join(ROOT, 'player.html')));
 app.get('/recap-card.js', (req, res) => res.sendFile(path.join(ROOT, 'recap-card.js')));
 app.use('/images', express.static(path.join(ROOT, 'images'), { maxAge: '1d' }));
+// The DJ page's styles and scripts, split by topic (see dj/).
+app.use('/dj', express.static(path.join(ROOT, 'dj')));
 
 app.get('/health', (req, res) => res.json({ ok: true, lobbies: L.count() }));
 
@@ -103,6 +105,62 @@ app.get('/qr/:code.svg', async (req, res) => {
     res.status(500).type('text/plain').send('qr failed');
   }
 });
+
+// --- Anti-spam ---------------------------------------------------------------
+// Limits sized well above anything a real game does, so players never notice.
+
+// Where a connection really comes from (Render puts the client first in X-Forwarded-For).
+function clientIp(socket){
+  const fwd = socket.handshake.headers['x-forwarded-for'];
+  return (fwd ? String(fwd).split(',')[0] : socket.handshake.address || '').trim();
+}
+
+// New lobbies per IP: a DJ makes one a night, maybe a few with "New lobby".
+const CREATE_LIMIT = 15;
+const CREATE_WINDOW_MS = 60 * 60 * 1000;
+const MAX_LOBBIES = 500;
+const createLog = new Map(); // ip -> [timestamps]
+
+function mayCreateLobby(ip){
+  const now = Date.now();
+  const recent = (createLog.get(ip) || []).filter(t => now - t < CREATE_WINDOW_MS);
+  if(recent.length >= CREATE_LIMIT || L.count() >= MAX_LOBBIES){
+    createLog.set(ip, recent);
+    return false;
+  }
+  recent.push(now);
+  createLog.set(ip, recent);
+  return true;
+}
+setInterval(() => {
+  const now = Date.now();
+  for(const [ip, times] of createLog){
+    if(!times.some(t => now - t < CREATE_WINDOW_MS)) createLog.delete(ip);
+  }
+}, 10 * 60 * 1000).unref();
+
+// Messages per connection: a token bucket that refills EVENTS_PER_SEC, with room
+// for a burst. Anything over is dropped quietly.
+const EVENTS_PER_SEC = 20;
+const EVENT_BURST = 60;
+
+function rateLimit(socket){
+  let tokens = EVENT_BURST, at = Date.now();
+  socket.use((packet, next) => {
+    // The DJ page syncs state after every change; it only reaches its own lobby.
+    if(socket.data.role === 'dj') return next();
+    const now = Date.now();
+    tokens = Math.min(EVENT_BURST, tokens + (now - at) / 1000 * EVENTS_PER_SEC);
+    at = now;
+    if(tokens < 1) return; // dropped; acks are never called, the caller's timeout handles it
+    tokens -= 1;
+    next();
+  });
+}
+
+// Recap requests waiting on the DJ: reqId -> ack.
+const recapWaits = new Map();
+let recapSeq = 0;
 
 function toDj(lobby, event, payload){
   if(lobby.djSocketId) io.to(lobby.djSocketId).emit(event, payload);
@@ -151,6 +209,7 @@ function closeLobby(lobby, reason){
 }
 
 io.on('connection', (socket) => {
+  rateLimit(socket);
 
   // --- DJ side -------------------------------------------------------------
 
@@ -177,6 +236,7 @@ io.on('connection', (socket) => {
       }
     }
 
+    if(!mayCreateLobby(clientIp(socket))) return ack({ ok: false, error: 'rate-limited' });
     const lobby = L.createLobby(socket.id);
     socket.data.role = 'dj';
     socket.data.code = lobby.code;
@@ -347,6 +407,26 @@ io.on('connection', (socket) => {
       cardId: payload.cardId,
       price: payload.price
     });
+  });
+
+  // A phone opened its recap card. The DJ has the numbers, so ask it and pass
+  // the answer straight back; no answer within 4 s means no card.
+  socket.on('recap:get', (payload, cb) => {
+    if(typeof cb !== 'function') return;
+    const lobby = L.lobbyForPhone(socket.id);
+    if(!lobby || !lobby.djSocketId) return cb(null);
+    const reqId = ++recapSeq;
+    const timer = setTimeout(() => { recapWaits.delete(reqId); cb(null); }, 4000);
+    recapWaits.set(reqId, { cb, timer, dj: lobby.djSocketId });
+    toDj(lobby, 'player:recap-get', { reqId, deviceId: socket.data.deviceId });
+  });
+
+  socket.on('recap:reply', (payload) => {
+    const wait = payload && recapWaits.get(payload.reqId);
+    if(!wait || wait.dj !== socket.id) return;
+    clearTimeout(wait.timer);
+    recapWaits.delete(payload.reqId);
+    wait.cb(payload.data || null);
   });
 
   // --- Teardown ------------------------------------------------------------
