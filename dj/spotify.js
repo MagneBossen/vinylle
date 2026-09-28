@@ -89,6 +89,28 @@ connectBtn.addEventListener('click', async () => {
   window.location.href = 'https://accounts.spotify.com/authorize?' + params.toString();
 });
 
+// Every call to Spotify's login server goes through here: it gives up after
+// 15 s instead of hanging, and Disconnect can cancel it. `connGen` goes up on
+// every Disconnect, so an answer that arrives afterwards is ignored.
+const SPOTIFY_TIMEOUT_MS = 15000;
+const spotifyCalls = new Set();
+let connGen = 0;
+function spotifyFetch(url, opts){
+  const ctl = new AbortController();
+  spotifyCalls.add(ctl);
+  const timer = setTimeout(() => ctl.abort(), SPOTIFY_TIMEOUT_MS);
+  return fetch(url, Object.assign({}, opts, { signal: ctl.signal })).finally(() => {
+    clearTimeout(timer);
+    spotifyCalls.delete(ctl);
+  });
+}
+
+// Connecting or reconnecting: Disconnect is there too, to stop it.
+function setConnecting(text){
+  setConnState('pending', text);
+  disconnectBtn.style.display = '';
+}
+
 async function exchangeCodeForToken(code){
   const verifier = localStorage.getItem('bs_verifier');
   const clientId = localStorage.getItem('bs_client_id');
@@ -99,7 +121,7 @@ async function exchangeCodeForToken(code){
     client_id: clientId,
     code_verifier: verifier
   });
-  const res = await fetch('https://accounts.spotify.com/api/token', {
+  const res = await spotifyFetch('https://accounts.spotify.com/api/token', {
     method: 'POST',
     headers: {'Content-Type':'application/x-www-form-urlencoded'},
     body: body.toString()
@@ -122,18 +144,27 @@ async function refreshAccessToken(){
     refresh_token: refreshToken,
     client_id: clientId
   });
-  const res = await fetch('https://accounts.spotify.com/api/token', {
-    method: 'POST',
-    headers: {'Content-Type':'application/x-www-form-urlencoded'},
-    body: body.toString()
-  });
-  if(!res.ok) return null;
-  const data = await res.json();
-  if(data.refresh_token) localStorage.setItem('bs_refresh_token', data.refresh_token);
-  return data.access_token;
+  // A network failure, a timeout or a Disconnect all end up as "no token".
+  try{
+    const res = await spotifyFetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: {'Content-Type':'application/x-www-form-urlencoded'},
+      body: body.toString()
+    });
+    if(!res.ok) return null;
+    const data = await res.json();
+    if(data.refresh_token) localStorage.setItem('bs_refresh_token', data.refresh_token);
+    return data.access_token;
+  }catch(e){
+    return null;
+  }
 }
 
 disconnectBtn.addEventListener('click', () => {
+  // Also stops a connect or reconnect that's still going.
+  connGen++;
+  spotifyCalls.forEach(ctl => ctl.abort());
+  if(new URLSearchParams(window.location.search).has('code')) window.history.replaceState({}, document.title, REDIRECT_URI);
   localStorage.removeItem('bs_refresh_token');
   localStorage.removeItem('bs_verifier');
   accessToken = null;
@@ -144,7 +175,7 @@ disconnectBtn.addEventListener('click', () => {
 
 async function fetchMe(){
   try{
-    const res = await fetch('https://api.spotify.com/v1/me', {headers:{'Authorization':'Bearer ' + accessToken}});
+    const res = await spotifyFetch('https://api.spotify.com/v1/me', {headers:{'Authorization':'Bearer ' + accessToken}});
     if(!res.ok) throw new Error();
     const data = await res.json();
     return data.display_name || data.id || null;
@@ -160,16 +191,22 @@ async function tryRestoreSession(){
     const clientId = localStorage.getItem('bs_client_id');
     if(clientId) document.getElementById('clientId').value = clientId;
     syncClientIdField();
-    setConnState('pending', 'connecting…');
+    const gen = connGen;
+    setConnecting('connecting…');
     try{
-      accessToken = await exchangeCodeForToken(code);
+      const token = await exchangeCodeForToken(code);
+      if(gen !== connGen) return;
+      accessToken = token;
       window.history.replaceState({}, document.title, REDIRECT_URI);
       const name = await fetchMe();
+      if(gen !== connGen) return;
       setConnState('connected', name ? 'connected as ' + name : 'connected');
       loadPlaylistBtn.disabled = false;
       disconnectBtn.style.display = '';
     }catch(err){
-      setConnState('error', err.message || 'connection failed');
+      if(gen !== connGen) return;
+      setConnState('error', err.name === 'AbortError' ? 'Spotify didn\u2019t answer \u2014 try again' : (err.message || 'connection failed'));
+      disconnectBtn.style.display = 'none';
     }
     return;
   }
@@ -178,16 +215,20 @@ async function tryRestoreSession(){
   if(storedClientId) document.getElementById('clientId').value = storedClientId;
   syncClientIdField();
   if(!storedRefresh) return;
-  setConnState('pending', 'reconnecting…');
+  const gen = connGen;
+  setConnecting('reconnecting…');
   const token = await refreshAccessToken();
+  if(gen !== connGen) return;
   if(token){
     accessToken = token;
     const name = await fetchMe();
+    if(gen !== connGen) return;
     setConnState('connected', name ? 'connected as ' + name : 'connected');
     loadPlaylistBtn.disabled = false;
     disconnectBtn.style.display = '';
   }else{
-    setConnState('', 'not connected');
+    setConnState('', 'couldn\u2019t reconnect \u2014 connect again');
+    disconnectBtn.style.display = 'none';
   }
 }
 function isIOS(){
@@ -209,11 +250,12 @@ tryRestoreSession();
 
 setInterval(async () => {
   if(!localStorage.getItem('bs_refresh_token')) return;
+  const gen = connGen;
   const token = await refreshAccessToken();
-  if(token){
+  if(token && gen === connGen){
     accessToken = token;
     const name = await fetchMe();
-    setConnState('connected', name ? 'connected as ' + name : 'connected');
+    if(gen === connGen) setConnState('connected', name ? 'connected as ' + name : 'connected');
   }
 }, 50 * 60 * 1000);
 
