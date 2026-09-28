@@ -424,13 +424,20 @@ function fmtMs(ms){
   return m + ':' + String(s).padStart(2,'0');
 }
 
+const CONNECT_SLOW_MS = 3000;
 function setConnState(state, text){
   connectPill.classList.remove('connected','pending','error');
   if(state) connectPill.classList.add(state);
   connectStatus.textContent = text;
-  // Always there: Stop while a connect is under way, Disconnect otherwise.
+  // Disconnect when connected. While connecting it stays out of the way,
+  // and only turns up as Stop if it's taking a while.
   const stop = document.getElementById('disconnectBtn');
-  if(stop) stop.textContent = state === 'pending' ? 'Stop' : 'Disconnect';
+  if(stop){
+    clearTimeout(setConnState.slowTimer);
+    stop.textContent = state === 'pending' ? 'Stop' : 'Disconnect';
+    stop.hidden = state !== 'connected';
+    if(state === 'pending') setConnState.slowTimer = setTimeout(() => { stop.hidden = false; }, CONNECT_SLOW_MS);
+  }
   // Can run while the page is still loading, before dj/stage.js (where the
   // pill is drawn) exists: then it waits until every script has loaded.
   if(typeof renderRecordsPill === 'function') queueMicrotask(renderRecordsPill);

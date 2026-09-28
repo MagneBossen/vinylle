@@ -105,7 +105,7 @@ function spotifyFetch(url, opts){
   });
 }
 
-// Connecting or reconnecting: the Disconnect button reads Stop meanwhile.
+// Connecting or reconnecting: if it's slow, the Disconnect button turns up as Stop.
 function setConnecting(text){
   setConnState('pending', text);
 }
