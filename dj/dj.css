@@ -646,51 +646,143 @@
   .tname.pending{color:var(--muted);font-style:italic;}
   .tyear{font-family:'IBM Plex Mono',monospace;color:var(--gold);font-size:.82rem;}
 
-  /* ── role picker (first thing you see) ─────────────────────────────── */
+  /* ── start screen: a record you flip to pick a side ────────────────────
+     Side A = DJ, Side B = player. Everything scales off --rec (the deck
+     size, in zoomed layout px) so it fills a phone and a TV alike; inside the
+     deck 1em = 1% of the deck. */
   .role-overlay{
     position:fixed;inset:0;z-index:3000;
-    background:var(--bg);
     display:none;
-    align-items:center;justify-content:center;
-    padding:1.5rem;
+    padding:calc(var(--rec) / 14) calc(var(--rec) / 12);
     overflow-y:auto;
+    --rec:min(calc(78 * var(--vw, 1vw)), calc(46 * var(--vh, 1vh)));
+    font-size:calc(var(--rec) / 22);
+    background:
+      radial-gradient(900px 520px at 88% -8%, var(--glow), transparent 62%),
+      radial-gradient(700px 520px at 6% 104%, rgba(179,58,58,.09), transparent 62%),
+      var(--bg);
   }
   .role-overlay.open{display:flex;}
-  .role-inner{max-width:640px;width:100%;text-align:center;}
-  .role-inner h1{font-size:clamp(2.4rem,calc(7 * var(--vw, 1vw)),3.4rem);margin-bottom:.4rem;}
-  .role-inner .tagline{margin-bottom:2.4rem;}
-  .role-options{display:flex;gap:1.1rem;justify-content:center;flex-wrap:wrap;}
-  .role-btn{
-    flex:1 1 240px;max-width:280px;
-    background:var(--surface);
-    border:1px solid var(--line);
-    border-radius:16px;
-    padding:1.8rem 1.4rem;
-    text-align:center;
-    cursor:pointer;
-    color:var(--paper);
-    transition:border-color .15s, background-color .15s, transform .15s;
+  .home{
+    margin:auto;width:100%;max-width:calc(var(--rec) * 1.5);
+    display:grid;gap:1.4em 0;justify-items:center;text-align:center;
+    grid-template-areas:"head" "stage" "panel";
   }
-  .role-btn:hover{border-color:var(--gold);background:var(--surface-2);transform:translateY(-2px);}
-  .role-btn .role-icon{color:var(--gold);margin-bottom:.9rem;display:flex;justify-content:center;}
-  .role-btn .role-title{display:block;font-family:'Fraunces',serif;font-weight:600;font-size:1.5rem;margin-bottom:.4rem;}
-  .role-btn .role-desc{display:block;font-size:.85rem;color:var(--muted);line-height:1.5;}
-  .role-note{font-size:.78rem;color:var(--muted);margin-top:2rem;line-height:1.5;}
-  .role-btn.blocked{opacity:.45;}
-  .role-btn.blocked:hover{border-color:var(--line);background:var(--surface);transform:none;}
+  .home-head{grid-area:head;}
+  .home-head h1{font-size:3em;margin:0 0 .15em;line-height:1;}
+  .home-head .tagline{font-size:.8em;margin:0;}
+  .home-stage{grid-area:stage;display:flex;flex-direction:column;align-items:center;padding-top:1.4em;}
+  .home-panel{grid-area:panel;width:100%;max-width:26em;display:flex;flex-direction:column;align-items:stretch;}
+  @media (min-aspect-ratio:5/4){
+    .role-overlay{--rec:min(calc(46 * var(--vw, 1vw)), calc(66 * var(--vh, 1vh)));}
+    .home{
+      max-width:calc(var(--rec) * 2.05);
+      grid-template-columns:auto minmax(0,1fr);gap:0 3.2em;align-items:center;
+      grid-template-areas:"stage head" "stage panel";
+    }
+    .home-head,.home-panel{justify-self:stretch;text-align:left;}
+    .home-head{align-self:end;margin-bottom:1.6em;}
+    .home-panel{align-self:start;max-width:none;}
+  }
+
+  .hs-deck{position:relative;width:var(--rec);height:var(--rec);font-size:calc(var(--rec) / 100);}
+  .hs-rec{position:absolute;left:0;bottom:0;width:84em;height:84em;perspective:220em;}
+  .hs-flipper{
+    position:absolute;inset:0;cursor:pointer;touch-action:pan-y;
+    transform-style:preserve-3d;
+    transition:transform .85s cubic-bezier(.3,1.35,.45,1);
+    -webkit-tap-highlight-color:transparent;
+    border-radius:50%;
+  }
+  .hs-flipper:focus-visible{outline:.4em solid var(--gold);outline-offset:1.2em;}
+  [data-side="player"] .hs-flipper{transform:rotateY(180deg);}
+  .hs-face{
+    position:absolute;inset:0;border-radius:50%;
+    background:var(--vinyl);
+    box-shadow:0 3em 6em rgba(0,0,0,.6), 0 0 0 .2em #000;
+    backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  }
+  .hs-face-b{transform:rotateY(180deg);}
+  .hs-disc{
+    position:absolute;inset:0;border-radius:50%;
+    background:
+      conic-gradient(from 20deg, transparent 0 6%, rgba(255,255,255,.075) 11%, transparent 17% 50%, rgba(255,255,255,.055) 60%, transparent 66%),
+      repeating-radial-gradient(circle, var(--vinyl) 0 .45em, #171119 .45em .9em);
+  }
+  .hs-disc::after{ /* run-out ring, so the spin is readable */
+    content:'';position:absolute;inset:47.5% 3% auto auto;width:2.4em;height:.5em;border-radius:1em;background:rgba(255,255,255,.12);
+  }
+  .hs-label{
+    position:absolute;left:50%;top:50%;width:34%;height:34%;transform:translate(-50%,-50%);
+    border-radius:50%;color:var(--ink);text-align:center;
+    background:var(--gold);
+    box-shadow:inset 0 0 0 .5em rgba(0,0,0,.14), inset 0 0 0 .9em rgba(255,255,255,.08);
+  }
+  .hs-face-b .hs-label{background:var(--red);color:var(--paper);}
+  .hs-l-top,.hs-l-bot{position:absolute;left:0;right:0;}
+  .hs-l-top{top:19%;font-family:'Fraunces',serif;font-weight:700;font-size:4.1em;letter-spacing:.02em;}
+  .hs-l-bot{top:65%;font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:2.5em;letter-spacing:.22em;padding-left:.22em;}
+  .hs-l-hole{position:absolute;left:50%;top:50%;width:2.6em;height:2.6em;margin:-1.3em 0 0 -1.3em;border-radius:50%;background:var(--bg);box-shadow:inset 0 .15em .3em rgba(0,0,0,.6);}
+
+  /* tonearm: pivots from the top right, rests off the record */
+  .hs-tonearm{
+    position:absolute;left:92em;top:10em;width:0;height:0;
+    transform-origin:0 0;transform:rotate(0deg);cursor:pointer;
+    transition:transform .7s cubic-bezier(.45,0,.2,1);
+    filter:drop-shadow(.8em 1.4em 1.2em rgba(0,0,0,.45));
+  }
+  .role-overlay.playing .hs-tonearm{transform:rotate(16deg);}
+  .hs-arm-rod{position:absolute;left:-1em;top:0;width:2em;height:60em;border-radius:1em;background:linear-gradient(90deg,#8d8195,#eadfee 45%,#8d8195);}
+  .hs-arm-rod::after{content:'';position:absolute;left:-3.5em;right:-3.5em;top:0;bottom:0;} /* fat hit area */
+  .hs-arm-head{position:absolute;left:-3.4em;top:58em;width:6.8em;height:9em;border-radius:1em .8em 1.6em 1.6em;background:linear-gradient(180deg,#2a2030,#160f1a);transform-origin:50% 0;transform:rotate(12deg);box-shadow:inset 0 0 0 .25em #4a3c52;}
+  .hs-arm-head::after{content:'';position:absolute;left:50%;bottom:-1.2em;width:1.2em;height:2em;margin-left:-.6em;border-radius:.6em;background:var(--gold);}
+  .hs-arm-cw{position:absolute;left:-3.2em;top:-15em;width:6.4em;height:10em;border-radius:1.4em;background:linear-gradient(90deg,#1d1522,#43364b 50%,#1d1522);}
+  .hs-arm-base{position:absolute;left:-7em;top:-7em;width:14em;height:14em;border-radius:50%;background:radial-gradient(circle at 38% 35%,#f2e6d2 0 8%,var(--gold) 9% 34%,var(--gold-dim) 36% 100%);box-shadow:inset 0 0 0 .5em rgba(0,0,0,.25);}
+  .hs-flip-hint{margin:1.6em 0 0;font-family:'IBM Plex Mono',monospace;font-size:.7em;letter-spacing:.06em;color:var(--muted);}
+
+  .side-toggle{
+    position:relative;display:grid;grid-template-columns:1fr 1fr;
+    background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:.3em;
+  }
+  .side-toggle::before{
+    content:'';position:absolute;top:.3em;bottom:.3em;left:.3em;width:calc(50% - .3em);border-radius:999px;
+    background:var(--gold);transition:transform .35s cubic-bezier(.3,1.3,.5,1), background-color .3s;
+  }
+  [data-side="player"] .side-toggle::before{transform:translateX(100%);background:var(--red);}
+  .side-btn{
+    position:relative;z-index:1;border:0;background:none;border-radius:999px;padding:.7em .4em;
+    font-family:'IBM Plex Mono',monospace;font-size:.78em;letter-spacing:.04em;color:var(--muted);
+    transition:color .25s;
+  }
+  .side-btn:hover{background:none;color:var(--paper);}
+  .side-btn:active{transform:none;}
+  .side-btn.on,.side-btn.on:hover{color:var(--ink);}
+  [data-side="player"] .side-btn.on,[data-side="player"] .side-btn.on:hover{color:var(--paper);}
+  .side-btn.blocked:not(.on){opacity:.5;}
+  .side-copy{display:grid;margin:1.5em 0 1.4em;}
+  .side-info{grid-area:1/1;transition:opacity .3s, transform .3s;}
+  .side-info h2{font-family:'Fraunces',serif;font-weight:600;font-size:1.8em;margin:0 0 .25em;}
+  .side-info p{font-size:.85em;color:var(--muted);line-height:1.55;margin:0;}
+  [data-side="player"] .info-dj{opacity:0;transform:translateY(.4em);pointer-events:none;}
+  .needle-btn{font-size:1em;padding:.75em 1em;border-radius:999px;font-weight:600;letter-spacing:.02em;}
+  .needle-btn:disabled{opacity:1;cursor:default;}
+  .role-overlay.playing .needle-btn{opacity:.6;pointer-events:none;}
   .role-warning{
     display:none;
     background:#3A1F1F;
     border:1px solid var(--red);
-    border-radius:10px;
-    padding:.9rem 1.1rem;
-    margin-top:1.6rem;
-    font-size:.85rem;
+    border-radius:.8em;
+    padding:.9em 1.1em;
+    margin-top:1.3em;
+    font-size:.75em;
     color:#f0c4c4;
     line-height:1.5;
     text-align:left;
   }
   .role-warning.show{display:block;}
+  @media (prefers-reduced-motion:reduce){
+    .hs-flipper,.hs-tonearm,.side-toggle::before,.side-info{transition-duration:.01s;}
+  }
   .home-title{cursor:pointer;transition:color .15s;-webkit-tap-highlight-color:transparent;}
   .home-title:hover{color:var(--gold);}
 
@@ -1361,22 +1453,6 @@
   }
   .podium-block{background:linear-gradient(180deg,#36263D,#261B2C);box-shadow:inset 0 1px 0 rgba(255,255,255,.04);}
   .podium-block.first{background:linear-gradient(180deg,rgba(212,162,78,.22),#2E2033 70%);}
-
-  /* ── role picker ── */
-  .role-overlay{
-    background:
-      radial-gradient(900px 520px at 88% -8%, var(--glow), transparent 62%),
-      var(--bg);
-  }
-  .role-record{
-    width:150px;height:150px;margin:0 auto 1.4rem;border-radius:50%;position:relative;
-    background:
-      radial-gradient(circle, var(--vinyl) 0 3%, var(--gold) 4% 30%, transparent 31%),
-      repeating-radial-gradient(circle, var(--vinyl) 0 2px, #1a131e 2px 3px);
-    box-shadow:0 20px 50px rgba(0,0,0,.6), 0 0 0 1px #000;
-    animation:spin 6s linear infinite;
-  }
-  .role-btn{background:rgba(37,26,43,.8);}
 
   .page-foot{position:relative;z-index:2;text-align:center;margin-top:2.6rem;}
 

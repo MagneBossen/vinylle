@@ -640,6 +640,7 @@ const roleDjWarning = document.getElementById('roleDjWarning');
 function refuseDj(){
   sessionStorage.removeItem('vl_role');
   roleOverlay.classList.add('open');
+  liftNeedle();
   document.body.style.overflow = 'hidden';
   roleDjWarning.classList.add('show');
   roleDjBtn.classList.add('blocked');
@@ -658,8 +659,6 @@ function chooseDj(){
   return true;
 }
 
-roleDjBtn.addEventListener('click', chooseDj);
-
 // Tapping the wordmark drops back to the role picker. Always confirms here —
 // the DJ has a lobby and a game in progress to lose.
 document.getElementById('djHomeTitle').addEventListener('click', async () => {
@@ -673,9 +672,117 @@ document.getElementById('djHomeTitle').addEventListener('click', async () => {
   window.location.href = '/';
 });
 
-document.getElementById('rolePlayerBtn').addEventListener('click', () => {
-  window.location.href = '/player';
+/* The start screen is a record: Side A = DJ, Side B = player. Flip it (tap,
+   swipe, or the toggle) to choose, then drop the needle to go. */
+const rolePlayerBtn = document.getElementById('rolePlayerBtn');
+const homeFlipper = document.getElementById('homeFlipper');
+const dropNeedleBtn = document.getElementById('dropNeedleBtn');
+const homeReduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+const homeDiscs = Array.from(roleOverlay.querySelectorAll('.hs-disc')).map(el =>
+  el.animate([{ transform: 'rotate(0deg)' }, { transform: 'rotate(360deg)' }], { duration: 1800, iterations: Infinity }));
+let homeSpin = 0, homeSpinTarget = 0, homeSpinRaf = 0, homeDropping = false;
+
+// Ease the platter between idle (a lazy crawl) and 33rpm without a jump.
+function setSpin(target){
+  homeSpinTarget = homeReduced.matches ? 0 : target;
+  cancelAnimationFrame(homeSpinRaf);
+  const step = () => {
+    homeSpin += (homeSpinTarget - homeSpin) * 0.06;
+    if(Math.abs(homeSpinTarget - homeSpin) < 0.002) homeSpin = homeSpinTarget;
+    homeDiscs.forEach(a => { a.playbackRate = homeSpin || 0.0001; if(!homeSpin) a.pause(); else a.play(); });
+    if(homeSpin !== homeSpinTarget) homeSpinRaf = requestAnimationFrame(step);
+  };
+  step();
+}
+setSpin(0.22);
+
+function setSide(side){
+  roleOverlay.dataset.side = side;
+  roleDjBtn.classList.toggle('on', side === 'dj');
+  rolePlayerBtn.classList.toggle('on', side === 'player');
+  roleDjBtn.setAttribute('aria-pressed', side === 'dj');
+  rolePlayerBtn.setAttribute('aria-pressed', side === 'player');
+  if(side === 'player'){
+    roleDjWarning.classList.remove('show');
+    roleDjBtn.classList.remove('blocked');
+  }
+}
+function flipSide(){
+  if(homeDropping) return;
+  setSide(roleOverlay.dataset.side === 'dj' ? 'player' : 'dj');
+}
+
+// A brief surface crackle and a soft thump when the needle lands. Started from
+// a click, so the browser lets it play; skipped quietly anywhere it can't.
+function needleSound(){
+  try{
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if(!AC) return;
+    const ctx = new AC();
+    const len = Math.floor(ctx.sampleRate * 1.1);
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for(let i = 0; i < len; i++){
+      d[i] = (Math.random() < 0.0012 ? (Math.random() * 2 - 1) : 0) + (Math.random() * 2 - 1) * 0.01;
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = buf;
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'highpass'; hp.frequency.value = 900;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, ctx.currentTime);
+    g.gain.setValueAtTime(0.35, ctx.currentTime + 0.6);
+    g.gain.linearRampToValueAtTime(0, ctx.currentTime + 1.1);
+    noise.connect(hp).connect(g).connect(ctx.destination);
+    noise.start();
+    const o = ctx.createOscillator(), og = ctx.createGain();
+    o.frequency.setValueAtTime(110, ctx.currentTime + 0.62);
+    o.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.8);
+    og.gain.setValueAtTime(0.0001, ctx.currentTime);
+    og.gain.setValueAtTime(0.25, ctx.currentTime + 0.62);
+    og.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.85);
+    o.connect(og).connect(ctx.destination);
+    o.start(); o.stop(ctx.currentTime + 0.9);
+    setTimeout(() => ctx.close(), 1500);
+  } catch(e){}
+}
+
+function liftNeedle(){
+  homeDropping = false;
+  roleOverlay.classList.remove('playing');
+  setSpin(0.22);
+}
+function dropNeedle(){
+  if(homeDropping) return;
+  homeDropping = true;
+  roleOverlay.classList.add('playing');
+  setSpin(1);
+  if(!homeReduced.matches) needleSound();
+  setTimeout(() => {
+    if(roleOverlay.dataset.side === 'player'){ window.location.href = '/player'; return; }
+    if(chooseDj()) liftNeedle();
+  }, homeReduced.matches ? 150 : 1150);
+}
+
+roleDjBtn.addEventListener('click', () => setSide('dj'));
+rolePlayerBtn.addEventListener('click', () => setSide('player'));
+dropNeedleBtn.addEventListener('click', dropNeedle);
+document.getElementById('homeArm').addEventListener('click', dropNeedle);
+homeFlipper.addEventListener('keydown', e => {
+  if(e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowLeft' || e.key === 'ArrowRight'){ e.preventDefault(); flipSide(); }
 });
+// Tap flips; a horizontal swipe flips too.
+let homePressX = null;
+homeFlipper.addEventListener('pointerdown', e => { homePressX = e.clientX; });
+homeFlipper.addEventListener('pointerup', e => {
+  if(homePressX === null) return;
+  const dx = Math.abs(e.clientX - homePressX);
+  homePressX = null;
+  if(dx < 8 || dx > 30) flipSide();
+});
+homeFlipper.addEventListener('pointercancel', () => { homePressX = null; });
+// Back from /player restores this page as it was left, needle down.
+window.addEventListener('pageshow', e => { if(e.persisted) liftNeedle(); });
 
 (function pickRole(){
   const params = new URLSearchParams(window.location.search);

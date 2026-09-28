@@ -309,8 +309,8 @@ function resumeCountdown(){
 /* Fit to screen: the layout is drawn for a 1440×800 window and the whole
    page is zoomed to fit the actual one, so a half-size window shows the same
    screen at half size, a TV shows it bigger. Display size (settings)
-   multiplies on top. --vw is 1% of the zoomed layout width, used in place of
-   vw so vw-based sizes scale with everything else. */
+   multiplies on top. --vw / --vh are 1% of the zoomed layout width / height,
+   used in place of vw / vh so viewport-based sizes scale with everything else. */
 function fitScale(){
   const DESIGN_W = 1440, DESIGN_H = 800;
   const w = window.innerWidth, h = window.innerHeight;
@@ -323,6 +323,7 @@ function applyZoom(){
   document.documentElement.style.zoom = z;
   document.documentElement.style.setProperty('--z', z);
   document.documentElement.style.setProperty('--vw', (window.innerWidth / z / 100) + 'px');
+  document.documentElement.style.setProperty('--vh', (window.innerHeight / z / 100) + 'px');
 }
 window.addEventListener('resize', applyZoom);
 applyZoom();
