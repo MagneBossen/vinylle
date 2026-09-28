@@ -3,6 +3,51 @@ redirectUriField.value = REDIRECT_URI;
 
 const redirectHintEl = document.getElementById('redirectHint');
 
+// The client ID box: once an ID is saved it shows as dots plus the last 4
+// characters (enough to check it's the right one), with Change to replace
+// it. Empty, it offers a Paste button. The real value stays in the input.
+const clientIdInput = document.getElementById('clientId');
+const cidPaste = document.getElementById('cidPaste');
+const cidSaved = document.getElementById('cidSaved');
+const canPaste = !!(window.isSecureContext && navigator.clipboard && navigator.clipboard.readText);
+
+function syncClientIdField(editing){
+  if(editing === undefined) editing = document.activeElement === clientIdInput;
+  const saved = localStorage.getItem('bs_client_id') || '';
+  const masked = !!saved && !editing && clientIdInput.value.trim() === saved;
+  cidSaved.hidden = !masked;
+  clientIdInput.hidden = masked;
+  cidPaste.hidden = masked || !canPaste || !!clientIdInput.value.trim();
+  if(masked) document.getElementById('cidMask').textContent = '•'.repeat(12) + saved.slice(-4);
+}
+function saveClientId(){
+  const v = clientIdInput.value.trim();
+  if(v) localStorage.setItem('bs_client_id', v);
+  else clientIdInput.value = localStorage.getItem('bs_client_id') || '';
+  syncClientIdField(false);
+}
+clientIdInput.addEventListener('input', () => syncClientIdField(true));
+clientIdInput.addEventListener('blur', saveClientId);
+clientIdInput.addEventListener('keydown', (e) => { if(e.key === 'Enter') clientIdInput.blur(); });
+cidPaste.addEventListener('click', async () => {
+  try{
+    const text = (await navigator.clipboard.readText()).trim();
+    if(!text) return;
+    clientIdInput.value = text;
+    saveClientId();
+  }catch(e){
+    // Clipboard blocked: fall back to typing/pasting into the box.
+    clientIdInput.focus();
+  }
+});
+document.getElementById('cidChange').addEventListener('click', () => {
+  clientIdInput.value = '';
+  cidSaved.hidden = true;
+  clientIdInput.hidden = false;
+  clientIdInput.focus();
+  syncClientIdField(true);
+});
+
 function randomString(len){
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let s = '';
@@ -114,6 +159,7 @@ async function tryRestoreSession(){
   if(code){
     const clientId = localStorage.getItem('bs_client_id');
     if(clientId) document.getElementById('clientId').value = clientId;
+    syncClientIdField();
     setConnState('pending', 'connecting…');
     try{
       accessToken = await exchangeCodeForToken(code);
@@ -130,6 +176,7 @@ async function tryRestoreSession(){
   const storedClientId = localStorage.getItem('bs_client_id');
   const storedRefresh = localStorage.getItem('bs_refresh_token');
   if(storedClientId) document.getElementById('clientId').value = storedClientId;
+  syncClientIdField();
   if(!storedRefresh) return;
   setConnState('pending', 'reconnecting…');
   const token = await refreshAccessToken();

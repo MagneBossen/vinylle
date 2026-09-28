@@ -471,7 +471,7 @@
   </div>
 
   <footer class="page-foot">
-    <p style="color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:.72rem; margin:0;">Vinyl'le — v16.4.1</p>
+    <p style="color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:.72rem; margin:0;">Vinyl'le — v16.4.2</p>
     <p style="color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:.65rem; margin-top:.3rem; opacity:.7;">Vibe coded by MB</p>
     <p style="font-family:'IBM Plex Mono',monospace; font-size:.7rem; margin-top:.6rem; opacity:.7;" hidden>
       <a href="#" class="footer-link">Feedback</a> · <a href="#" class="footer-link">Reach out</a> · <a href="#" class="footer-link">Buy me a coffee</a>
@@ -500,7 +500,14 @@
           <details id="spotifyFields" open style="margin-top:.8rem;">
             <summary>Spotify app settings</summary>
             <span class="field-label">Spotify client ID</span>
-            <input type="text" id="clientId" placeholder="paste your client id">
+            <div class="cid-field" id="cidField">
+              <input type="text" id="clientId" placeholder="paste your client id" autocomplete="off" spellcheck="false">
+              <button type="button" class="cid-paste" id="cidPaste" hidden>Paste</button>
+              <div class="cid-saved" id="cidSaved" hidden>
+                <span class="cid-mask" id="cidMask"></span>
+                <button type="button" class="cid-change" id="cidChange">Change</button>
+              </div>
+            </div>
             <span class="field-label">Redirect URI — paste this exact value into your Spotify app settings</span>
             <input type="text" id="redirectUri" readonly>
             <p class="hint" id="redirectHint" style="margin-top:0;">Copy this exact value into your Spotify app's <strong>Redirect URIs</strong> setting in the developer dashboard.</p>

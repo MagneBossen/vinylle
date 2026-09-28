@@ -801,6 +801,14 @@
   }
   .badge.drawn{border-color:var(--gold-dim);color:var(--gold);}
   .empty{color:var(--muted);font-size:.85rem;font-style:italic;}
+  /* Spotify client ID: masked once saved (last 4 shown), Paste when empty. */
+  .cid-field{position:relative;margin-bottom:.6rem;}
+  .cid-field input{margin-bottom:0;padding-right:5rem;}
+  .cid-paste{position:absolute;right:.35rem;top:50%;transform:translateY(-50%);padding:.3rem .7rem;font-size:.75rem;border-radius:6px;}
+  .cid-saved{display:flex;align-items:center;justify-content:space-between;gap:1rem;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:.45rem .45rem .45rem .7rem;}
+  .cid-saved[hidden]{display:none;}
+  .cid-mask{font-family:'IBM Plex Mono',monospace;font-size:.82rem;color:var(--paper);letter-spacing:.06em;}
+  .cid-change{padding:.3rem .7rem;font-size:.75rem;border-radius:6px;}
   #sp-frame-holder{position:absolute;top:0;left:0;width:260px;height:80px;overflow:hidden;}
   input[type="text"],input[type="password"]{
     width:100%;

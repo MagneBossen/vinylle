@@ -1,6 +1,6 @@
 {
   "name": "vinylle",
-  "version": "16.4.1",
+  "version": "16.4.2",
   "private": true,
   "description": "Vinyl'le — music timeline party game with multiplayer lobbies",
   "main": "server/index.js",
