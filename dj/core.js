@@ -431,7 +431,9 @@ function setConnState(state, text){
   // Always there: Stop while a connect is under way, Disconnect otherwise.
   const stop = document.getElementById('disconnectBtn');
   if(stop) stop.textContent = state === 'pending' ? 'Stop' : 'Disconnect';
-  // Runs during start-up before the stage code below exists — defer a tick.
-  queueMicrotask(renderRecordsPill);
+  // Can run while the page is still loading, before dj/stage.js (where the
+  // pill is drawn) exists: then it waits until every script has loaded.
+  if(typeof renderRecordsPill === 'function') queueMicrotask(renderRecordsPill);
+  else document.addEventListener('DOMContentLoaded', () => renderRecordsPill(), { once: true });
 }
 

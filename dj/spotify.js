@@ -240,7 +240,9 @@ function canBeDj(){
   return !(coarse && smallest <= 500);
 }
 
-tryRestoreSession();
+// Only once every DJ script has loaded: reconnecting touches the stage.
+if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tryRestoreSession, { once: true });
+else tryRestoreSession();
 
 setInterval(async () => {
   if(!localStorage.getItem('bs_refresh_token')) return;
