@@ -55,10 +55,14 @@ function shareOrigin(req){
 
 app.get('/', (req, res) => res.sendFile(path.join(ROOT, 'index.html')));
 app.get('/player', (req, res) => res.sendFile(path.join(ROOT, 'player.html')));
-app.get('/recap-card.js', (req, res) => res.sendFile(path.join(ROOT, 'recap-card.js')));
+// Scripts and styles are checked with the server on every load (cheap: an
+// unchanged file is a 304), so a deploy shows up straight away instead of
+// the browser running yesterday's copy from its cache.
+const fresh = { headers: { 'Cache-Control': 'no-cache' } };
+app.get('/recap-card.js', (req, res) => res.sendFile(path.join(ROOT, 'recap-card.js'), fresh));
 app.use('/images', express.static(path.join(ROOT, 'images'), { maxAge: '1d' }));
 // The DJ page's styles and scripts, split by topic (see dj/).
-app.use('/dj', express.static(path.join(ROOT, 'dj')));
+app.use('/dj', express.static(path.join(ROOT, 'dj'), { setHeaders: res => res.set('Cache-Control', 'no-cache') }));
 
 app.get('/health', (req, res) => res.json({ ok: true, lobbies: L.count() }));
 
