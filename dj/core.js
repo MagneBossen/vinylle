@@ -428,6 +428,9 @@ function setConnState(state, text){
   connectPill.classList.remove('connected','pending','error');
   if(state) connectPill.classList.add(state);
   connectStatus.textContent = text;
+  // Always there: Stop while a connect is under way, Disconnect otherwise.
+  const stop = document.getElementById('disconnectBtn');
+  if(stop) stop.textContent = state === 'pending' ? 'Stop' : 'Disconnect';
   // Runs during start-up before the stage code below exists — defer a tick.
   queueMicrotask(renderRecordsPill);
 }

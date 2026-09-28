@@ -105,10 +105,9 @@ function spotifyFetch(url, opts){
   });
 }
 
-// Connecting or reconnecting: Disconnect is there too, to stop it.
+// Connecting or reconnecting: the Disconnect button reads Stop meanwhile.
 function setConnecting(text){
   setConnState('pending', text);
-  disconnectBtn.style.display = '';
 }
 
 async function exchangeCodeForToken(code){
@@ -169,7 +168,6 @@ disconnectBtn.addEventListener('click', () => {
   localStorage.removeItem('bs_verifier');
   accessToken = null;
   loadPlaylistBtn.disabled = true;
-  disconnectBtn.style.display = 'none';
   setConnState('', 'not connected');
 });
 
@@ -202,11 +200,9 @@ async function tryRestoreSession(){
       if(gen !== connGen) return;
       setConnState('connected', name ? 'connected as ' + name : 'connected');
       loadPlaylistBtn.disabled = false;
-      disconnectBtn.style.display = '';
     }catch(err){
       if(gen !== connGen) return;
       setConnState('error', err.name === 'AbortError' ? 'Spotify didn\u2019t answer \u2014 try again' : (err.message || 'connection failed'));
-      disconnectBtn.style.display = 'none';
     }
     return;
   }
@@ -225,10 +221,8 @@ async function tryRestoreSession(){
     if(gen !== connGen) return;
     setConnState('connected', name ? 'connected as ' + name : 'connected');
     loadPlaylistBtn.disabled = false;
-    disconnectBtn.style.display = '';
   }else{
     setConnState('', 'couldn\u2019t reconnect \u2014 connect again');
-    disconnectBtn.style.display = 'none';
   }
 }
 function isIOS(){
