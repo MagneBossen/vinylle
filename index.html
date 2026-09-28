@@ -12,31 +12,53 @@
 <link rel="stylesheet" href="/dj/dj.css">
 </head>
 <body>
-<div class="role-overlay" id="roleOverlay">
-  <div class="role-inner">
-    <div class="role-record" aria-hidden="true"></div>
-    <h1>Vinyl'le</h1>
-    <p class="tagline">A music year-guessing party game. How are you joining?</p>
-    <div class="role-options">
-      <button class="role-btn" id="roleDjBtn">
-        <span class="role-icon">
-          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="2.5"></circle><path d="M12 3a9 9 0 0 1 9 9"></path></svg>
-        </span>
-        <span class="role-title">I'm the DJ</span>
-        <span class="role-desc">Run the game from this screen — playlists, playback, and card placement. You'll get a code to share.</span>
-      </button>
-      <button class="role-btn" id="rolePlayerBtn">
-        <span class="role-icon">
-          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"></rect><line x1="10.5" y1="18.5" x2="13.5" y2="18.5"></line></svg>
-        </span>
-        <span class="role-title">I'm a player</span>
-        <span class="role-desc">Follow along on your phone — your timeline and the leaderboard, live.</span>
-      </button>
+<div class="role-overlay" id="roleOverlay" data-side="dj">
+  <div class="home">
+    <header class="home-head">
+      <h1>Vinyl'le</h1>
+      <p class="tagline">A music year-guessing party game. Pick a side.</p>
+    </header>
+
+    <div class="home-stage">
+      <div class="hs-deck" id="homeDeck">
+        <div class="hs-rec">
+          <div class="hs-flipper" id="homeFlipper" role="button" tabindex="0" aria-label="Flip the record to switch between DJ and player">
+            <div class="hs-face hs-face-a">
+              <div class="hs-disc" aria-hidden="true"></div>
+              <div class="hs-label"><span class="hs-l-top">SIDE A</span><span class="hs-l-hole"></span><span class="hs-l-bot">THE DJ</span></div>
+            </div>
+            <div class="hs-face hs-face-b">
+              <div class="hs-disc" aria-hidden="true"></div>
+              <div class="hs-label"><span class="hs-l-top">SIDE B</span><span class="hs-l-hole"></span><span class="hs-l-bot">PLAYER</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="hs-tonearm" id="homeArm" aria-hidden="true">
+          <span class="hs-arm-cw"></span>
+          <span class="hs-arm-rod"></span>
+          <span class="hs-arm-head"></span>
+          <span class="hs-arm-base"></span>
+        </div>
+      </div>
+      <p class="hs-flip-hint">Tap to flip the vinyl</p>
     </div>
-    <div class="role-warning" id="roleDjWarning">
-      <strong>The DJ seat needs a laptop.</strong> Audio playback doesn't work reliably on a phone — it's a platform limitation in how Spotify's embed handles logins, not something this app can fix. Run the game from a laptop or desktop, then join from here as a player.
+
+    <div class="home-panel">
+      <div class="side-toggle" role="group" aria-label="Choose a side">
+        <button type="button" class="side-btn on" id="roleDjBtn" aria-pressed="true">Side A · DJ</button>
+        <button type="button" class="side-btn" id="rolePlayerBtn" aria-pressed="false">Side B · Player</button>
+      </div>
+      <div class="side-copy" aria-live="polite">
+        <div class="side-info info-dj">
+          <h2>I'm the DJ</h2>
+          <p>Run the game from this screen — playlists, playback, and card placement. You'll get a code to share.</p>
+        </div>
+      </div>
+      <button type="button" class="primary needle-btn" id="dropNeedleBtn">Drop the needle</button>
+      <div class="role-warning" id="roleDjWarning">
+        <strong>The DJ seat needs a laptop.</strong> Audio playback doesn't work reliably on a phone — it's a platform limitation in how Spotify's embed handles logins, not something this app can fix. Run the game from a laptop or desktop, then join from here as a player.
+      </div>
     </div>
-    <p class="role-note">Playing on one screen with everyone crowded round? Pick DJ and just ignore the code.</p>
   </div>
 </div>
 
@@ -471,7 +493,7 @@
   </div>
 
   <footer class="page-foot">
-    <p style="color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:.72rem; margin:0;">Vinyl'le — v16.4.7</p>
+    <p style="color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:.72rem; margin:0;">Vinyl'le — v16.5.1</p>
     <p style="color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:.65rem; margin-top:.3rem; opacity:.7;">Vibe coded by MB</p>
     <p style="font-family:'IBM Plex Mono',monospace; font-size:.7rem; margin-top:.6rem; opacity:.7;" hidden>
       <a href="#" class="footer-link">Feedback</a> · <a href="#" class="footer-link">Reach out</a> · <a href="#" class="footer-link">Buy me a coffee</a>
