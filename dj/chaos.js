@@ -13,7 +13,7 @@ const CHAOS_CARDS = [
   { id: 'swap', title: 'Swap', desc: "Win the card and you may swap it for any card in an opponent's timeline.", da: { title: 'Byt', desc: 'Vind kortet, og du må bytte det med et hvilket som helst kort i en modstanders tidslinje.' } },
   { id: 'speed', title: 'Speed round', xs: [5, 10], desc: 'Every clip this round is only {x} seconds.', da: { title: 'Speedrunde', desc: 'Hvert klip denne runde er kun {x} sekunder.' } },
   { id: 'playlist', title: 'Playlist round', desc: 'Every song this round is from “{playlist}”.', da: { title: 'Playliste-runde', desc: 'Alle sange denne runde er fra “{playlist}”.' } },
-  { id: 'don', title: 'Double or nothing', desc: 'Get it right: the card plus a gold coin. Get it wrong: lose your most recently won card.', da: { title: 'Dobbelt eller intet', desc: 'Gæt rigtigt: kortet plus en guldmønt. Gæt forkert: mist dit senest vundne kort.' } },
+  { id: 'don', title: 'Double or nothing', desc: 'Get it right: the card plus 2 gold coins (3 with the title or artist too). Get it wrong: lose your most recently won card.', da: { title: 'Dobbelt eller intet', desc: 'Gæt rigtigt: kortet plus 2 guldmønter (3 med titel eller kunstner). Gæt forkert: mist dit senest vundne kort.' } },
   { id: 'shop', title: 'Coin shop', desc: 'The shop is open: spend gold coins on a new song, a hint, passing it on, a speed trap, buying the card or a steal.', da: { title: 'Møntbutik', desc: 'Butikken er åben: brug guldmønter på en ny sang, et hint, at give videre, en fartfælde, at købe kortet eller at stjæle.' } },
   { id: 'catchup', title: 'Catch-up', desc: "Get it wrong and the card goes to whoever has the fewest cards (then fewest coins) — unless it's their own turn.", da: { title: 'Indhentning', desc: 'Gæt forkert, og kortet går til den med færrest kort (derefter færrest mønter) — medmindre det er deres egen tur.' } },
   { id: 'sing', title: 'Sing-along', desc: "Sing along to it and win the card plus a gold coin. Can't? Play it as normal.", da: { title: 'Syng med', desc: 'Syng med på den og vind kortet plus en guldmønt. Kan du ikke? Spil den som normalt.' } },
@@ -414,6 +414,18 @@ function settleSong(){
       results[deviceId] = { pick: bet.pick, amount: bet.amount, delta };
     });
     lastBetResults = { id: song.bets.id, turn: song.turn, results };
+  }
+
+  // Double or nothing: the turn player didn't get the card, so their latest
+  // one goes now, unless the DJ already took it. Needs automatic turns (the
+  // only time we know whose turn it was).
+  if(chaosActive('don') && autoTurns && !song.event && turnPlayer && !won && !song.donLost){
+    const lost = loseLatestCard(turnPlayer);
+    if(lost){
+      song.donLost = lost;
+      sessionChaos.donLost++;
+      notes.push({ en: turnPlayer.name + ' lost ' + lost.year + ' — double or nothing', da: turnPlayer.name + ' mistede ' + lost.year + ' — dobbelt eller intet' });
+    }
   }
 
   // Robin Hood last, so this song's own coins (and bets) are counted.

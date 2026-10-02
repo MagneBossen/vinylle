@@ -180,8 +180,16 @@ reloadBtn.addEventListener('click', async () => {
   reloadBtn.disabled = false;
 });
 
+// Keeps the playlists: every song becomes drawable again. Players' timelines stay.
+document.getElementById('resetPlayedBtn').addEventListener('click', async () => {
+  if(!playlists.some(p => p.tracks.some(t => t.drawn)) && !currentCard) return;
+  if(!(await showConfirm('Reset played songs? Every song becomes drawable again. Your playlists and the players\' timelines stay.'))) return;
+  resetDeckProgress();
+  renderScoreboard();
+});
+
 resetBtn.addEventListener('click', async () => {
-  if(playlists.length > 0 && !(await showConfirm('Reset the whole deck? This removes all loaded playlists and clears progress.'))) return;
+  if(playlists.length > 0 && !(await showConfirm('Remove all loaded playlists and clear progress?'))) return;
   playlists = [];
   loadedPlaylistIds.clear();
   currentCard = null;

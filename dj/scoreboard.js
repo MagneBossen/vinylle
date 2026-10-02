@@ -148,7 +148,7 @@ function titleCoins(entry){
 // Every coin a card carries: its title coin plus the one a double-or-nothing
 // win comes with.
 function coinValue(entry){
-  return titleCoins(entry) + (entry.donCoin ? 1 : 0) + (entry.streakCoin ? 1 : 0);
+  return titleCoins(entry) + (entry.donCoin ? 2 : 0) + (entry.streakCoin ? 1 : 0);
 }
 
 // Coins on cards, plus coins won or lost outside them (over/under). Can go
@@ -535,11 +535,11 @@ function giveCardTo(player, bought){
     addedAt: Date.now()
   };
   if(bought) entry.bought = true;
-  // Double or nothing, won on your own turn: the card comes with a coin.
+  // Double or nothing, won on your own turn: the card comes with 2 coins.
   if(!bought && chaosActive('don') && turnActive() && player.name === turnName){
     entry.donCoin = true;
-    statsCoinsWon++;
-    sessionCoinsWon++;
+    statsCoinsWon += 2;
+    sessionCoinsWon += 2;
   }
   // Hot streak: from the STREAK_FROM-th card in a row on your own turns,
   // every card comes with a coin.
