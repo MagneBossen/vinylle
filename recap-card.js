@@ -5,7 +5,9 @@
    drawRecapCard(data, lang, format) → Promise<HTMLCanvasElement>
    format: 'post' (default) or 'story'
    data: { name, rank, of, cards, coins, winLength, won, streak, bestStreak,
-           titles, ouRight, ou, lockWins, spent, bets, decade, years, date } */
+           titles, ouRight, ou, lockWins, spent, bets, decade, years, date,
+           hatTricks, comeback, missed, avgYear, decadeCount, bought, shopOn,
+           shortTurns, shortWins, longWins, hostileOthers } */
 
 (function(){
   const W = 1080;
@@ -146,7 +148,13 @@
 
     if(d.bestStreak >= 3) add(95, '🔥' + d.bestStreak, L('Best streak', 'Bedste stime'));
     if(d.ou >= 2 && d.ouRight === d.ou) add(92, d.ouRight + '/' + d.ou, L('Perfect over/under', 'Perfekt over/under'));
-    if(d.turns >= 4 && pct === 100) add(91, '100%', L('Never missed', 'Aldrig forbi'));
+    if(d.comeback) add(97, '🪃', L('Comeback kid', 'Comeback-kid'));
+    if(d.turns >= 6 && pct === 100) add(94, '💎', L('Perfectionist', 'Perfektionist'));
+    else if(d.turns >= 3 && pct === 100) add(89, '100%', L('Clean sheet', 'Rent bord'));
+    if(d.hatTricks) add(91, '🎩' + d.hatTricks, L(plural(d.hatTricks, 'Hat trick', 'Hat tricks'), plural(d.hatTricks, 'Hat trick', 'Hat tricks')));
+    if(d.shortWins === 0 && d.shortTurns >= 1 && d.longWins >= 2) add(88, '🕯️' + d.longWins, L('Slow burn', 'Langsom start'));
+    if(d.won && d.steals === 0 && d.sabotage === 0 && d.hostileOthers > 0) add(86, '🕊️', L('Pacifist win', 'Fredelig sejr'));
+    if(d.won && d.coins <= 1) add(85, d.coins, L('Won on pennies', 'Vandt på småmønter'));
     if(d.steals) add(88, d.steals, L(plural(d.steals, 'Card stolen', 'Cards stolen'), 'Kort stjålet'));
     // Tightest squeeze in months when months were in play, else in years.
     const tm = d.tightestMonths;
@@ -155,11 +163,17 @@
     else if(tm >= 12) add(52, yrs(Math.floor(tm / 12)) + (tm % 12 ? ' ' + (tm % 12) + 'm' : ''), L('Tightest squeeze', 'Tætteste par'));
     else if(d.tightest === 0) add(86, L('Same year', 'Samme år'), L('Tightest squeeze', 'Tætteste par'));
     if(d.sabotage) add(84, d.sabotage, L(plural(d.sabotage, 'Sabotage', 'Sabotages'), plural(d.sabotage, 'Sabotage', 'Sabotager')));
+    if(d.quick) add(90, '⚡' + d.quick, L(plural(d.quick, 'Quick-ears title', 'Quick-ears titles'), plural(d.quick, 'Lynhurtig titel', 'Lynhurtige titler')) + ' · ' + d.quickBest + 's');
     if(d.sang) add(82, '🎤' + d.sang, L(plural(d.sang, 'Song sung', 'Songs sung'), plural(d.sang, 'Sang sunget', 'Sange sunget')));
     if(d.donWins) add(80, d.donWins, L('Double or nothing wins', 'Dobbelt eller intet vundet'));
     if(d.lockWins) add(78, d.lockWins, L(plural(d.lockWins, 'Lock-in won', 'Lock-ins won'), 'Låse vundet'));
     if(d.robinGot) add(76, '+' + d.robinGot, L('Robin Hood gifts', 'Robin Hood-gaver'));
-    if(d.robinGave) add(75, '−' + d.robinGave, L('Robbed', 'Røvet'));
+    if(d.robinGave) add(75, '−' + d.robinGave, L('Prince John', 'Prins John'));
+    if(d.bets < 0) add(73, d.bets, L('Betting losses', 'Tab på væddemål'));
+    if(d.decadeCount >= 4 && years.length >= 4) add(71, d.decadeCount, L('Decades covered', 'Årtier dækket'));
+    if(d.avgYear != null && d.avgYear < 1970 && years.length >= 3) add(69, d.avgYear, L('Old soul · avg year', 'Gammel sjæl · snitår'));
+    if(d.missed >= 2) add(66, d.missed, L('Unlucky · misses', 'Uheldig · forbier'));
+    if(d.shopOn && d.bought >= 2) add(65, d.bought, L('Shop purchases', 'Køb i butikken'));
     if(d.bets > 0) add(74, '+' + d.bets, L('Betting profit', 'Gevinst på væddemål'));
     if(d.titles >= 3) add(72, d.titles, L('Titles named', 'Titler nævnt'));
     if(d.turns >= 3 && pct < 100) add(70, pct + '%', L('Own-turn hits', 'Rigtige på egen tur'));
