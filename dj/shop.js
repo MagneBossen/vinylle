@@ -165,6 +165,7 @@ function shopBuy(buyer, item, opts){
   buyer.coinAdj = (buyer.coinAdj || 0) - price;
   tally(sessionChaos.shop, item);
   tally(sessionChaos.spent, buyer.name, price);
+  tally(sessionChaos.bought, buyer.name);
   if(item === 'trap' || item === 'force') tally(sessionChaos.sabotage, buyer.name);
   if(item === 'steal') tally(sessionChaos.steals, buyer.name);
   gameEvent(msg);

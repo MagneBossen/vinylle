@@ -132,11 +132,27 @@ function recapCardData(player){
     turns: s.turns[player.name] || 0,
     turnWins: s.turnWins[player.name] || 0,
     sang: player.timeline.filter(e => e.sang).length,
+    quick: player.timeline.filter(e => e.quick).length,
+    quickBest: Math.min(...player.timeline.filter(e => e.quick).map(e => e.quick), Infinity),
     donWins: player.timeline.filter(e => e.donCoin).length,
     robinGot: s.robinGot[player.name] || 0,
     robinGave: s.robinGave[player.name] || 0,
     sabotage: s.sabotage[player.name] || 0,
     steals: s.steals[player.name] || 0,
+    bought: s.bought[player.name] || 0,
+    shopOn: Object.keys(s.shop).length > 0,
+    // Steals and sabotage by everyone else: a "Pacifist" needs someone to
+    // have been hostile around them.
+    hostileOthers: players.reduce((n, p) => n + (p === player ? 0 : (s.steals[p.name] || 0) + (s.sabotage[p.name] || 0)), 0),
+    hatTricks: s.hatTricks[player.name] || 0,
+    shortTurns: s.shortTurns[player.name] || 0,
+    shortWins: s.shortWins[player.name] || 0,
+    longWins: s.longWins[player.name] || 0,
+    // Last after three songs, then won.
+    comeback: !!gameWinner && gameWinner.name === player.name && s.lastAfter3 === player.name,
+    missed: Math.max(0, (s.turns[player.name] || 0) - (s.turnWins[player.name] || 0)),
+    avgYear: years.length ? Math.round(years.reduce((a, b) => a + b, 0) / years.length) : null,
+    decadeCount: Object.keys(decades).length,
     date: Date.now()
   };
 }

@@ -36,8 +36,10 @@ function nightData(){
   };
 }
 
-// Up to six awards, most fun first. A tie goes to whoever ranks higher, and
-// nobody takes more than two — the next best gets the third.
+// Up to six awards, rarest first: each has a rarity score (the harder to
+// earn, the higher), and the rarest ones that someone actually won get the
+// slots. A tie goes to whoever ranks higher, and nobody takes more than two
+// — the next best gets the third.
 function nightAwards(per){
   const won = {};
   const pick = (val, ok, low) => {
@@ -50,32 +52,48 @@ function nightAwards(per){
     });
     return best;
   };
+  const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many);
+  const hadShort = per.some(d => d.shortTurns > 0);
+  // [rarity, find the winner, icon, title, the line under the name]
+  const defs = [
+    [96, () => pick(d => d.comeback ? 1 : null, v => v), '🪃', 'Comeback kid', () => 'Last after three songs, then won it all'],
+    [94, () => pick(d => d.turns >= 6 && d.turnWins === d.turns ? d.turns : null, v => v), '💎', 'Perfectionist', v => 'Never missed, ' + v + ' turns'],
+    [91, () => pick(d => d.hatTricks, v => v >= 1), '🎩', 'Hat trick', v => plural(v, 'hat trick', 'hat tricks') + ': three right in a row'],
+    [90, () => pick(d => d.quick, v => v >= 1), '⚡', 'Quick ears', (v, d) => plural(v, 'title', 'titles') + ' on clips as short as ' + d.quickBest + 's'],
+    [89, () => pick(d => d.tightestMonths != null ? d.tightestMonths / 12 : d.tightest, v => v != null, true), '🎯', 'Surgeon', (v, d) =>
+      d.tightestMonths != null
+        ? (d.tightestMonths === 0 ? 'Two cards, same month' : d.tightestMonths < 12 ? plural(d.tightestMonths, 'month', 'months') + ' apart' : plural(Math.round(v), 'year', 'years') + ' apart')
+        : (v === 0 ? 'Two cards, same year' : plural(v, 'year', 'years') + ' apart')],
+    [88, () => hadShort ? pick(d => d.shortWins === 0 && d.shortTurns >= 1 ? d.longWins : null, v => v >= 2) : null, '🕯️', 'Slow burn', (v, d) => v + ' hits, all on full clips (missed ' + plural(d.shortTurns, 'short one', 'short ones') + ')'],
+    [87, () => pick(d => d.bestStreak, v => v >= 2), '🔥', 'Hot hand', v => v + ' in a row on own turns'],
+    [86, () => pick(d => d.won && d.steals === 0 && d.sabotage === 0 && d.hostileOthers > 0 ? d.hostileOthers : null, v => v), '🕊️', 'Pacifist', () => 'Won without a steal or a sabotage'],
+    [85, () => pick(d => d.lockWins, v => v >= 1), '🔒', 'Sharpshooter', v => plural(v, 'lock-in', 'lock-ins') + ' won'],
+    [85, () => pick(d => d.won ? d.coins : null, v => v <= 1, true), '🪙', 'Pennies', v => 'Won with ' + plural(v, 'coin', 'coins')],
+    [84, () => pick(d => d.steals, v => v >= 1), '🦝', 'Thief', v => plural(v, 'card', 'cards') + ' stolen'],
+    [83, () => pick(d => d.sang, v => v >= 1), '🎤', 'Karaoke star', v => plural(v, 'song', 'songs') + ' sung'],
+    [82, () => pick(d => d.sabotage, v => v >= 1), '💣', 'Saboteur', v => plural(v, 'sabotage', 'sabotages') + ' bought'],
+    [78, () => pick(d => d.leap, v => v >= 10), '🚀', 'Time traveller', v => 'Biggest leap: ' + v + ' years'],
+    [76, () => pick(d => d.turns >= 3 && d.turnWins === d.turns && d.turns < 6 ? d.turns : null, v => v), '🧼', 'Clean sheet', v => 'Not one miss in ' + v + ' turns'],
+    [74, () => pick(d => d.bets, v => v > 0), '🎲', 'High roller', v => '+' + v + ' coins from bets'],
+    [73, () => pick(d => d.bets, v => v < 0, true), '🎰', 'Gambler', v => v + ' coins lost on bets'],
+    [72, () => pick(d => d.titles, v => v >= 2), '🎤', 'Name dropper', v => v + ' titles named'],
+    [71, () => pick(d => d.decadeCount, (v, d) => v >= 4 && d.years.length >= 4), '🧭', 'Era hopper', v => v + ' different decades'],
+    [70, () => pick(d => d.robinGave, v => v >= 1), '👑', 'Prince John', v => 'Gave away ' + plural(v, 'coin', 'coins')],
+    [69, () => pick(d => d.avgYear, (v, d) => v < 1970 && d.years.length >= 3, true), '🎻', 'Old soul', v => 'Average card from ' + v],
+    [68, () => pick(d => d.ouRight, (v, d) => v >= 1 && d.ou > 0), '🔮', 'Oracle', (v, d) => v + ' of ' + d.ou + ' over/unders'],
+    [66, () => pick(d => d.missed, v => v >= 2), '🌧️', 'Unlucky', v => plural(v, 'miss', 'misses') + ' on own turns'],
+    [65, () => pick(d => d.shopOn ? d.bought : null, v => v >= 2), '🛍️', 'Shopaholic', v => plural(v, 'item', 'items') + ' bought'],
+    [62, () => pick(d => d.decadeShare, (v, d) => v >= 50 && d.years.length >= 4 && d.decade), '📼', null, (v, d) => v + '% of their cards'],
+    [60, () => pick(d => d.spent, v => v >= 2), '💸', 'Big spender', v => v + ' coins spent in the shop'],
+    [58, () => pick(d => d.coins, v => v >= 2), '🪙', 'Coin hoarder', v => v + ' gold coins']
+  ];
   const out = [];
-  const add = (a, ic, t, e) => {
+  defs.slice().sort((x, y) => y[0] - x[0]).forEach(([, find, ic, t, e]) => {
+    const a = find();
     if(!a) return;
     tally(won, a.d.name);
-    out.push({ ic, t, w: a.d.name, e: e(a.v, a.d) });
-  };
-  const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many);
-
-  add(pick(d => d.bestStreak, v => v >= 2), '🔥', 'Hot hand', v => v + ' in a row on own turns');
-  add(pick(d => d.tightestMonths != null ? d.tightestMonths / 12 : d.tightest, v => v != null, true), '🎯', 'Surgeon', (v, d) =>
-    d.tightestMonths != null
-      ? (d.tightestMonths === 0 ? 'Two cards, same month' : d.tightestMonths < 12 ? plural(d.tightestMonths, 'month', 'months') + ' apart' : plural(Math.round(v), 'year', 'years') + ' apart')
-      : (v === 0 ? 'Two cards, same year' : plural(v, 'year', 'years') + ' apart'));
-  add(pick(d => d.leap, v => v >= 10), '🚀', 'Time traveller', v => 'Biggest leap: ' + v + ' years');
-  add(pick(d => d.titles, v => v >= 2), '🎤', 'Name dropper', v => v + ' titles named');
-  add(pick(d => d.coins, v => v >= 2), '🪙', 'Coin hoarder', v => v + ' gold coins');
-  add(pick(d => d.decadeShare, (v, d) => v >= 50 && d.years.length >= 4 && d.decade), '📼', null, (v, d) => v + '% of their cards');
-  if(out.length && out[out.length - 1].t === null){
-    const d = per.find(x => x.name === out[out.length - 1].w);
-    out[out.length - 1].t = 'The ' + d.decade + ' kid';
-  }
-  add(pick(d => d.ouRight, (v, d) => v >= 1 && d.ou > 0), '🔮', 'Oracle', (v, d) => v + ' of ' + d.ou + ' over/unders');
-  add(pick(d => d.lockWins, v => v >= 1), '🔒', 'Sharpshooter', v => plural(v, 'lock-in', 'lock-ins') + ' won');
-  add(pick(d => d.bets, v => v > 0), '🎲', 'High roller', v => '+' + v + ' coins from bets');
-  add(pick(d => d.steals, v => v >= 1), '🦝', 'Thief', v => plural(v, 'card', 'cards') + ' stolen');
-  add(pick(d => d.spent, v => v >= 2), '💸', 'Big spender', v => v + ' coins spent in the shop');
+    out.push({ ic, t: t === null ? 'The ' + a.d.decade + ' kid' : t, w: a.d.name, e: e(a.v, a.d) });
+  });
   return out.slice(0, 6);
 }
 

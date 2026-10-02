@@ -738,10 +738,10 @@
   .hs-arm-head::after{content:'';position:absolute;left:50%;bottom:-1.2em;width:1.2em;height:2em;margin-left:-.6em;border-radius:.6em;background:var(--gold);}
   .hs-arm-cw{position:absolute;left:-3.2em;top:-15em;width:6.4em;height:10em;border-radius:1.4em;background:linear-gradient(90deg,#1d1522,#43364b 50%,#1d1522);}
   .hs-arm-base{position:absolute;left:-7em;top:-7em;width:14em;height:14em;border-radius:50%;background:radial-gradient(circle at 38% 35%,#f2e6d2 0 8%,var(--gold) 9% 34%,var(--gold-dim) 36% 100%);box-shadow:inset 0 0 0 .5em rgba(0,0,0,.25);}
-  .hs-flip-hint{margin:1.6em 0 0;font-family:'IBM Plex Mono',monospace;font-size:.7em;letter-spacing:.06em;color:var(--muted);}
+  .hs-flip-hint{margin:1.6em 0 0;align-self:flex-start;width:calc(var(--rec) * .84);text-align:center;font-family:'IBM Plex Mono',monospace;font-size:.7em;letter-spacing:.06em;color:var(--muted);}
 
   .side-toggle{
-    position:relative;display:grid;grid-template-columns:1fr 1fr;
+    margin-bottom:1.4em;position:relative;display:grid;grid-template-columns:1fr 1fr;
     background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:.3em;
   }
   .side-toggle::before{
@@ -759,11 +759,6 @@
   .side-btn.on,.side-btn.on:hover{color:var(--ink);}
   [data-side="player"] .side-btn.on,[data-side="player"] .side-btn.on:hover{color:var(--paper);}
   .side-btn.blocked:not(.on){opacity:.5;}
-  .side-copy{display:grid;margin:1.5em 0 1.4em;}
-  .side-info{grid-area:1/1;transition:opacity .3s, transform .3s;}
-  .side-info h2{font-family:'Fraunces',serif;font-weight:600;font-size:1.8em;margin:0 0 .25em;}
-  .side-info p{font-size:.85em;color:var(--muted);line-height:1.55;margin:0;}
-  [data-side="player"] .info-dj{opacity:0;transform:translateY(.4em);pointer-events:none;}
   .needle-btn{font-size:1em;padding:.75em 1em;border-radius:999px;font-weight:600;letter-spacing:.02em;}
   .needle-btn:disabled{opacity:1;cursor:default;}
   .role-overlay.playing .needle-btn{opacity:.6;pointer-events:none;}
@@ -781,7 +776,7 @@
   }
   .role-warning.show{display:block;}
   @media (prefers-reduced-motion:reduce){
-    .hs-flipper,.hs-tonearm,.side-toggle::before,.side-info{transition-duration:.01s;}
+    .hs-flipper,.hs-tonearm,.side-toggle::before{transition-duration:.01s;}
   }
   .home-title{cursor:pointer;transition:color .15s;-webkit-tap-highlight-color:transparent;}
   .home-title:hover{color:var(--gold);}

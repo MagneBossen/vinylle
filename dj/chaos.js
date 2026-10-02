@@ -388,6 +388,24 @@ function settleSong(){
     if(won && !won.bought) tally(sessionChaos.turnWins, turnPlayer.name);
     turnPlayer.streak = won && !won.bought ? (turnPlayer.streak || 0) + 1 : 0;
     if(turnPlayer.streak > (sessionChaos.streaks[turnPlayer.name] || 0)) sessionChaos.streaks[turnPlayer.name] = turnPlayer.streak;
+    // Every third hit in a row is a hat trick. A clip cut short (speed round
+    // or trap, as for Quick ears) is remembered for "Slow burn".
+    if(turnPlayer.streak && turnPlayer.streak % 3 === 0 && won && !won.bought) tally(sessionChaos.hatTricks, turnPlayer.name);
+    const clip = clipSeconds();
+    const hit = !!(won && !won.bought);
+    if(clip < CLIP_SECONDS && clip <= 10){
+      tally(sessionChaos.shortTurns, turnPlayer.name);
+      if(hit) tally(sessionChaos.shortWins, turnPlayer.name);
+    }else if(hit) tally(sessionChaos.longWins, turnPlayer.name);
+  }
+
+  // Who is last after the third song? If they go on to win, that's the
+  // "Comeback kid". Only counts when one player is clearly last.
+  if(++sessionChaos.settled === 3 && players.length >= 3){
+    const key = p => p.timeline.length * 1000 + bonusCount(p);
+    const lo = Math.min(...players.map(key));
+    const last = players.filter(p => key(p) === lo);
+    if(last.length === 1) sessionChaos.lastAfter3 = last[0].name;
   }
 
   if(song.passedFrom && turnPlayer && !won){

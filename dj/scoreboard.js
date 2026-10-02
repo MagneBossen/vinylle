@@ -162,6 +162,11 @@ function toggleCoin(entry){
   entry.bonus = !entry.bonus;
   if(entry.bonus) entry.coins = chaosCoinValue();
   else delete entry.coins;
+  // Title/artist named on a clip cut short (speed round or speed trap):
+  // remembered for the "Quick ears" award.
+  const clip = clipSeconds();
+  if(entry.bonus && song && song.id === entry.id && clip < CLIP_SECONDS && clip <= 10) entry.quick = clip;
+  else delete entry.quick;
   const diff = coinValue(entry) - before;
   statsCoinsWon = Math.max(0, statsCoinsWon + diff);
   sessionCoinsWon = Math.max(0, sessionCoinsWon + diff);
@@ -661,7 +666,8 @@ let sessionCoinsWon = 0;
 // Per-player tallies are keyed by name.
 function freshChaosStats(){
   return { rounds: {}, shop: {}, spent: {}, ou: 0, ouRight: {}, lockWins: {}, bets: {}, robin: 0, donLost: 0, streaks: {},
-    turns: {}, turnWins: {}, robinGot: {}, robinGave: {}, sabotage: {}, steals: {} };
+    turns: {}, turnWins: {}, robinGot: {}, robinGave: {}, sabotage: {}, steals: {},
+    bought: {}, hatTricks: {}, shortTurns: {}, shortWins: {}, longWins: {}, settled: 0, lastAfter3: null };
 }
 let sessionChaos = freshChaosStats();
 function tally(obj, key, n){
