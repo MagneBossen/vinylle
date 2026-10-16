@@ -566,6 +566,8 @@
   /* ── timeline: List / Cards switch ── */
   .tl-head{display:flex;align-items:center;justify-content:space-between;gap:.8rem;margin-bottom:.9rem;}
   .tl-head h2{margin:0;}
+  .tl-who{margin:-.2rem 0 .8rem;}
+  .tl-who button{max-width:11rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .seg{display:inline-flex;background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:2px;}
   .seg button{
     font-family:'IBM Plex Mono',monospace;font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;
@@ -743,11 +745,15 @@
 
         <div class="card">
           <div class="tl-head">
-            <h2><span data-i18n="yourTimeline">Your timeline</span> · <span id="myCount">0</span></h2>
+            <h2><span data-i18n="yourTimeline" id="tlMine">Your timeline</span><span id="tlOther" hidden></span> · <span id="myCount">0</span></h2>
             <div class="seg" role="group" aria-label="Timeline view">
               <button type="button" data-tlview="list" class="on" data-i18n="list">List</button>
               <button type="button" data-tlview="cards" data-i18n="cards">Cards</button>
             </div>
+          </div>
+          <div class="seg tl-who" id="tlWho" role="group" aria-label="Whose timeline" hidden>
+            <button type="button" data-tlwho="turn" class="on" id="tlWhoTurn"></button>
+            <button type="button" data-tlwho="mine" data-i18n="mineBtn">Mine</button>
           </div>
           <div class="pick-bar" id="pickBar" hidden></div>
           <div class="spine" id="myTimeline"></div>
@@ -904,7 +910,7 @@ const STR = {
     whereFit: 'Where does it fit in your timeline?', ouAsk: 'Was this song released before or after {y}?',
     ouToast: 'Over/under!', ouToastSub: 'Before or after {y}? Vote now.',
     turnToast: 'Your turn!', turnToastSub: 'Where does this one fit in your timeline?', revealed: 'Revealed', unknownTrack: 'Unknown track', openSpotify: 'Open in Spotify',
-    yourTimeline: 'Your timeline', list: 'List', cards: 'Cards', leaderboard: 'Leaderboard', songsTonight: 'Songs tonight',
+    yourTimeline: 'Your timeline', mineBtn: 'Mine', theirTimeline: '{name}’s timeline', starterGot: 'Your starter card — {year}', list: 'List', cards: 'Cards', leaderboard: 'Leaderboard', songsTonight: 'Songs tonight',
     djPlaces: 'The DJ places cards from the main screen. This view updates on its own.',
     noCardsYet: 'No cards yet — win one and it lands here.', fitsHere: 'Fits here', nobodyYet: 'Nobody in the game yet.',
     phoneOn: 'phone connected', phoneOff: 'no phone connected', streakTitle: '{n} in a row on their own turns',
@@ -983,7 +989,7 @@ const STR = {
     whereFit: 'Hvor passer den ind i din tidslinje?', ouAsk: 'Udkom sangen før eller efter {y}?',
     ouToast: 'Over/under!', ouToastSub: 'Før eller efter {y}? Stem nu.',
     turnToast: 'Din tur!', turnToastSub: 'Hvor passer den her ind i din tidslinje?', revealed: 'Afsløret', unknownTrack: 'Ukendt nummer', openSpotify: 'Åbn i Spotify',
-    yourTimeline: 'Din tidslinje', list: 'Liste', cards: 'Kort', leaderboard: 'Stilling', songsTonight: 'Aftenens sange',
+    yourTimeline: 'Din tidslinje', mineBtn: 'Min', theirTimeline: '{name}s tidslinje', starterGot: 'Dit startkort — {year}', list: 'Liste', cards: 'Kort', leaderboard: 'Stilling', songsTonight: 'Aftenens sange',
     djPlaces: 'DJ’en placerer kortene fra hovedskærmen. Siden her opdaterer sig selv.',
     noCardsYet: 'Ingen kort endnu — vind et, så lander det her.', fitsHere: 'Passer her', nobodyYet: 'Ingen i spillet endnu.',
     phoneOn: 'telefon forbundet', phoneOff: 'ingen telefon forbundet', streakTitle: '{n} i træk på egne ture',
@@ -1689,6 +1695,30 @@ document.querySelectorAll('[data-tlview]').forEach(b => b.addEventListener('clic
 syncTlToggle();
 let tlScrolledTo = null;
 
+// Not your turn: the timeline block follows whoever's turn it is, read-only,
+// so you can play along in your head. "Mine" flips back to your own cards.
+let tlFollow = true;
+try{ if(localStorage.getItem('vl_follow') === 'off') tlFollow = false; }catch(e){}
+function turnOther(){
+  const mine = me();
+  const turn = lastState && lastState.turn;
+  if(!mine || !turn || turn === mine.name) return null;
+  return (lastState.players || []).find(p => p.name === turn) || null;
+}
+// The player whose timeline the block shows right now.
+function viewedPlayer(){
+  const other = turnOther();
+  return other && tlFollow ? other : me();
+}
+document.querySelectorAll('[data-tlwho]').forEach(b => b.addEventListener('click', () => {
+  const want = b.dataset.tlwho === 'turn';
+  if(tlFollow === want) return;
+  tlFollow = want;
+  try{ localStorage.setItem('vl_follow', want ? 'on' : 'off'); }catch(e){}
+  tlScrolledTo = null;
+  render();
+}));
+
 function buildCardGap(months, tight){
   const g = document.createElement('div');
   g.className = 'cgap' + (tight ? ' tight' : '');
@@ -1720,18 +1750,33 @@ function renderMyTimeline(){
   bar.className = 'pick-bar';
   slide.hidden = true;
   const mine = me();
-  const timeline = mine ? (mine.timeline || []) : [];
+  const other = turnOther();
+  const who = viewedPlayer();
+  const following = !!other && who === other;
+  const timeline = who ? (who.timeline || []) : [];
   countEl.textContent = timeline.length;
+  document.getElementById('tlMine').hidden = following;
+  const tlOther = document.getElementById('tlOther');
+  tlOther.hidden = !following;
+  if(following) tlOther.textContent = tr('theirTimeline', { name: other.name });
+  document.getElementById('tlWho').hidden = !other;
+  if(other){
+    document.getElementById('tlWhoTurn').textContent = other.name;
+    document.querySelectorAll('[data-tlwho]').forEach(b => b.classList.toggle('on', (b.dataset.tlwho === 'turn') === tlFollow));
+  }
 
-  const newest = (mine && mine.lastAddedId) ? timeline.find(e => e.id === mine.lastAddedId) : null;
-  if(seenLastAdded !== undefined && newest && mine.lastAddedId !== seenLastAdded) celebrate(newest);
+  // The toast is about my own cards, whichever timeline is on show.
+  const myTimeline = mine ? (mine.timeline || []) : [];
+  const myNewest = (mine && mine.lastAddedId) ? myTimeline.find(e => e.id === mine.lastAddedId) : null;
+  if(seenLastAdded !== undefined && myNewest && mine.lastAddedId !== seenLastAdded) celebrate(myNewest);
   seenLastAdded = mine ? (mine.lastAddedId || null) : null;
+  const newest = following ? ((who.lastAddedId && timeline.find(e => e.id === who.lastAddedId)) || null) : myNewest;
 
   if(timeline.length === 0){
     holder.innerHTML = '<p class="empty">' + tr('noCardsYet') + '</p>';
     return;
   }
-  const pick = myPick();
+  const pick = following ? null : myPick();
   const picking = !!pick && pick.open;
   // After the reveal there's nothing to say here: a right pick gets the card
   // (and the yellow "You got it"), a wrong one shows "fits here" below.
@@ -1746,7 +1791,7 @@ function renderMyTimeline(){
   // would have gone — unless it's already in their timeline.
   const card = lastState && lastState.currentCard;
   let ghostAt = -1;
-  if(card && card.revealed && parseInt(card.year, 10) && mine && lastState.turn === mine.name && !timeline.some(e => e.id === card.id)){
+  if(card && card.revealed && parseInt(card.year, 10) && who && lastState.turn === who.name && !timeline.some(e => e.id === card.id)){
     const expert = lastState.expertMode;
     const val = e => expert ? e.year * 12 + (e.month || 1) - 1 : e.year * 12;
     const v = val({ year: parseInt(card.year, 10), month: card.month });
@@ -1923,7 +1968,7 @@ function showToast(title, sub, ms){
 }
 
 function celebrate(entry){
-  showToast(tr('gotIt', { year: entry.year }), (entry.title || '') + (entry.artist ? ' · ' + entry.artist : ''), 4200);
+  showToast(tr(entry.starter ? 'starterGot' : 'gotIt', { year: entry.year }), (entry.title || '') + (entry.artist ? ' · ' + entry.artist : ''), 4200);
   buzz([60, 40, 140]);
 }
 
@@ -2373,9 +2418,11 @@ function nowKey(){
 
 function timelineKey(){
   const mine = me();
+  const who = viewedPlayer();
+  const other = turnOther();
   const c = lastState && lastState.currentCard;
-  const p = myPick();
-  return JSON.stringify([tlView, !!(lastState && lastState.expertMode), blind(), mine && mine.lastAddedId, mine && mine.timeline, c && c.revealed ? [c.id, c.year, c.month] : null,
+  const p = who === mine ? myPick() : null;
+  return JSON.stringify([tlView, tlFollow, other && other.name, who && who.name, who !== mine && [who.lastAddedId, who.timeline], !!(lastState && lastState.expertMode), blind(), mine && mine.lastAddedId, mine && mine.timeline, c && c.revealed ? [c.id, c.year, c.month] : null,
     p ? [p.songId, p.open, p.open ? null : [p.slot, p.right]] : null]);
 }
 
@@ -2797,7 +2844,7 @@ function renderShop(){
       sel.appendChild(blank);
       others.forEach(p => {
         if(item.target === 'card'){
-          (p.timeline || []).forEach(e => {
+          (p.timeline || []).filter(e => !e.starter).forEach(e => {
             const o = document.createElement('option');
             o.value = p.name + '|' + e.id;
             o.textContent = p.name + ' — ' + (blind() ? '?' : e.year) + (e.title ? ' · ' + (e.title.length > 28 ? e.title.slice(0, 27) + '…' : e.title) : '');
