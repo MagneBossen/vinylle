@@ -93,7 +93,7 @@ function shopWhyNot(buyer, item, opts){
     if(song.passedFrom) return 'Already passed on';
     if(!other) return 'Pick who gets it';
   }
-  if(item === 'steal' && !(other && other.timeline.some(e => e.id === opts.cardId))) return 'Pick a card to steal';
+  if(item === 'steal' && !(other && other.timeline.some(e => e.id === opts.cardId && !e.starter))) return 'Pick a card to steal';
   return null;
 }
 
@@ -240,7 +240,7 @@ function renderShopWindow(){
       sel.appendChild(blank);
       players.filter(p => p !== buyer).forEach(p => {
         if(item.target === 'card'){
-          p.timeline.forEach(e => {
+          p.timeline.filter(e => !e.starter).forEach(e => {
             const o = document.createElement('option');
             o.value = p.name + '|' + e.id;
             o.textContent = p.name + ' — ' + (chaosActive('blind') ? '?' : e.year) + (e.title ? ' · ' + (e.title.length > 28 ? e.title.slice(0, 27) + '…' : e.title) : '');

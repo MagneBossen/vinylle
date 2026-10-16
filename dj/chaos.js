@@ -316,7 +316,8 @@ function renderSpot(){
 // The card a player won most recently (before this song). Cards from before
 // this was tracked have no time; the last one stands in.
 function latestCard(player){
-  const settled = player.timeline.filter(e => e.locked);
+  // The starter card is never taken back: everyone keeps at least one.
+  const settled = player.timeline.filter(e => e.locked && !e.starter);
   if(!settled.length) return null;
   return settled.reduce((a, e) => (e.addedAt || 0) >= (a.addedAt || 0) ? e : a);
 }

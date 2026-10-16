@@ -34,6 +34,10 @@ let ouEnabled = false;
 let ouSince = 0;
 // Whose turn it is — the name of the player the current song belongs to.
 let turnName = null;
+// Has the game been started? Starting deals everyone a starter card; anyone
+// joining afterwards gets theirs on the spot. Reset scores / Clear players
+// put it back to false.
+let gameStarted = false;
 // The current song's bookkeeping, settled when the next song is drawn:
 // { id, turn, don (double or nothing), bets, settled }.
 let song = null;
@@ -95,6 +99,7 @@ function flushSession(){
       gameMode: gameMode,
       chaos: chaos,
       turnName: turnName,
+      gameStarted: gameStarted,
       ouEnabled: ouEnabled,
       ouSince: ouSince,
       shopEnabled: shopEnabled,
@@ -166,6 +171,8 @@ function loadSession(){
       });
     }
     if(typeof state.turnName === 'string') turnName = state.turnName;
+    // Saves from before starter cards: a game with cards on the board is on.
+    gameStarted = typeof state.gameStarted === 'boolean' ? state.gameStarted : players.some(p => p.timeline.length > 0);
     if(state.gameWinner && state.gameWinner.name) gameWinner = state.gameWinner;
     if(typeof state.shopEnabled === 'boolean'){
       shopEnabled = state.shopEnabled;

@@ -564,6 +564,69 @@ function giveCardTo(player, bought){
   renderScoreboard();
 }
 
+// Starter cards: everyone begins with one random, already-known card, so the
+// first round has something to place against. It comes out of the deck (marked
+// drawn), counts towards the cards-to-win, and never gets stolen or lost.
+function dealStarterCard(player){
+  if(player.timeline.length) return false;
+  const held = new Set();
+  players.forEach(p => p.timeline.forEach(e => held.add(e.id)));
+  const pool = [];
+  playlists.forEach(p => {
+    if(!p.enabled) return;
+    p.tracks.forEach(t => {
+      if(!t.drawn && parseInt(t.year, 10) && !held.has(t.id)) pool.push(t);
+    });
+  });
+  if(!pool.length) return false;
+  const t = pool[Math.floor(Math.random() * pool.length)];
+  // The same song can sit in more than one playlist.
+  playlists.forEach(p => p.tracks.forEach(x => { if(x.id === t.id){ x.drawn = true; x.revealedOnce = true; } }));
+  const entry = {
+    id: t.id,
+    year: parseInt(t.year, 10),
+    month: t.month || null,
+    title: t.title || '',
+    artist: t.artist || '',
+    bonus: false,
+    locked: true,
+    starter: true,
+    addedAt: Date.now()
+  };
+  player.timeline.push(entry);
+  player.lastAdded = entry;
+  return true;
+}
+
+// The game begins: deal everyone their starter card. Safe to call twice.
+function startGame(){
+  if(gameStarted) return;
+  // Nothing to deal from yet: stay un-started so the button is still there
+  // once a playlist is loaded.
+  if(!playlists.some(p => p.enabled && p.tracks.length)){
+    lobbyToast('Load a playlist first — the starter cards come from it');
+    return;
+  }
+  gameStarted = true;
+  players.forEach(dealStarterCard);
+  if(players.length) gameEvent({ en: '🎴 Everyone got a starter card', da: '🎴 Alle fik et startkort' });
+  renderScoreboard();
+  renderTracklist();
+  refreshStatus();
+  syncStage();
+  saveSession();
+}
+
+// A player who turns up after the start gets theirs straight away.
+function dealIfStarted(player){
+  if(gameStarted && dealStarterCard(player)){
+    renderScoreboard();
+    renderTracklist();
+    refreshStatus();
+    saveSession();
+  }
+}
+
 const scoreboardOverlay = document.getElementById('scoreboardOverlay');
 const closeScoreboardBtn = document.getElementById('closeScoreboardBtn');
 

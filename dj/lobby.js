@@ -71,6 +71,7 @@ function buildStateBlob(){
         title: e.title || '',
         artist: e.artist || '',
         bonus: !!e.bonus,
+        starter: !!e.starter,
         coins: coinValue(e)
       }))
     })),
@@ -395,6 +396,9 @@ function handleJoinRequest(req){
     renderScoreboard();
     renderPhones();
   };
+  // Someone new (or claiming a name nobody held yet) after the start gets a
+  // starter card; a phone that just reconnects doesn't.
+  const acceptNew = (player) => { accept(player); dealIfStarted(player); };
   const reject = (reason) => {
     lobbySocket.emit('player:join-result', { socketId: req.socketId, ok: false, reason });
   };
@@ -428,7 +432,7 @@ function handleJoinRequest(req){
       return;
     }
     claimed.deviceId = req.deviceId;
-    accept(claimed);
+    acceptNew(claimed);
     lobbyToast(claimed.name + ' joined from a phone');
     return;
   }
@@ -446,7 +450,7 @@ function handleJoinRequest(req){
     online: true
   };
   players.push(created);
-  accept(created);
+  acceptNew(created);
   lobbyToast(created.name + ' joined the game');
 }
 

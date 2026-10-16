@@ -32,7 +32,7 @@ function setStageMode(mode){
   syncLobbyHint();
   wakeRing(); // the ring can't be measured while the deck is hidden
 }
-startGameBtn.addEventListener('click', () => setStageMode('deck'));
+startGameBtn.addEventListener('click', () => { startGame(); setStageMode('deck'); });
 joinChip.addEventListener('click', () => setStageMode(stageEl.dataset.mode === 'lobby' ? 'deck' : 'lobby'));
 drawBtn.addEventListener('click', () => setStageMode('deck'));
 
@@ -52,6 +52,9 @@ function heroTarget(){
 }
 heroBtn.addEventListener('click', () => {
   if(awaitingStart){ startSong(); return; }
+  // Before the game has started the button deals the starter cards and stops
+  // there; the next press drops the needle.
+  if(!gameStarted && !currentCard){ startGame(); return; }
   heroTarget().click();
 });
 
@@ -67,6 +70,7 @@ function syncStage(){
     : target === revealBtn ? 'Reveal'
     : (gameMode === 'chaos' && chaos && chaos.pending) ? 'Start round'
     : (currentCard ? 'Next record' : 'Drop the needle'));
+  if(!gameStarted && target === drawBtn && !currentCard) setText(heroLabel, 'Start the game');
   heroBtn.disabled = target.disabled;
   const playing = vinyl.classList.contains('spinning');
   deckEl.classList.toggle('playing', playing);

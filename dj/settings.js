@@ -233,9 +233,11 @@ addPlayerBtn.addEventListener('click', () => {
     playerNameInput.select();
     return;
   }
-  players.push({name, timeline: [], lastAdded: null, deviceId: null, online: false});
+  const added = {name, timeline: [], lastAdded: null, deviceId: null, online: false};
+  players.push(added);
   playerNameInput.value = '';
   renderScoreboard();
+  dealIfStarted(added);
 });
 
 playerNameInput.addEventListener('keydown', (e) => {
@@ -251,6 +253,7 @@ function resetDeckProgress(){
   sessionCardsPlaced = 0;
   sessionCoinsWon = 0;
   sessionChaos = freshChaosStats();
+  gameStarted = false;
   currentSessionId++;
   endChaosCard();
   chaos = null;
@@ -281,6 +284,7 @@ function resetDeckProgress(){
   refreshStatus();
   renderTracklist();
   renderStats();
+  syncStage();
 }
 
 resetScoresBtn.addEventListener('click', async () => {

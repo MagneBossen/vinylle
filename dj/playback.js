@@ -422,6 +422,8 @@ drawBtn.addEventListener('click', () => {
     deckStatus.textContent = anyEnabled ? 'deck is empty — shuffle to go again' : 'all playlists are off — toggle one on';
     return;
   }
+  // Drawing without having pressed Start the game deals the starter cards first.
+  startGame();
   // Moving on settles the last song: double or nothing, bets. Bet results
   // from the song before that have had their moment.
   lastBetResults = null;
