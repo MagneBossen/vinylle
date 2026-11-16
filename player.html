@@ -5,7 +5,7 @@
   <link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
 <meta charset="UTF-8">
 <title>Vinyl'le — player</title>
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1B1420">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,6 +19,7 @@
     --gold:#D4A24E;
     --gold-dim:#8C6F3B;
     --red:#B33A3A;
+    --red-text:#E0605A; /* --red as text: 5.1:1 on --bg, 4.7:1 on --surface */
     --green:#5C9163;
     --paper:#F3EADD;
     --muted:#9C8FA3;
@@ -98,7 +99,7 @@
   button.primary:hover{background:#e0b568;}
   button.block{width:100%;}
   .hint{font-size:.78rem;color:var(--muted);margin-top:.6rem;line-height:1.5;}
-  .err{font-size:.82rem;color:var(--red);margin-top:.6rem;min-height:1.1em;}
+  .err{font-size:.82rem;color:var(--red-text);margin-top:.6rem;min-height:1.1em;}
   .row{display:flex;gap:.6rem;flex-wrap:wrap;}
 
   /* --- name picker --- */
@@ -269,7 +270,9 @@
   .pick-bar{font-family:'IBM Plex Mono',monospace;font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);text-align:center;margin:-.2rem 0 .7rem;}
   .pick-bar.result{font-family:'Work Sans',sans-serif;text-transform:none;letter-spacing:0;font-size:.85rem;padding:.5rem .8rem;border-radius:10px;border:1px solid var(--green);background:rgba(92,145,99,.1);color:var(--paper);}
   .pick-bar.result.wrong{border-color:var(--red);background:rgba(179,58,58,.1);}
-  .spot-plus{display:flex;align-items:center;justify-content:center;width:100%;height:24px;margin:.3rem 0;padding:0;border:1px dashed var(--gold-dim);border-radius:8px;background:transparent;color:var(--gold-dim);font-size:.95rem;line-height:1;}
+  /* The bar stays slim; ::before grows the tap area to 44px without adding height. */
+  .spot-plus{position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:24px;margin:.3rem 0;padding:0;border:1px dashed var(--gold-dim);border-radius:8px;background:transparent;color:var(--gold-dim);font-size:.95rem;line-height:1;}
+  .spot-plus::before{content:'';position:absolute;left:0;right:0;top:-10px;bottom:-10px;}
   .spot-plus:hover{background:rgba(212,162,78,.08);color:var(--gold);}
   .spot-plus.on{height:34px;border:1.5px solid var(--gold);background:rgba(212,162,78,.14);color:var(--gold);font-family:'IBM Plex Mono',monospace;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;}
   .sleeves .vinyl-card.ghost::after{border:1.5px dashed var(--gold-dim);background:rgba(212,162,78,.05);box-shadow:none;}
@@ -694,7 +697,7 @@
     <div class="waiting-rec" aria-hidden="true"><div class="rec"></div></div>
     <div class="card">
       <p style="margin:0;color:var(--muted);font-size:.9rem;">
-        <span class="pulse"></span><span data-i18n="waitingLetIn">Waiting for the DJ to let you in.</span>
+        <span class="pulse"></span><span id="waitingText" data-i18n="joining">Joining…</span>
       </p>
     </div>
   </div>
@@ -887,6 +890,7 @@
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
+<script src="/rules.js"></script>
 <script src="/recap-card.js"></script>
 <script>
 const COIN_SVG = '<svg viewBox="0 0 20 20" width="12" height="12" style="display:block;"><circle cx="10" cy="10" r="9" fill="var(--gold)" stroke="#8C6F3B" stroke-width="1.5"/><circle cx="10" cy="10" r="5" fill="none" stroke="#241A0B" stroke-width="1.2"/></svg>';
@@ -898,7 +902,7 @@ const STR = {
     joinTitle: 'Join the party', joinTag: "Type the code on the DJ's screen.", continue: 'Continue',
     noCode: 'No code? Scan the QR on the big screen.', whoAreYou: 'Who are you? Tap your name, or add yourself.',
     or: 'or', addYourself: 'Add yourself', yourNamePh: 'your name', joinGame: 'Join game', differentCode: 'Use a different code',
-    knocking: 'Knocking on the door…', waitingLetIn: 'Waiting for the DJ to let you in.',
+    knocking: 'Knocking on the door…', joining: 'Joining…', djOfflineWaiting: 'The DJ’s screen is offline. You’ll be let in when it’s back.',
     codeLen: 'That code needs to be 6 characters.', noGame: "No game with that code — check the DJ's screen.",
     cantReach: 'Could not reach that game.', tapName: 'Tap your name, or add yourself.',
     noOneYet: 'The DJ has not added anyone yet — put your name in.', full: 'This game is full (12 players).',
@@ -935,7 +939,7 @@ const STR = {
     lastBet: 'Last bet: {x}', yourTurnBets: "It's your turn — everyone else is betting on you.", betOn: "Bet on {gen} turn",
     yourBet: 'Your bet: {amount} on {pick}.', noBet: 'No bet this time.', needCoin: 'You need at least 1 gold coin to bet.',
     yourBetChange: 'Your bet: {amount} on {pick} — change it until the song starts.',
-    betRules: 'Win your bet ×2 (right + coin ×3). Lose and you lose your bet.', betResult: 'Betster · result',
+    betRules: 'Hit and you win your stake (right + coin: twice your stake). Miss and you lose it.', betResult: 'Betster · result',
     betWon: 'You won +{n} gold coins!', betLost: 'Lost your bet: −{n}', betSummary: '{amount} on {pick} for {gen} turn.',
     needs: 'Needs {n} coins', needs1: 'Needs 1 coin', beforeReveal: 'Before the reveal', whenSomeone: "When someone's song is on", beforeStart: 'Before the song starts',
     vibeNoClip: 'Vibe mode has no clip to cut', shortest: 'The clip is as short as it gets', ownTurn: 'On your own turn',
@@ -961,7 +965,7 @@ const STR = {
     shop_buy: 'Buy the card', shop_buy_d: 'Placed it wrong? Keep the card anyway.',
     shop_steal: 'Steal', shop_steal_d: "Take a card from another player's timeline. Skips your song.",
     shop_trap: 'Speed trap', shop_trap_d: "Cut 5 seconds off {gen} clip. Every second trap costs 1 more.",
-    shop_force: 'New song', shop_force_d: 'Make {turn} play a different song.',
+    shop_force: 'Force a new song', shop_force_d: 'Make {turn} play a different song.',
     ht1: 'Listen', ht1d: 'The DJ plays a mystery song. Nobody sees the title or the year — just the record spinning.',
     ht2: 'Place it', ht2d: 'On your turn, say where it goes in your timeline: before, between or after your cards. Right, and the card is yours.',
     ht3: 'Name it', ht3d: 'Know the title or the artist too? That’s a gold coin. Coins break ties and buy things in the shop.',
@@ -977,7 +981,7 @@ const STR = {
     joinTitle: 'Kom med til festen', joinTag: 'Skriv koden fra DJ’ens skærm.', continue: 'Fortsæt',
     noCode: 'Ingen kode? Scan QR-koden på den store skærm.', whoAreYou: 'Hvem er du? Tryk på dit navn, eller tilføj dig selv.',
     or: 'eller', addYourself: 'Tilføj dig selv', yourNamePh: 'dit navn', joinGame: 'Deltag', differentCode: 'Brug en anden kode',
-    knocking: 'Banker på døren…', waitingLetIn: 'Venter på, at DJ’en lukker dig ind.',
+    knocking: 'Banker på døren…', joining: 'Kommer ind…', djOfflineWaiting: 'DJ’ens skærm er offline. Du kommer ind, når den er tilbage.',
     codeLen: 'Koden skal være 6 tegn.', noGame: 'Intet spil med den kode — tjek DJ’ens skærm.',
     cantReach: 'Kunne ikke finde spillet.', tapName: 'Tryk på dit navn, eller tilføj dig selv.',
     noOneYet: 'DJ’en har ikke tilføjet nogen endnu — skriv dit navn.', full: 'Spillet er fuldt (12 spillere).',
@@ -1014,7 +1018,7 @@ const STR = {
     lastBet: 'Sidste indsats: {x}', yourTurnBets: 'Det er din tur — alle andre satser på dig.', betOn: 'Sats på {gen} tur',
     yourBet: 'Din indsats: {amount} på {pick}.', noBet: 'Ingen indsats denne gang.', needCoin: 'Du skal have mindst 1 guldmønt for at satse.',
     yourBetChange: 'Din indsats: {amount} på {pick} — du kan ændre den, indtil sangen starter.',
-    betRules: 'Vind din indsats ×2 (rigtigt + mønt ×3). Taber du, mister du din indsats.', betResult: 'Betster · resultat',
+    betRules: 'Rammer du, vinder du din indsats (rigtigt + mønt: det dobbelte). Rammer du ved siden af, mister du den.', betResult: 'Betster · resultat',
     betWon: 'Du vandt +{n} guldmønter!', betLost: 'Tabte din indsats: −{n}', betSummary: '{amount} på {pick} på {gen} tur.',
     needs: 'Kræver {n} mønter', needs1: 'Kræver 1 mønt', beforeReveal: 'Før afsløringen', whenSomeone: 'Når nogens sang er i gang', beforeStart: 'Før sangen starter',
     vibeNoClip: 'Vibe-tilstand har intet klip at skære i', shortest: 'Klippet kan ikke blive kortere', ownTurn: 'På din egen tur',
@@ -1040,7 +1044,7 @@ const STR = {
     shop_buy: 'Køb kortet', shop_buy_d: 'Placeret forkert? Behold kortet alligevel.',
     shop_steal: 'Stjæl', shop_steal_d: 'Tag et kort fra en andens tidslinje. Springer din sang over.',
     shop_trap: 'Fartfælde', shop_trap_d: 'Skær 5 sekunder af {gen} klip. Hver anden fælde koster 1 mere.',
-    shop_force: 'Ny sang', shop_force_d: 'Tving {turn} til at spille en anden sang.',
+    shop_force: 'Tving ny sang', shop_force_d: 'Tving {turn} til at spille en anden sang.',
     ht1: 'Lyt', ht1d: 'DJ’en spiller en mysteriesang. Ingen kan se titlen eller året — kun pladen, der drejer.',
     ht2: 'Placer den', ht2d: 'På din tur siger du, hvor den skal ind i din tidslinje: før, mellem eller efter dine kort. Rigtigt, og kortet er dit.',
     ht3: 'Nævn den', ht3d: 'Kender du også titlen eller kunstneren? Så får du en guldmønt. Mønter afgør uafgjort og kan bruges i butikken.',
@@ -1084,11 +1088,21 @@ const MONTH_NAMES = lang === 'da'
 
 // A stable per-phone id, so locking your screen or refreshing gets your slot
 // back instead of creating a duplicate player.
-let deviceId = localStorage.getItem('vl_device_id');
-if(!deviceId){
+// Storage can throw (Safari with blocked cookies, some in-app browsers); fall
+// back to memory so the page still works, just without remembering anything.
+const memStore = new Map();
+const store = {
+  get(k){ try{ return localStorage.getItem(k); }catch(e){ return memStore.has(k) ? memStore.get(k) : null; } },
+  set(k, v){ try{ localStorage.setItem(k, v); }catch(e){ memStore.set(k, String(v)); } }
+};
+let deviceId = store.get('vl_device_id');
+if(!deviceId || !/^[A-Za-z0-9_-]{8,64}$/.test(deviceId)){
   deviceId = 'd' + Math.random().toString(36).slice(2) + Date.now().toString(36);
-  localStorage.setItem('vl_device_id', deviceId);
+  store.set('vl_device_id', deviceId);
 }
+// Our public id in this lobby, from the server. The state blob never carries
+// real device ids (they're the key back into a seat), only these.
+let myId = null;
 
 // A remembered code is a convenience for rejoining the game you're in, not a
 // bookmark. It goes stale after three hours, and the moment the server says
@@ -1160,14 +1174,11 @@ async function keepAwake(){
   }catch(e){ /* not allowed right now */ }
 }
 document.addEventListener('visibilitychange', keepAwake);
-// iOS ignores user-scalable=no for pinches; these stop them.
-['gesturestart', 'gesturechange'].forEach(type => document.addEventListener(type, e => e.preventDefault()));
 document.addEventListener('pointerdown', keepAwake);
 
+// Safe in text and in quoted attribute values alike.
 function escapeHtml(str){
-  const div = document.createElement('div');
-  div.textContent = str == null ? '' : String(str);
-  return div.innerHTML;
+  return VLRules.escapeHtml(str);
 }
 
 // ── step 1: the code ────────────────────────────────────────────────────
@@ -1306,6 +1317,7 @@ document.getElementById('backToCodeBtn').addEventListener('click', () => {
 });
 
 function join(name, switching){
+  stopRejoin();
   nameError.textContent = '';
   // Keep the current name until the DJ confirms a switch.
   if(!switching) myName = name;
@@ -1323,8 +1335,10 @@ function join(name, switching){
     }
     lobbyCode = res.code;
     djOnline = res.djOnline;
+    myId = res.you || deviceId;
     if(res.state) lastState = res.state;
     if(res.graceEndsAt) startGrace(res.graceEndsAt);
+    renderWaitingText();
     showView('waiting');
   });
 }
@@ -1351,7 +1365,7 @@ socket.on('join:result', (res) => {
   renderKeys = {};            // fresh screen, draw every section
   myName = res.name || myName;
   rememberCode(lobbyCode);
-  localStorage.setItem('vl_last_name', myName);
+  store.set('vl_last_name', myName);
   // Put the lobby in the address bar so everyone in a game has the same URL,
   // however they got in. replaceState, not pushState — the code screen isn't
   // somewhere Back should return to mid-game.
@@ -1370,6 +1384,7 @@ socket.on('lobby:names', (res) => {
 });
 
 socket.on('lobby:kicked', (res) => {
+  stopRejoin();
   joined = false;
   lastState = null;
   stopGrace();
@@ -1395,7 +1410,7 @@ socket.on('lobby:state-sync', (state) => {
 
 function me(){
   if(!lastState || !Array.isArray(lastState.players)) return null;
-  return lastState.players.find(p => p.deviceId === deviceId) || null;
+  return lastState.players.find(p => p.deviceId === myId) || null;
 }
 
 // A card won in a double-coins round carries 2.
@@ -1409,31 +1424,21 @@ function cardCoins(e){
 // Coins on cards (2 on a double-coins card) plus any won or lost in
 // over/under, which can take the total below zero.
 function bonusCount(player){
-  return (player.timeline || []).reduce((sum, e) => sum + cardCoins(e), 0) + (player.coinAdj || 0);
+  return VLRules.bonusCount(player.timeline, player.coinAdj, cardCoins);
 }
 
+// Same unit as the DJ screen: months in expert mode, whole years otherwise.
 function playerGaps(player){
-  const values = (player.timeline || [])
-    .map(e => e.year * 12 + ((e.month || 1) - 1))
-    .sort((a, b) => a - b);
-  const gaps = [];
-  for(let i = 1; i < values.length; i++) gaps.push(values[i] - values[i - 1]);
-  return gaps.sort((a, b) => a - b);
+  return VLRules.playerGaps(player.timeline, !!(lastState && lastState.expertMode));
 }
 
 // Mirrors the DJ screen's ranking: cards, then coins, then tightest gaps.
 function comparePlayers(a, b){
-  const lenDiff = (b.timeline || []).length - (a.timeline || []).length;
-  if(lenDiff !== 0) return lenDiff;
-  const bonusDiff = bonusCount(b) - bonusCount(a);
-  if(bonusDiff !== 0) return bonusDiff;
-  const gapsA = playerGaps(a);
-  const gapsB = playerGaps(b);
-  const len = Math.min(gapsA.length, gapsB.length);
-  for(let i = 0; i < len; i++){
-    if(gapsA[i] !== gapsB[i]) return gapsA[i] - gapsB[i];
-  }
-  return (a.tie || 0) - (b.tie || 0);
+  return VLRules.comparePlayers(a, b, {
+    expert: !!(lastState && lastState.expertMode),
+    coins: bonusCount,
+    tie: p => p.tie || 0
+  });
 }
 
 // Blindfold round: every timeline loses its years (and gaps) for the round.
@@ -1631,9 +1636,7 @@ let seenLastAdded; // undefined until the first render after joining
 
 function gapMonths(a, b){
   const expert = lastState && lastState.expertMode;
-  const va = expert ? a.year * 12 + ((a.month || 1) - 1) : a.year * 12;
-  const vb = expert ? b.year * 12 + ((b.month || 1) - 1) : b.year * 12;
-  return vb - va;
+  return VLRules.monthValue(b, expert) - VLRules.monthValue(a, expert);
 }
 
 function gapText(months){
@@ -1793,10 +1796,8 @@ function renderMyTimeline(){
   let ghostAt = -1;
   if(card && card.revealed && parseInt(card.year, 10) && who && lastState.turn === who.name && !timeline.some(e => e.id === card.id)){
     const expert = lastState.expertMode;
-    const val = e => expert ? e.year * 12 + (e.month || 1) - 1 : e.year * 12;
-    const v = val({ year: parseInt(card.year, 10), month: card.month });
-    ghostAt = timeline.findIndex(e => val(e) > v);
-    if(ghostAt < 0) ghostAt = timeline.length;
+    const val = e => VLRules.monthValue(e, expert);
+    ghostAt = VLRules.spotSlotFor(timeline.map(val), val({ year: parseInt(card.year, 10), month: card.month }));
   }
 
   if(tlView === 'cards'){
@@ -2021,9 +2022,9 @@ function buzzCheck(){
     turn: s.turn === mine.name,
     vote: s.vote && s.vote.open ? s.vote.id : null,
     lock: s.lockin && s.lockin.open ? s.lockin.id : null,
-    voteWin: s.vote && !s.vote.open ? won(s.vote.id, s.vote.results && s.vote.results[deviceId]) : null,
-    lockWin: s.lockin && !s.lockin.open && (s.lockin.results || []).some(r => r.deviceId === deviceId && r.win) ? s.lockin.id : null,
-    betWin: s.betResults ? won(s.betResults.id, s.betResults.results && s.betResults.results[deviceId]) : null
+    voteWin: s.vote && !s.vote.open ? won(s.vote.id, s.vote.results && s.vote.results[myId]) : null,
+    lockWin: s.lockin && !s.lockin.open && (s.lockin.results || []).some(r => r.deviceId === myId && r.win) ? s.lockin.id : null,
+    betWin: s.betResults ? won(s.betResults.id, s.betResults.results && s.betResults.results[myId]) : null
   };
   const was = buzzSeen;
   buzzSeen = now;
@@ -2229,7 +2230,7 @@ function renderMe(){
   const list = (lastState && lastState.players) || [];
   const winLength = (lastState && lastState.winLength) || 10;
   const sorted = list.slice().sort(comparePlayers);
-  const rank = sorted.findIndex(p => p.deviceId === deviceId) + 1;
+  const rank = sorted.findIndex(p => p.deviceId === myId) + 1;
   const count = (mine.timeline || []).length;
   const toGo = Math.max(0, winLength - count);
   sub.innerHTML = '<b>' + ordinal(rank) + '</b> ' + tr('of') + ' ' + sorted.length + ' · ' +
@@ -2261,7 +2262,7 @@ function renderLeaderboard(){
 
   sorted.forEach((player, i) => {
     const row = document.createElement('div');
-    row.className = 'lb-row' + (player.deviceId === deviceId ? ' is-me' : '');
+    row.className = 'lb-row' + (player.deviceId === myId ? ' is-me' : '');
 
     const rank = document.createElement('span');
     rank.className = 'lb-rank';
@@ -2344,6 +2345,15 @@ function showChaosPopup(chaos){
 function renderBanners(){
   const holder = document.getElementById('banners');
   holder.innerHTML = '';
+
+  // Still waiting for the lobby to come back: say so rather than show a stale state.
+  if(rejoinPending){
+    const b = document.createElement('div');
+    b.className = 'banner info';
+    b.textContent = tr('reconnecting');
+    holder.appendChild(b);
+    return;
+  }
 
   if(!djOnline){
     const b = document.createElement('div');
@@ -2428,7 +2438,7 @@ function timelineKey(){
 
 function leaderboardKey(){
   const s = lastState;
-  return JSON.stringify([deviceId, s && s.turn, s && s.winLength, s && s.players && s.players.map(p => [p.name, p.deviceId, p.online, p.timeline, p.coinAdj, p.streak])]);
+  return JSON.stringify([myId, s && s.turn, s && s.winLength, s && s.players && s.players.map(p => [p.name, p.deviceId, p.online, p.timeline, p.coinAdj, p.streak])]);
 }
 
 // Over/under: two big buttons while the song plays, then how you did.
@@ -2485,7 +2495,7 @@ function renderVote(){
     return;
   }
 
-  const r = v.results && v.results[deviceId];
+  const r = v.results && v.results[myId];
   const q = document.createElement('div');
   q.className = 'q';
   const s = document.createElement('div');
@@ -2542,7 +2552,7 @@ let myLock = null;   // { id, year } this phone locked in
 function lockKey(){
   const l = lastState && lastState.lockin;
   // Not the count of lock-ins: re-rendering mid-drag would drop the slider.
-  return JSON.stringify([l && [l.id, l.open, l.min, l.max, l.locked.includes(deviceId), l.results], myLock, !!me()]);
+  return JSON.stringify([l && [l.id, l.open, l.min, l.max, l.locked.includes(myId), l.results], myLock, !!me()]);
 }
 
 function lockCountText(l){
@@ -2565,7 +2575,7 @@ function renderLock(){
   };
   add('k', tr('lockKicker'));
 
-  if(l.open && !l.locked.includes(deviceId) && !(myLock && myLock.id === l.id)){
+  if(l.open && !l.locked.includes(myId) && !(myLock && myLock.id === l.id)){
     if(!lockYear || lockYear.id !== l.id) lockYear = { id: l.id, year: Math.round((l.min + l.max) / 2) };
     add('q', tr('whatYear'));
     const big = add('lock-year', lockYear.year);
@@ -2619,7 +2629,7 @@ function renderLock(){
   }
 
   const results = l.results || [];
-  const mine = results.find(r => r.deviceId === deviceId);
+  const mine = results.find(r => r.deviceId === myId);
   if(!mine){
     add('q', tr('noLock'));
   }else if(results.length < 2){
@@ -2680,11 +2690,11 @@ function renderBet(){
     box.hidden = false;
     add('k', b.open ? tr('betsOpen') : tr('betsLocked'));
     // Back-to-back betster songs: the last result shows here, not on its own card.
-    const last = r && r.results && r.results[deviceId];
+    const last = r && r.results && r.results[myId];
     if(last) add('s', tr('lastBet', { x: last.delta > 0 ? '+' + last.delta + ' ✓' : '−' + last.amount }));
     // Your own turn: nothing to bet on (the "your turn" pop-up says the rest).
     if(b.turn === mine.name){ box.hidden = true; return; }
-    const my = b.placed && b.placed[deviceId];
+    const my = b.placed && b.placed[myId];
     add('q', tr('betOn', { gen: gen(b.turn) }));
     if(!b.open){
       add('s', my ? tr('yourBet', { amount: my.amount, pick: betLabel(my.pick) }) : tr('noBet'));
@@ -2738,7 +2748,7 @@ function renderBet(){
     return;
   }
 
-  const res = r && r.results && r.results[deviceId];
+  const res = r && r.results && r.results[myId];
   if(!res){ box.hidden = true; return; }
   box.hidden = false;
   box.classList.add(res.delta > 0 ? 'right' : 'wrong');
@@ -2750,15 +2760,17 @@ function renderBet(){
 // Coin shop: the same items and rules as the DJ screen (which has the final
 // say). Picks for "who" / "which card" survive re-renders.
 // On your turn: your own items. On someone else's: sabotage against them.
-const SHOP_ITEMS = [
-  { id: 'new', who: 'turn', name: 'New song', price: 2, desc: 'Swap your song for a new one.' },
-  { id: 'hint', who: 'turn', name: 'Hint', price: 1, desc: 'Show the decade on screen.' },
-  { id: 'pass', who: 'turn', name: 'Pass it on', price: 3, desc: 'Another player has to place it. Wrong = they pay you 1 coin.', target: 'player' },
-  { id: 'buy', who: 'turn', name: 'Buy the card', price: 3, desc: 'Placed it wrong? Keep the card anyway.' },
-  { id: 'steal', who: 'turn', name: 'Steal', price: 5, desc: "Take a card from another player's timeline. Skips your song.", target: 'card' },
-  { id: 'trap', who: 'others', name: 'Speed trap', price: 1, desc: "Cut 5 seconds off {turn}'s clip. Every second trap costs 1 more." },
-  { id: 'force', who: 'others', name: 'New song', price: 2, desc: 'Make {turn} play a different song.' }
-];
+const SHOP_TEXT = {
+  new: { name: 'New song', desc: 'Swap your song for a new one.' },
+  hint: { name: 'Hint', desc: 'Show the decade on screen.' },
+  pass: { name: 'Pass it on', desc: 'Another player has to place it. Wrong = they pay you 1 coin.' },
+  buy: { name: 'Buy the card', desc: 'Placed it wrong? Keep the card anyway.' },
+  steal: { name: 'Steal', desc: "Take a card from another player's timeline. Skips your song." },
+  trap: { name: 'Speed trap', desc: "Cut 5 seconds off {turn}'s clip. Every second trap costs 1 more." },
+  force: { name: 'Force a new song', desc: 'Make {turn} play a different song.' }
+};
+// Ids, prices and who can buy what are the shared rules; the words are ours.
+const SHOP_ITEMS = VLRules.SHOP_ITEMS.map(i => Object.assign({}, i, SHOP_TEXT[i.id]));
 const shopPicks = {};
 
 // The DJ sends prices that change during a song (speed traps climb).
@@ -2767,34 +2779,29 @@ function shopPrice(item){
   return (prices && prices[item.id]) || item.price;
 }
 
+const SHOP_WHY_KEYS = {
+  noSong: 'whenSomeone', beforeReveal: 'beforeReveal', vibe: 'vibeNoClip', clipFloor: 'shortest',
+  ownTurn: 'ownTurn', afterReveal: 'afterReveal', someoneHas: 'someoneHas', hintShown: 'hintShown',
+  alreadyPassed: 'alreadyPassed', pickWho: 'pickWho', pickCard: 'pickCardSteal'
+};
+
 function shopWhyNot(item, pick){
   const sh = lastState.shop;
   const mine = me();
-  if(myCoins() < shopPrice(item)) return shopPrice(item) === 1 ? tr('needs1') : tr('needs', { n: shopPrice(item) });
-  const isTurn = sh.turn === mine.name;
-  if(item.who === 'others'){
-    if(!sh.turn) return tr('whenSomeone');
-    if(sh.phase !== 'before' && sh.phase !== 'playing') return tr('beforeReveal');
-    if(item.id === 'trap'){
-      if(sh.vibe) return tr('vibeNoClip');
-      if(sh.clip <= 5) return tr('shortest');
-    }
-    return null;
-  }
-  if(!isTurn) return tr('ownTurn');
-  if(item.id === 'buy'){
-    if(sh.phase !== 'after') return tr('afterReveal');
-    if(sh.owned) return tr('someoneHas');
-    return null;
-  }
-  if(sh.phase !== 'before' && sh.phase !== 'playing') return tr('beforeReveal');
-  if(item.id === 'hint' && sh.hint) return tr('hintShown');
-  if(item.id === 'pass'){
-    if(sh.passed) return tr('alreadyPassed');
-    if(!pick) return tr('pickWho');
-  }
-  if(item.id === 'steal' && !pick) return tr('pickCardSteal');
-  return null;
+  const price = shopPrice(item);
+  // The phone only knows what the DJ sent: no bet stakes, no year check.
+  const code = VLRules.shopWhyNot(item.id, {
+    open: true, buyer: true,
+    coins: myCoins(), staked: 0, price: price,
+    // Sabotage is only listed off your own turn, so it never asks about isTurn here.
+    turnActive: !!sh.turn, isTurn: item.who === 'others' ? false : sh.turn === mine.name,
+    phase: sh.phase, vibe: !!sh.vibe, clipSeconds: sh.clip,
+    hasHint: !!sh.hint, noYear: false, passed: !!sh.passed,
+    hasTarget: !!pick, stealOk: !!pick, owned: !!sh.owned
+  });
+  if(!code) return null;
+  if(code === 'coins') return price === 1 ? tr('needs1') : tr('needs', { n: price });
+  return SHOP_WHY_KEYS[code] ? tr(SHOP_WHY_KEYS[code]) : null;
 }
 
 function shopKey(){
@@ -2989,9 +2996,15 @@ function updateGraceClock(){
   el.textContent = m + ':' + String(s).padStart(2, '0');
 }
 
+// The waiting view: "Joining…", or why it's taking a while.
+function renderWaitingText(){
+  document.getElementById('waitingText').textContent = tr(djOnline ? 'joining' : 'djOfflineWaiting');
+}
+
 function startGrace(endsAt){
   graceEndsAt = endsAt;
   djOnline = false;
+  renderWaitingText();
   clearInterval(graceInterval);
   graceInterval = setInterval(updateGraceClock, 1000);
   if(joined) render();
@@ -3002,6 +3015,7 @@ function stopGrace(){
   graceInterval = null;
   graceEndsAt = null;
   djOnline = true;
+  renderWaitingText();
   if(joined) render();
 }
 
@@ -3009,6 +3023,7 @@ socket.on('dj:disconnect-warning', (payload) => startGrace(payload && payload.en
 socket.on('dj:reconnect', () => stopGrace());
 
 socket.on('lobby:end', (payload) => {
+  stopRejoin();
   stopGrace();
   const reason = payload && payload.reason;
   document.getElementById('endTitle').textContent = reason === 'dj-timeout' ? tr('djNeverBack') : tr('gameOver');
@@ -3051,29 +3066,74 @@ leaveOverlay.addEventListener('click', (e) => {
 });
 
 // ── reconnect ───────────────────────────────────────────────────────────
-socket.on('connect', () => {
-  if(joined && lobbyCode && myName){
-    // Socket dropped mid-game — retake our slot with the same device id.
-    socket.emit('lobby:join', { code: lobbyCode, name: myName, deviceId }, (res) => {
-      if(!res || !res.ok){
-        joined = false;
-        setLobbyUrl(null);
-        showView('code');
-        codeError.textContent = 'That game has ended.';
-        return;
-      }
+// After a server restart the phone can be back before the DJ page is, and the
+// lobby only exists again once the DJ restores it. So "no-lobby" on a reconnect
+// is retried for a while before it counts as the game being over.
+const REJOIN_RETRY_MS = 4000;
+const REJOIN_GIVE_UP_MS = 60000;
+let rejoinTimer = null;
+let rejoinDeadline = 0;
+let rejoinPending = false; // keeps the "reconnecting" banner through renders
+
+function stopRejoin(){
+  clearTimeout(rejoinTimer);
+  rejoinTimer = null;
+  rejoinDeadline = 0;
+  rejoinPending = false;
+}
+
+function rejoin(){
+  rejoinTimer = null;
+  if(!joined || !lobbyCode || !myName || !socket.connected) return;
+  // Socket dropped mid-game — retake our slot with the same device id.
+  socket.emit('lobby:join', { code: lobbyCode, name: myName, deviceId }, (res) => {
+    if(!joined) return; // the game ended or we were kicked while waiting
+    if(res && res.ok){
+      stopRejoin();
       djOnline = res.djOnline;
+      myId = res.you || deviceId;
+      // A restored lobby has no state until the DJ syncs; keep what we have.
       if(res.state) lastState = res.state;
       if(res.graceEndsAt) startGrace(res.graceEndsAt); else stopGrace();
       render();
-    });
+      return;
+    }
+    if(res && res.error === 'no-lobby' && Date.now() < rejoinDeadline){
+      rejoinTimer = setTimeout(rejoin, REJOIN_RETRY_MS);
+      return;
+    }
+    stopRejoin();
+    joined = false;
+    setLobbyUrl(null);
+    showView('code');
+    codeError.textContent = tr('gameEnded');
+  });
+}
+
+socket.on('connect', () => {
+  if(joined && lobbyCode && myName){
+    clearTimeout(rejoinTimer);
+    rejoinPending = true;
+    rejoinDeadline = Date.now() + REJOIN_GIVE_UP_MS;
+    rejoin();
   }
 });
 
 socket.on('disconnect', () => {
+  clearTimeout(rejoinTimer);
+  rejoinTimer = null;
   if(!joined) return;
+  rejoinPending = true;
   const holder = document.getElementById('banners');
   holder.innerHTML = '<div class="banner info">' + tr('reconnecting') + '</div>';
+});
+
+// The DJ renamed us: show and remember the new name.
+socket.on('player:renamed', (res) => {
+  if(!res || typeof res.name !== 'string' || !res.name) return;
+  myName = res.name;
+  store.set('vl_last_name', myName);
+  document.getElementById('meName').textContent = myName;
 });
 
 // Deep link (?code=ABC123) or a code we used a moment ago.
@@ -3084,7 +3144,7 @@ socket.on('disconnect', () => {
   const seed = fromUrl || remembered || '';
   if(seed) codeInput.value = seed.slice(0, 6);
   renderOtp();
-  const savedName = localStorage.getItem('vl_last_name');
+  const savedName = store.get('vl_last_name');
   if(savedName) nameInput.value = savedName;
 
   socket.on('connect', function once(){

@@ -278,6 +278,14 @@
       <p class="hint" style="margin-top:0;">The DJ runs the game on this screen; everyone else follows along (and votes, bets and shops) on their phone.</p>
 
       <div class="history-scroll-box" style="padding:0 1rem 1rem 0; margin-top:.5rem;">
+      <h3 class="rules-h3">Scoring at a glance</h3>
+      <ul class="hint rules-cheat" style="margin:0 0 .5rem; padding-left:1.2rem;">
+        <li>Right spot in your timeline = you win the card.</li>
+        <li>Name the title or an artist = 1 gold coin.</li>
+        <li>From the <span id="rulesStreakFrom">3rd</span> card in a row on your own turn = +1 coin per card.</li>
+        <li>First to <span id="rulesWinLen">10</span> cards wins.</li>
+      </ul>
+
       <h3 class="rules-h3">A turn</h3>
       <p class="hint" style="margin:0 0 .5rem;">The DJ plays a mystery song. Whoever's turn it is (shown on the big screen and their phone) says where it goes in their own timeline — before, between or after their cards — or points to the spot on their phone. After the reveal, a right spot wins the card. A right pick on the phone wins it automatically; otherwise the DJ gives it (Who placed it right?).</p>
 
@@ -294,7 +302,8 @@
       <h3 class="rules-h3-sub">Presets</h3>
       <p class="hint" style="margin:0 0 .5rem;">Classic (the plain game), Casual (over/under and the coin shop) or Party (chaos and over/under) — one tap in Settings.</p>
       <h3 class="rules-h3-sub">Chaos</h3>
-      <p class="hint" style="margin:0 0 .5rem;">Every round (one song per player) starts with a random rule card: double coins, guess the month, within X years, swap, speed round, playlist round, double or nothing, coin shop, catch-up, sing-along, betster, lock-in, Robin Hood or blindfold. The card explains itself on screen and on every phone.</p>
+      <p class="hint" style="margin:0 0 .5rem;">Every round (one song per player) starts with a random rule card: one of the cards below. The card explains itself on screen and on every phone.</p>
+      <div id="chaosRulesList" class="hint" style="margin:0 0 .5rem;"></div>
       <h3 class="rules-h3-sub">Over/under</h3>
       <p class="hint" style="margin:0 0 .5rem;">Now and then a bonus song where everyone votes on their phone: released before or after the year on screen? Right = +1 coin. 1 in 4 is high stakes: wrong (or no vote) = −1.</p>
       <h3 class="rules-h3-sub">Coin shop</h3>
@@ -487,7 +496,7 @@
   </div>
 
   <footer class="page-foot">
-    <p style="color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:.72rem; margin:0;">Vinyl'le — v16.10.0</p>
+    <p style="color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:.72rem; margin:0;">Vinyl'le — v16.14.0</p>
     <p style="color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:.65rem; margin-top:.3rem; opacity:.7;">Vibe coded by MB</p>
     <p style="font-family:'IBM Plex Mono',monospace; font-size:.7rem; margin-top:.6rem; opacity:.7;" hidden>
       <a href="#" class="footer-link">Feedback</a> · <a href="#" class="footer-link">Reach out</a> · <a href="#" class="footer-link">Buy me a coffee</a>
@@ -508,13 +517,27 @@
         <span class="stp-n">1</span>
         <div>
           <h3>Connect Spotify</h3>
-          <div class="row" style="margin-top:0; align-items:center;">
+          <div class="callout note need-box" id="needBox">
+            <strong>What you need</strong>
+            <ul class="need-list">
+              <li>A laptop or desktop for this screen. Everyone else joins on their phone.</li>
+              <li id="needAccount">Your own Spotify app (free, about 5 minutes; steps below).</li>
+              <li>Spotify Premium: Spotify requires it to own a developer app, and it's the safe bet for full-length playback.</li>
+              <li>Playlists you own. Someone else's playlist has to be copied first (see step 2).</li>
+            </ul>
+          </div>
+          <div class="callout note" id="houseBox" hidden>
+            This site has its own Spotify app, so just press <strong>Connect</strong>. Your Spotify account has to be on the host's list first: the host adds it under <em>User Management</em> in Spotify's developer dashboard.
+            <div><button type="button" class="linkish" id="useOwnAppBtn">Use your own Spotify app instead</button></div>
+          </div>
+          <div class="row" style="align-items:center;">
             <button class="primary" id="connectBtn">Connect Spotify account</button>
             <button id="disconnectBtn" title="Stop connecting, or log out of Spotify" hidden>Disconnect</button>
             <span class="conn-pill" id="connectPill"><span class="conn-dot"></span><span id="connectStatus">not connected</span></span>
           </div>
           <details id="spotifyFields" open style="margin-top:.8rem;">
             <summary>Spotify app settings</summary>
+            <button type="button" class="linkish" id="useHouseAppBtn" hidden>Use this site's Spotify app instead</button>
             <span class="field-label">Spotify client ID</span>
             <div class="cid-field" id="cidField">
               <input type="text" id="clientId" placeholder="paste your client id" autocomplete="off" spellcheck="false">
@@ -525,16 +548,21 @@
               </div>
             </div>
             <span class="field-label">Redirect URI — paste this exact value into your Spotify app settings</span>
-            <input type="text" id="redirectUri" readonly>
+            <div class="cid-field">
+              <input type="text" id="redirectUri" readonly>
+              <button type="button" class="cid-paste" id="redirectCopy">Copy</button>
+            </div>
             <p class="hint" id="redirectHint" style="margin-top:0;">Copy this exact value into your Spotify app's <strong>Redirect URIs</strong> setting in the developer dashboard.</p>
+            <div class="callout warn" id="localhostWarn" hidden></div>
             <details style="margin-top:.6rem;">
               <summary>Setup steps</summary>
               <ol>
-                <li>Go to <a href="https://developer.spotify.com/dashboard" target="_blank">developer.spotify.com/dashboard</a> and log in.</li>
-                <li>Create an app (any name). When it asks for a Redirect URI, paste the exact value shown above in this app.</li>
+                <li>Go to <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener">developer.spotify.com/dashboard</a> and log in with a <strong>Premium</strong> account.</li>
+                <li>Create an app (any name). When it asks for a Redirect URI, paste the exact value shown above (use <strong>Copy</strong>).</li>
                 <li>When it asks "Which API/SDKs are you planning to use," check <strong>Web API</strong>.</li>
                 <li>Open the app → Settings → copy the Client ID into the box above.</li>
-                <li>Connect your Spotify account above — you'll get a popup from Spotify.com to approve.</li>
+                <li>Anyone else who'll DJ with your app: add their Spotify account under <strong>User Management</strong> (Spotify allows 5 in total).</li>
+                <li>Press <strong>Connect Spotify account</strong> above and approve on Spotify.com.</li>
               </ol>
               <p>This logs in as you, so the app can read playlists you own (including ones you just made). No client secret needed, and nothing is sent anywhere except Spotify directly.</p>
             </details>
@@ -586,6 +614,7 @@ https://open.spotify.com/playlist/yyyyyyyy"></textarea>
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="/recap-card.js"></script>
+<script src="/rules.js"></script>
 <script src="/dj/core.js"></script>
 <script src="/dj/spotify.js"></script>
 <script src="/dj/scoreboard.js"></script>
