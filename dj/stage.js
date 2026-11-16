@@ -37,6 +37,12 @@ joinChip.addEventListener('click', () => setStageMode(stageEl.dataset.mode === '
 drawBtn.addEventListener('click', () => setStageMode('deck'));
 
 function syncLobbyHint(){
+  // Nothing to play without a deck: Start waits until a playlist is in. (A
+  // game already under way keeps it, so going back to the lobby never strands
+  // the DJ.)
+  const noDeck = totalTracks() === 0 && !gameStarted;
+  startGameBtn.disabled = noDeck;
+  startGameBtn.title = noDeck ? 'Load a playlist first' : '';
   if(playlists.length === 0){
     lobbyDeckHint.innerHTML = 'No records loaded yet — <button type="button">load a playlist</button> before you start.';
   }else{
@@ -466,7 +472,7 @@ function takeCardBack(player, entry){
 // Gap labels between sleeves. Same units the tiebreaker uses: years, or
 // months in expert mode. The tightest gap is marked once there are 3+ cards.
 function timelineGaps(timeline){
-  const vals = timeline.map(e => expertMode ? e.year * 12 + ((e.month || 1) - 1) : e.year * 12);
+  const vals = timeline.map(e => VLRules.monthValue(e, expertMode));
   const diffs = [null];
   for(let i = 1; i < vals.length; i++) diffs.push(vals[i] - vals[i - 1]);
   const min = timeline.length >= 3 ? Math.min(...diffs.slice(1)) : null;
@@ -793,7 +799,9 @@ window.addEventListener('pageshow', e => { if(e.persisted) liftNeedle(); });
   // Coming back from Spotify's OAuth redirect is a DJ mid-setup — don't make
   // them pick a role again and interrupt the token exchange.
   const midAuth = params.has('code') || params.has('error');
-  if(midAuth || sessionStorage.getItem('vl_role') === 'dj'){
+  let wasDj = false;
+  try{ wasDj = sessionStorage.getItem('vl_role') === 'dj'; }catch(e){ /* storage blocked */ }
+  if(midAuth || wasDj){
     chooseDj();
     return;
   }
@@ -803,6 +811,7 @@ window.addEventListener('pageshow', e => { if(e.persisted) liftNeedle(); });
 
 loadSession();
 renderChaos();
+syncLobbyHint(); // Start's state and the deck hint, before anything else redraws them
 
 document.querySelectorAll('.sb-view-toggle').forEach(positionToggleSlider);
 document.querySelectorAll('#settingsView .filter-toggle').forEach(positionToggleSlider);

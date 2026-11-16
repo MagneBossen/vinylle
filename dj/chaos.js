@@ -17,7 +17,7 @@ const CHAOS_CARDS = [
   { id: 'shop', title: 'Coin shop', desc: 'The shop is open: spend gold coins on a new song, a hint, passing it on, a speed trap, buying the card or a steal.', da: { title: 'Møntbutik', desc: 'Butikken er åben: brug guldmønter på en ny sang, et hint, at give videre, en fartfælde, at købe kortet eller at stjæle.' } },
   { id: 'catchup', title: 'Catch-up', desc: "Get it wrong and the card goes to whoever has the fewest cards (then fewest coins) — unless it's their own turn.", da: { title: 'Indhentning', desc: 'Gæt forkert, og kortet går til den med færrest kort (derefter færrest mønter) — medmindre det er deres egen tur.' } },
   { id: 'sing', title: 'Sing-along', desc: "Sing along to it and win the card plus a gold coin. Can't? Play it as normal.", da: { title: 'Syng med', desc: 'Syng med på den og vind kortet plus en guldmønt. Kan du ikke? Spil den som normalt.' } },
-  { id: 'betster', title: 'Betster', desc: 'Before each song starts, bet gold coins on your phone: right ×2, right + coin ×3, wrong ×2. Lose and you lose your bet.', da: { title: 'Betster', desc: 'Før hver sang starter, satser I guldmønter på telefonen: rigtigt ×2, rigtigt + mønt ×3, forkert ×2. Taber du, mister du din indsats.' } },
+  { id: 'betster', title: 'Betster', desc: 'Before each song starts, bet coins on your phone. Bet right or wrong and hit: win your stake. Right + coin: win twice your stake. Miss and you lose your stake.', da: { title: 'Betster', desc: 'Før hver sang starter, satser I mønter på telefonen. Sats på rigtigt eller forkert og ram: vind din indsats. Rigtigt + mønt: vind det dobbelte af din indsats. Rammer du ved siden af, mister du din indsats.' } },
   { id: 'lockin', title: 'Lock-in', desc: 'Before the reveal, everyone locks in a year on their phone. Closest wins a gold coin.', da: { title: 'Lås fast', desc: 'Før afsløringen låser alle et år på telefonen. Tættest på vinder en guldmønt.' } },
   { id: 'robin', title: 'Robin Hood', desc: 'After every song this round, whoever has the most gold coins gives one to whoever has the fewest.', da: { title: 'Robin Hood', desc: 'Efter hver sang denne runde giver den med flest guldmønter én til den med færrest.' } },
   { id: 'blind', title: 'Blindfold', desc: 'Every timeline loses its years this round. Place it from memory.', da: { title: 'Bind for øjnene', desc: 'Alle tidslinjer mister deres årstal denne runde. Placer den efter hukommelsen.' } }
@@ -266,12 +266,12 @@ function spotTimeline(){
   return p ? p.timeline.filter(e => e.locked || e.id !== song.id) : [];
 }
 function spotValue(e){
-  return expertMode ? e.year * 12 + (e.month || 1) - 1 : e.year;
+  return VLRules.dateValue(e, expertMode);
 }
 function spotRight(slot){
   const vals = spotTimeline().map(spotValue);
   const v = spotValue({ year: parseInt(currentCard.year, 10), month: currentCard.month });
-  return (slot === 0 || vals[slot - 1] <= v) && (slot === vals.length || v <= vals[slot]);
+  return VLRules.spotFits(vals, v, slot);
 }
 // "1983 – 2000", "before 1953", "after 2024" — titles in a blindfold round.
 function spotLabel(tl, slot){
@@ -423,7 +423,9 @@ function settleSong(){
     Object.entries(song.bets.placed).forEach(([deviceId, bet]) => {
       const bettor = players.find(p => p.deviceId === deviceId);
       if(!bettor) return;
-      const hit = bet.pick === 'wrong' ? !won : bet.pick === 'coin' ? !!(won && won.bonus) : !!won;
+      // A card bought in the shop wasn't placed right, so it's a miss for bets.
+      const placed = won && !won.bought ? won : null;
+      const hit = bet.pick === 'wrong' ? !placed : bet.pick === 'coin' ? !!(placed && placed.bonus) : !!placed;
       // Like any bet: ×2 pays back double your stake, so you're up by the
       // stake (×3: up by twice the stake). Lose, and the stake is gone.
       const delta = hit ? bet.amount * (bet.pick === 'coin' ? 2 : 1) : -bet.amount;

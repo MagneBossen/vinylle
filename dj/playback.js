@@ -23,7 +23,7 @@ function extractPlaylistId(url){
 
 async function fetchPlaylistName(playlistId){
   try{
-    const res = await fetch('https://api.spotify.com/v1/playlists/' + playlistId + '?fields=name', {headers:{'Authorization':'Bearer ' + accessToken}});
+    const res = await spotifyApi('https://api.spotify.com/v1/playlists/' + playlistId + '?fields=name');
     if(!res.ok) throw new Error();
     const data = await res.json();
     return data.name || 'Playlist';
@@ -32,18 +32,35 @@ async function fetchPlaylistName(playlistId){
   }
 }
 
+// What a Spotify status means for the DJ, in plain words. null: no special
+// wording, the caller says something generic.
+function spotifyStatusText(status){
+  if(status === 401) return 'Spotify login expired — reconnect in step 1';
+  if(status === 404) return 'playlist not found — check the link';
+  if(status === 429) return 'Spotify is busy — wait a minute and try again';
+  if(status >= 500) return 'Spotify is having trouble — try again shortly';
+  return null;
+}
+
+// Any error from a playlist fetch, as something a DJ can act on.
+function friendlySpotifyError(err){
+  if(err && err.name === 'AbortError') return 'Spotify didn’t answer — try again';
+  if(err && err.name === 'TypeError') return 'couldn’t reach Spotify — check the internet connection';
+  return (err && err.message) || 'something went wrong talking to Spotify';
+}
+
 async function fetchPlaylistTracks(playlistId){
   let items = [];
   let url = 'https://api.spotify.com/v1/playlists/' + playlistId + '/items?limit=100';
   while(url){
-    const res = await fetch(url, {headers:{'Authorization':'Bearer ' + accessToken}});
+    const res = await spotifyApi(url);
     if(!res.ok){
       let detail = '';
       try{
         const errData = await res.json();
         detail = errData.error && errData.error.message ? errData.error.message : '';
       }catch(e){}
-      const err = new Error('playlist request failed (' + res.status + ')' + (detail ? ': ' + detail : ''));
+      const err = new Error(spotifyStatusText(res.status) || ('Spotify said no (' + res.status + ')' + (detail ? ': ' + detail : '')));
       if(res.status === 403) err.isForbidden = true;
       throw err;
     }
@@ -61,6 +78,7 @@ async function fetchPlaylistTracks(playlistId){
         artist: (t.artists || []).map(a => a.name).join(', '),
         year: releaseDate ? releaseDate.slice(0,4) : '',
         month: hasMonth ? parseInt(releaseDate.slice(5,7), 10) : null,
+        durationMs: t.duration_ms || null,
         drawn:false
       });
     }
@@ -113,7 +131,7 @@ loadPlaylistBtn.addEventListener('click', async () => {
         if(err.isForbidden){
           forbiddenNames.push(name);
         }else{
-          otherErrors.push(name + ': ' + err.message);
+          otherErrors.push(name + ': ' + friendlySpotifyError(err));
         }
       }
     }
@@ -132,7 +150,7 @@ loadPlaylistBtn.addEventListener('click', async () => {
       notOwnedBanner.style.display = 'none';
     }
   }catch(err){
-    playlistStatus.textContent = err.message || 'something went wrong loading the playlists';
+    playlistStatus.textContent = friendlySpotifyError(err);
   }
   loadPlaylistBtn.disabled = false;
 });
@@ -174,18 +192,18 @@ reloadBtn.addEventListener('click', async () => {
     renderTracklist();
     playlistStatus.textContent = 'playlists reloaded';
   }catch(err){
-    playlistStatus.textContent = err.message || 'something went wrong reloading the playlists';
+    playlistStatus.textContent = friendlySpotifyError(err);
   }
   reloadBtn.textContent = originalLabel;
   reloadBtn.disabled = false;
 });
 
-// Keeps the playlists: every song becomes drawable again. Players' timelines stay.
+// Keeps the playlists: every song not on a timeline becomes drawable again.
+// Only the deck resets; the night (stats, turn, winner, chaos round) stays.
 document.getElementById('resetPlayedBtn').addEventListener('click', async () => {
   if(!playlists.some(p => p.tracks.some(t => t.drawn)) && !currentCard) return;
-  if(!(await showConfirm('Reset played songs? Every song becomes drawable again. Your playlists and the players\' timelines stay.'))) return;
-  resetDeckProgress();
-  renderScoreboard();
+  if(!(await showConfirm('Reset played songs? Every song that isn\'t on a timeline becomes drawable again. The current song is cleared. Your playlists, scores and the night\'s stats stay.'))) return;
+  resetPlayedSongs();
 });
 
 resetBtn.addEventListener('click', async () => {
@@ -242,6 +260,10 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
       // updates with the position going up.
       if(awaitingSound){
         const pos = lastKnownPosition;
+        // Any real movement at all since the cue — even outside the expected
+        // window — means Spotify is playing something.
+        if(!e.data.isPaused && cueAnyPrev !== null && pos > cueAnyPrev + 50) heardSinceCue = true;
+        cueAnyPrev = e.data.isPaused ? null : pos;
         const inWindow = !e.data.isPaused && pos >= soundFromMs && pos < soundFromMs + 5000;
         if(inWindow && cuePrevPos !== null && pos > cuePrevPos + 50){
           setPlayingVisual(true);
@@ -350,6 +372,10 @@ let strayPrevPos = null;
 let strayPausedAt = 0;
 let soundFromMs = 0;
 let soundFallback = null;
+// Whether Spotify's position moved at all since the needle dropped.
+let heardSinceCue = false;
+let cueAnyPrev = null;
+const SILENT_TRACK_MS = 12000;
 
 function setPlayingVisual(isPlaying){
   awaitingSound = false;
@@ -370,17 +396,42 @@ function cueNeedle(fromMs){
   awaitingSound = true;
   soundFromMs = fromMs;
   cuePrevPos = null;
+  heardSinceCue = false;
+  cueAnyPrev = null;
   clearTimeout(soundFallback);
-  // If Spotify never reports the song moving, start anyway rather than hang.
   soundFallback = setTimeout(() => {
     if(!awaitingSound) return;
+    // Nothing moved at all: the song never started (unavailable here, the
+    // embed lost its Spotify login, or no sound device). Say so instead of
+    // spinning a silent record and running the clock.
+    if(!heardSinceCue){
+      if(controller) controller.pause();
+      setPlayingVisual(false);
+      lobbyToast('Spotify didn’t start this song — press R to replay, or go to the next record. If nothing plays at all, check you’re logged in to Spotify in this browser.', 9000);
+      return;
+    }
+    // Spotify is playing but its position reports were off: start anyway
+    // rather than hang.
     setPlayingVisual(true);
     if(clipEndMs && !untimedMode){ pendingCountdownStart = false; runClip(clipEndMs - fromMs); }
-  }, 12000);
+  }, SILENT_TRACK_MS);
   syncStage();
 }
 
 let lastStartMs = 0;
+
+// A random start 15–45 s in, pulled earlier on short tracks so the whole
+// clip (plus a little slack) still fits before the song ends. Tracks loaded
+// before durations were stored have none, and keep the old range.
+function clipStartMs(card){
+  let start = (15 + Math.random() * 30) * 1000;
+  const dur = card && card.durationMs;
+  if(dur){
+    const latest = dur - (untimedMode ? 30 : clipSeconds() + 5) * 1000;
+    start = Math.max(0, Math.min(start, latest));
+  }
+  return start;
+}
 
 function playSnippet(useNewPoint, overrideStartMs){
   if(!controller || !currentCard) return;
@@ -391,7 +442,7 @@ function playSnippet(useNewPoint, overrideStartMs){
   if(overrideStartMs !== undefined){
     lastStartMs = overrideStartMs;
   }else if(useNewPoint || !lastStartMs){
-    lastStartMs = (15 + Math.random()*30) * 1000;
+    lastStartMs = clipStartMs(currentCard);
   }
   const startAtSeconds = Math.floor(lastStartMs / 1000);
   clipEndMs = untimedMode ? 0 : (startAtSeconds + clipSeconds()) * 1000;
@@ -436,7 +487,7 @@ drawBtn.addEventListener('click', () => {
     return;
   }
   const { p, t } = pickTrack();
-  t.drawn = true;
+  markDrawn(t);
   // An over/under pop-up is a bonus song: it doesn't use up anyone's turn or
   // a song of the chaos round.
   const ouStakes = rollOverUnder(t);
@@ -484,6 +535,13 @@ function resetClipVisual(){
   clipBar.style.width = '100%';
   timerLine.textContent = untimedMode ? '∞' : clipSeconds() + 's';
   setClipRun(untimedMode ? null : clipSeconds() * 1000, false);
+}
+
+// The same song can sit in more than one playlist: drawing it uses up every copy.
+function markDrawn(t){
+  t.drawn = true;
+  if(!t.id) return;
+  playlists.forEach(p => p.tracks.forEach(x => { if(x.id === t.id) x.drawn = true; }));
 }
 
 // A random undrawn song: from the playlist round's playlist when one is on.
@@ -536,7 +594,7 @@ function clearDeck(){
 }
 
 function showTrack(p, t){
-  t.drawn = true;
+  markDrawn(t);
   currentCard = t;
   currentPlaylistName = p.name;
   revealed = false;

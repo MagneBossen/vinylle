@@ -343,6 +343,10 @@ function loadHtml2canvas(){
     html2canvasLoading = new Promise((resolve, reject) => {
       const s = document.createElement('script');
       s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+      // This page holds the Spotify token, so a tampered CDN file must not run.
+      s.integrity = 'sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==';
+      s.crossOrigin = 'anonymous';
+      s.referrerPolicy = 'no-referrer';
       s.onload = () => resolve(window.html2canvas);
       s.onerror = () => {
         html2canvasLoading = null; // let the next click try again
@@ -360,7 +364,7 @@ function snapshot(el, opts){
     document.documentElement.style.zoom = 1;
     return h2c(el, opts).finally(applyZoom);
   }, err => {
-    alert('Image export library failed to load — check your connection and try again.');
+    lobbyToast('Image export library failed to load — check your connection and try again.', 5000);
     throw err;
   });
 }
@@ -416,8 +420,8 @@ let timerSyncTimeout = null;
 let untimedMode = false;
 let CLIP_SECONDS = 30;
 // Each speed trap cuts this much off the current song's clip, down to the floor.
-const SPEED_TRAP_CUT = 5;
-const CLIP_FLOOR = 5;
+const SPEED_TRAP_CUT = VLRules.SPEED_TRAP_CUT;
+const CLIP_FLOOR = VLRules.CLIP_FLOOR;
 // The clip for the current song: the setting, minus any speed traps.
 function clipSeconds(){
   const cut = (song && song.cut) || 0;

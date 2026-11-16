@@ -6,15 +6,17 @@
 
 // `who`: 'turn' items are for the player whose song it is; 'others' are the
 // sabotage the rest can buy against them. Each player only sees their own.
-const SHOP_ITEMS = [
-  { id: 'new', who: 'turn', name: 'New song', price: 2, desc: 'Swap your song for a new one.' },
-  { id: 'hint', who: 'turn', name: 'Hint', price: 1, desc: 'Show the decade on screen.' },
-  { id: 'pass', who: 'turn', name: 'Pass it on', price: 3, desc: 'Another player has to place it. Wrong = they pay you 1 coin.', target: 'player' },
-  { id: 'buy', who: 'turn', name: 'Buy the card', price: 3, desc: 'Placed it wrong? Keep the card anyway.' },
-  { id: 'steal', who: 'turn', name: 'Steal', price: 5, desc: "Take a card from another player's timeline. Skips your song.", target: 'card' },
-  { id: 'trap', who: 'others', name: 'Speed trap', price: 1, desc: 'Cut ' + SPEED_TRAP_CUT + " seconds off {turn}'s clip. Every second trap costs 1 more." },
-  { id: 'force', who: 'others', name: 'New song', price: 2, desc: 'Make {turn} play a different song.' }
-];
+const SHOP_TEXT = {
+  new: { name: 'New song', desc: 'Swap your song for a new one.' },
+  hint: { name: 'Hint', desc: 'Show the decade on screen.' },
+  pass: { name: 'Pass it on', desc: 'Another player has to place it. Wrong = they pay you 1 coin.' },
+  buy: { name: 'Buy the card', desc: 'Placed it wrong? Keep the card anyway.' },
+  steal: { name: 'Steal', desc: "Take a card from another player's timeline. Skips your song." },
+  trap: { name: 'Speed trap', desc: 'Cut ' + SPEED_TRAP_CUT + " seconds off {turn}'s clip. Every second trap costs 1 more." },
+  force: { name: 'Force a new song', desc: 'Make {turn} play a different song.' }
+};
+// Ids, prices and who can buy what are the shared rules; the words are ours.
+const SHOP_ITEMS = VLRules.SHOP_ITEMS.map(i => Object.assign({}, i, SHOP_TEXT[i.id]));
 
 // The items `buyer` gets to see: their own on their turn, sabotage otherwise.
 // The shop stays up the whole round: everything can be bought until the
@@ -53,48 +55,64 @@ function shopOwner(){
 
 // Speed traps get pricier on the same song: +1 coin every two (1, 1, 2, 2, 3).
 function shopPrice(item){
-  const def = SHOP_ITEMS.find(i => i.id === item);
-  if(!def) return 0;
-  return item === 'trap' ? def.price + Math.floor(((song && song.traps) || 0) / 2) : def.price;
+  return VLRules.shopPrice(item, song && song.traps);
 }
+
+// Coins riding on this song's open bet. They're still on the player's cards
+// until the bet settles, but they can't be spent twice.
+function stakedCoins(p){
+  const bets = song && song.bets;
+  if(!bets || song.settled || !p || !p.deviceId) return 0;
+  const b = bets.placed[p.deviceId];
+  return b ? b.amount : 0;
+}
+
+const SHOP_WHY = {
+  closed: 'The shop is closed',
+  pickPlayer: 'Pick a player',
+  noSong: "When someone's song is on",
+  notOwnTurn: 'Not on your own turn',
+  beforeReveal: 'Before the reveal',
+  vibe: 'Vibe mode has no clip to cut',
+  clipFloor: 'The clip is as short as it gets',
+  ownTurn: 'Only on your own turn',
+  afterReveal: 'After the reveal',
+  someoneHas: 'Someone already has the card',
+  hintShown: 'Hint already shown',
+  noYear: 'This song has no year',
+  alreadyPassed: 'Already passed on',
+  pickWho: 'Pick who gets it',
+  pickCard: 'Pick a card to steal'
+};
 
 // Why `buyer` can't buy `item` right now, or null if they can.
 function shopWhyNot(buyer, item, opts){
   opts = opts || {};
-  const def = SHOP_ITEMS.find(i => i.id === item);
-  if(!shopOpen()) return 'The shop is closed';
-  if(!buyer || !def) return 'Pick a player';
-  if(bonusCount(buyer) < shopPrice(item)) return 'Needs ' + shopPrice(item) + (shopPrice(item) === 1 ? ' coin' : ' coins');
-  const phase = shopPhase();
-  const isTurn = turnActive() && buyer.name === turnName;
+  const price = shopPrice(item);
   const other = players.find(p => p.name === opts.target && p !== buyer);
-  if(def.who === 'others'){
-    if(!turnActive()) return "When someone's song is on";
-    if(isTurn) return "Not on your own turn";
-    if(phase !== 'before' && phase !== 'playing') return 'Before the reveal';
-    if(item === 'trap'){
-      if(untimedMode) return 'Vibe mode has no clip to cut';
-      if(clipSeconds() <= CLIP_FLOOR) return 'The clip is as short as it gets';
-    }
-    return null;
-  }
-  if(!isTurn) return 'Only on your own turn';
-  if(item === 'buy'){
-    if(phase !== 'after') return 'After the reveal';
-    if(shopOwner()) return 'Someone already has the card';
-    return null;
-  }
-  if(phase !== 'before' && phase !== 'playing') return 'Before the reveal';
-  if(item === 'hint'){
-    if(song.hint) return 'Hint already shown';
-    if(isNaN(parseInt(currentCard.year, 10))) return 'This song has no year';
-  }
-  if(item === 'pass'){
-    if(song.passedFrom) return 'Already passed on';
-    if(!other) return 'Pick who gets it';
-  }
-  if(item === 'steal' && !(other && other.timeline.some(e => e.id === opts.cardId && !e.starter))) return 'Pick a card to steal';
-  return null;
+  const staked = stakedCoins(buyer);
+  const code = VLRules.shopWhyNot(item, {
+    open: shopOpen(),
+    buyer: !!buyer,
+    coins: buyer ? bonusCount(buyer) : 0,
+    staked: staked,
+    price: price,
+    turnActive: turnActive(),
+    isTurn: !!buyer && turnActive() && buyer.name === turnName,
+    phase: shopPhase(),
+    vibe: untimedMode,
+    clipSeconds: clipSeconds(),
+    hasHint: !!(song && song.hint),
+    noYear: !!currentCard && isNaN(parseInt(currentCard.year, 10)),
+    passed: !!(song && song.passedFrom),
+    hasTarget: !!other,
+    stealOk: !!(other && other.timeline.some(e => e.id === opts.cardId && !e.starter)),
+    owned: !!shopOwner()
+  });
+  if(!code) return null;
+  if(code === 'staked') return 'Coins are on a bet';
+  if(code === 'coins') return 'Needs ' + price + (price === 1 ? ' coin' : ' coins');
+  return SHOP_WHY[code];
 }
 
 function shopBuy(buyer, item, opts){

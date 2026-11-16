@@ -29,7 +29,8 @@ const lobbyAvailable = typeof io !== 'undefined';
 
 let lobbySocket = null;
 let lobbyCode = null;
-let lobbySecret = sessionStorage.getItem('vl_dj_secret') || null;
+let lobbySecret = null;
+try{ lobbySecret = sessionStorage.getItem('vl_dj_secret') || null; }catch(e){ /* storage blocked */ }
 let broadcastQueued = false;
 let pendingNewLobby = false;
 
@@ -375,7 +376,7 @@ function renderEvent(){
   broadcastState();
 }
 
-function lobbyToast(message){
+function lobbyToast(message, ms){
   const existing = document.querySelector('.join-toast');
   if(existing) existing.remove();
   const el = document.createElement('div');
@@ -383,7 +384,7 @@ function lobbyToast(message){
   el.textContent = message;
   document.body.appendChild(el);
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.remove(), 3200);
+  toastTimer = setTimeout(() => el.remove(), ms || 3200);
 }
 
 // A phone asked to join. Two ways in: claim a name the DJ already created, or
@@ -467,8 +468,11 @@ function hostLobby(){
   // Passing the saved code + secret resumes that lobby; passing nothing mints
   // a fresh one.
   function openLobby(resume){
+    // lobbyCode first: a socket-only reconnect still has it when storage is blocked.
+    let savedCode = null;
+    try{ savedCode = sessionStorage.getItem('vl_dj_code'); }catch(e){ /* storage blocked */ }
     const payload = resume
-      ? { code: sessionStorage.getItem('vl_dj_code'), djSecret: lobbySecret }
+      ? { code: lobbyCode || savedCode, djSecret: lobbySecret }
       : {};
     lobbySocket.emit('lobby:create', payload, (res) => {
       if(!res || !res.ok){
@@ -477,9 +481,18 @@ function hostLobby(){
       }
       lobbyCode = res.code;
       lobbySecret = res.djSecret;
-      sessionStorage.setItem('vl_dj_code', lobbyCode);
-      sessionStorage.setItem('vl_dj_secret', lobbySecret);
+      try{
+        sessionStorage.setItem('vl_dj_code', lobbyCode);
+        sessionStorage.setItem('vl_dj_secret', lobbySecret);
+      }catch(e){ /* storage blocked */ }
       setLobbyStatus('live', 'live');
+      // The server restarted and forgot the lobby; same code and QR, but nobody
+      // is connected until their phone rejoins, so don't count them as here.
+      if(res.restored){
+        players.forEach(p => { if(p.deviceId) p.online = false; });
+        renderScoreboard();
+        lobbyToast('Lobby restored after a server restart: phones will rejoin');
+      }
       renderLobby();
       renderPhones();
       broadcastState();
@@ -530,8 +543,10 @@ function hostLobby(){
   lobbySocket.on('lobby:end', () => {
     lobbyCode = null;
     lobbySecret = null;
-    sessionStorage.removeItem('vl_dj_code');
-    sessionStorage.removeItem('vl_dj_secret');
+    try{
+      sessionStorage.removeItem('vl_dj_code');
+      sessionStorage.removeItem('vl_dj_secret');
+    }catch(e){ /* storage blocked */ }
     players.forEach(p => { p.deviceId = null; p.online = false; });
     renderPhones();
     renderScoreboard();

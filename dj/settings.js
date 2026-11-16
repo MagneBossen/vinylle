@@ -244,6 +244,32 @@ playerNameInput.addEventListener('keydown', (e) => {
   if(e.key === 'Enter') addPlayerBtn.click();
 });
 
+// "Reset played songs": only the deck. The current song is settled and cleared
+// off the deck like a normal move-on; the night (stats, session id, winner,
+// turn order, chaos round, starter cards) is left alone. A song that sits in
+// someone's timeline stays out of the deck, so it can't be drawn onto a
+// timeline that already holds it.
+function resetPlayedSongs(){
+  if(currentCard){
+    autoCatchUp();
+    settleSong();
+    clearDeck();
+  }
+  const held = new Set();
+  players.forEach(p => p.timeline.forEach(e => held.add(e.id)));
+  playlists.forEach(p => p.tracks.forEach(t => {
+    if(held.has(t.id)) return;
+    t.drawn = false;
+    t.revealedOnce = false; // loggedToHistory stays, so tonight's list gets no duplicates
+  }));
+  refreshStatus();
+  renderTracklist();
+  renderStats();
+  renderScoreboard();
+  syncStage();
+  saveSession();
+}
+
 function resetDeckProgress(){
   playlists.forEach(p => p.tracks.forEach(t => { t.drawn = false; t.revealedOnce = false; t.loggedToHistory = false; }));
   currentCard = null;

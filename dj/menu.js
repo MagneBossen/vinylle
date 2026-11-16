@@ -3,6 +3,30 @@ let statsListenSeconds = 0;
 const MENU_VIEWS = ['settings', 'rules', 'history', 'stats'];
 const MENU_TITLES = {settings: 'Settings', rules: 'Rules', history: 'History', stats: 'Stats'};
 
+// The Rules view: live numbers for the cheat sheet, and the chaos cards listed
+// from CHAOS_CARDS (read here, not at load: chaos.js loads after this file).
+function renderRules(){
+  document.getElementById('rulesWinLen').textContent = WIN_LENGTH;
+  const ord = n => n + (n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th');
+  document.getElementById('rulesStreakFrom').textContent = ord(STREAK_FROM);
+  const list = document.getElementById('chaosRulesList');
+  // {x}: the values the card can roll ("3, 5 or 10").
+  const orList = xs => xs.length < 2 ? xs.join('') : xs.slice(0, -1).join(', ') + ' or ' + xs[xs.length - 1];
+  const fill = (text, card) => text
+    .replace(/\{x\}/g, orList(card.xs || []))
+    .replace(/“?\{playlist\}”?/g, 'one of your playlists');
+  list.textContent = '';
+  CHAOS_CARDS.forEach(card => {
+    const row = document.createElement('p');
+    row.style.margin = '0 0 .4rem';
+    const name = document.createElement('strong');
+    name.textContent = fill(card.title, card);
+    row.appendChild(name);
+    row.appendChild(document.createTextNode(' — ' + fill(card.desc, card)));
+    list.appendChild(row);
+  });
+}
+
 function openMenu(view){
   menuOverlay.classList.add('open');
   MENU_VIEWS.forEach(v => {
@@ -10,6 +34,7 @@ function openMenu(view){
   });
   menuTitle.textContent = MENU_TITLES[view];
   if(view === 'stats') renderStats();
+  if(view === 'rules') renderRules();
   document.querySelectorAll('#' + view + 'View .filter-toggle').forEach(positionToggleSlider);
 }
 function closeMenu(){ menuOverlay.classList.remove('open'); }
@@ -101,7 +126,7 @@ function recapCardData(player){
   const s = sessionChaos;
   // Neighbouring cards: the tightest squeeze and the biggest leap.
   const gaps = years.slice(1).map((y, i) => y - years[i]);
-  const months = player.timeline.map(e => e.year * 12 + (e.month || 1) - 1).filter(v => !isNaN(v)).sort((a, b) => a - b);
+  const months = player.timeline.map(VLRules.monthIndex).filter(v => !isNaN(v)).sort((a, b) => a - b);
   const monthGaps = months.slice(1).map((v, i) => v - months[i]);
   return {
     name: player.name,
@@ -267,7 +292,7 @@ function renderPodium(){
     column.className = 'podium-column ' + rankClasses[idx];
     column.innerHTML = `
       <div class="podium-info">
-        <div class="podium-name">${p.name}</div>
+        <div class="podium-name">${escapeHtml(p.name)}</div>
         <div class="podium-score-row">
           <span class="podium-score-item">${CARD_ICON_SVG}<span>${p.timeline.length}</span></span>
           <span class="podium-score-item">${COIN_SVG}<span>${bonus}</span></span>
@@ -285,7 +310,7 @@ function renderPodium(){
     const bonus = bonusCount(p);
     row.innerHTML = `
       <span class="podium-rest-rank">${String(i + 4).padStart(2, '0')}</span>
-      <span class="podium-rest-name">${p.name}</span>
+      <span class="podium-rest-name">${escapeHtml(p.name)}</span>
       <span class="podium-rest-count">${CARD_ICON_SVG}<span>${p.timeline.length}</span></span>
       <span class="podium-rest-count">${COIN_SVG}<span>${bonus}</span></span>
     `;

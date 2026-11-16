@@ -122,10 +122,9 @@ revealAllBtn.addEventListener('click', () => {
   renderTracklist();
 });
 
+// Safe in text and in quoted attribute values alike.
 function escapeHtml(str){
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
+  return VLRules.escapeHtml(str);
 }
 
 let WIN_LENGTH = 10;
@@ -154,7 +153,7 @@ function coinValue(entry){
 // Coins on cards, plus coins won or lost outside them (over/under). Can go
 // below zero.
 function bonusCount(player){
-  return player.timeline.reduce((sum, e) => sum + coinValue(e), 0) + (player.coinAdj || 0);
+  return VLRules.bonusCount(player.timeline, player.coinAdj, coinValue);
 }
 
 function toggleCoin(entry){
@@ -178,33 +177,14 @@ function uncountCoins(entry){
 }
 
 function playerGaps(player){
-  let values;
-  if(expertMode){
-    values = player.timeline.map(e => e.year * 12 + ((e.month || 1) - 1));
-  }else{
-    values = player.timeline.map(e => e.year);
-  }
-  values = values.slice().sort((a,b) => a - b);
-  const gaps = [];
-  for(let i = 0; i < values.length - 1; i++) gaps.push(values[i+1] - values[i]);
-  gaps.sort((a,b) => a - b);
-  return gaps;
+  return VLRules.playerGaps(player.timeline, expertMode);
 }
 
+// Still level after cards, coins and gaps: a coin toss, tossed once per
+// player so the order doesn't flicker — not the alphabet, which always
+// favoured Andrea over William.
 function comparePlayers(a, b){
-  if(b.timeline.length !== a.timeline.length) return b.timeline.length - a.timeline.length;
-  const bonusDiff = bonusCount(b) - bonusCount(a);
-  if(bonusDiff !== 0) return bonusDiff;
-  const gapsA = playerGaps(a);
-  const gapsB = playerGaps(b);
-  const len = Math.min(gapsA.length, gapsB.length);
-  for(let i = 0; i < len; i++){
-    if(gapsA[i] !== gapsB[i]) return gapsA[i] - gapsB[i];
-  }
-  if(gapsA.length !== gapsB.length) return gapsA.length - gapsB.length;
-  // Still level: a coin toss, tossed once per player so the order doesn't
-  // flicker — not the alphabet, which always favoured Andrea over William.
-  return tieToss(a) - tieToss(b);
+  return VLRules.comparePlayers(a, b, { expert: expertMode, coins: bonusCount, tie: tieToss });
 }
 function tieToss(p){
   if(typeof p.tie !== 'number') p.tie = Math.random();
@@ -268,8 +248,7 @@ function renderScoreboard(){
         name.size = Math.max(4, player.name.length);
         return;
       }
-      if(turnName === player.name) turnName = next;
-      player.name = next;
+      renamePlayer(player, next);
       renderScoreboard();
     });
     header.appendChild(name);
@@ -529,6 +508,8 @@ function ownTurnCard(player, bought){
 
 function giveCardTo(player, bought){
   if(!currentCard) return;
+  // Never the same song twice on one timeline.
+  if(player.timeline.some(e => e.id === currentCard.id)) return;
   const entry = {
     id: currentCard.id,
     year: parseInt(currentCard.year, 10),
@@ -733,6 +714,33 @@ function freshChaosStats(){
     bought: {}, hatTricks: {}, shortTurns: {}, shortWins: {}, longWins: {}, settled: 0, lastAfter3: null };
 }
 let sessionChaos = freshChaosStats();
+// Names are the key to a player everywhere the night is tracked, so a rename
+// has to move all of them. `rounds` and `shop` are keyed by card/item, not name.
+const NAME_KEYED_STATS = ['ouRight', 'lockWins', 'bets', 'streaks', 'turns', 'turnWins', 'robinGot', 'robinGave',
+  'sabotage', 'steals', 'bought', 'hatTricks', 'shortTurns', 'shortWins', 'longWins', 'spent'];
+function renamePlayer(player, next){
+  const old = player.name;
+  if(turnName === old) turnName = next;
+  if(song){
+    ['turn', 'passedFrom', 'catchUpPick'].forEach(k => { if(song[k] === old) song[k] = next; });
+    if(song.robin){
+      if(song.robin.rich === old) song.robin.rich = next;
+      if(song.robin.poor === old) song.robin.poor = next;
+    }
+  }
+  if(gameWinner && gameWinner.name === old) gameWinner.name = next;
+  if(lastBetResults && lastBetResults.turn === old) lastBetResults.turn = next;
+  NAME_KEYED_STATS.forEach(k => {
+    const map = sessionChaos[k];
+    if(map && Object.prototype.hasOwnProperty.call(map, old)){ map[next] = map[old]; delete map[old]; }
+  });
+  if(sessionChaos.lastAfter3 === old) sessionChaos.lastAfter3 = next;
+  player.name = next;
+  // The server replays the join name when this page reloads; keep it current.
+  if(lobbySocket && lobbyCode && player.deviceId){
+    lobbySocket.emit('player:rename', { deviceId: player.deviceId, name: next });
+  }
+}
 function tally(obj, key, n){
   obj[key] = (obj[key] || 0) + (n === undefined ? 1 : n);
 }
