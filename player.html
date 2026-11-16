@@ -571,7 +571,12 @@
 
   /* ── timeline: List / Cards switch ── */
   .tl-head{display:flex;align-items:center;justify-content:space-between;gap:.8rem;margin-bottom:.9rem;}
-  .tl-head h2{margin:0;}
+  .tl-head h2{margin:0;margin-right:auto;}
+  .tl-focus-btn{flex-shrink:0;width:2.1rem;height:2.1rem;padding:0;border:1px solid var(--line);border-radius:50%;background:transparent;color:var(--gold);font-size:1rem;line-height:1;cursor:pointer;}
+  .tl-focus-btn[aria-pressed="true"]{background:var(--gold);color:#241A0B;border-color:var(--gold);}
+  /* Timeline only: the rest of the game screen steps aside so the cards get the whole width. */
+  body.tl-focus #nowCard,body.tl-focus .game-grid > .game-col + .game-col{display:none;}
+  body.tl-focus .game-grid{display:block;}
   .tl-who{margin:-.2rem 0 .8rem;}
   .tl-who button{max-width:11rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .seg{display:inline-flex;background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:2px;}
@@ -752,6 +757,7 @@
         <div class="card">
           <div class="tl-head">
             <h2><span data-i18n="yourTimeline" id="tlMine">Your timeline</span><span id="tlOther" hidden></span> · <span id="myCount">0</span></h2>
+            <button type="button" class="tl-focus-btn" id="tlFocusBtn" aria-pressed="false">⤢</button>
             <div class="seg" role="group" aria-label="Timeline view">
               <button type="button" data-tlview="list" class="on" data-i18n="list">List</button>
               <button type="button" data-tlview="cards" data-i18n="cards">Cards</button>
@@ -917,7 +923,7 @@ const STR = {
     whereFit: 'Where does it fit in your timeline?', ouAsk: 'Was this song released before or after {y}?',
     ouToast: 'Over/under!', ouToastSub: 'Before or after {y}? Vote now.',
     turnToast: 'Your turn!', turnToastSub: 'Where does this one fit in your timeline?', revealed: 'Revealed', unknownTrack: 'Unknown track', openSpotify: 'Open in Spotify',
-    yourTimeline: 'Your timeline', mineBtn: 'Mine', theirTimeline: '{name}’s timeline', starterGot: 'Your starter card — {year}', list: 'List', cards: 'Cards', leaderboard: 'Leaderboard', songsTonight: 'Songs tonight',
+    yourTimeline: 'Your timeline', focusOn: 'Timeline only', focusOff: 'Show everything', mineBtn: 'Mine', theirTimeline: '{name}’s timeline', starterGot: 'Your starter card — {year}', list: 'List', cards: 'Cards', leaderboard: 'Leaderboard', songsTonight: 'Songs tonight',
     djPlaces: 'The DJ places cards from the main screen. This view updates on its own.',
     noCardsYet: 'No cards yet — win one and it lands here.', fitsHere: 'Fits here', nobodyYet: 'Nobody in the game yet.',
     phoneOn: 'phone connected', phoneOff: 'no phone connected', streakTitle: '{n} in a row on their own turns',
@@ -996,7 +1002,7 @@ const STR = {
     whereFit: 'Hvor passer den ind i din tidslinje?', ouAsk: 'Udkom sangen før eller efter {y}?',
     ouToast: 'Over/under!', ouToastSub: 'Før eller efter {y}? Stem nu.',
     turnToast: 'Din tur!', turnToastSub: 'Hvor passer den her ind i din tidslinje?', revealed: 'Afsløret', unknownTrack: 'Ukendt nummer', openSpotify: 'Åbn i Spotify',
-    yourTimeline: 'Din tidslinje', mineBtn: 'Min', theirTimeline: '{name}s tidslinje', starterGot: 'Dit startkort — {year}', list: 'Liste', cards: 'Kort', leaderboard: 'Stilling', songsTonight: 'Aftenens sange',
+    yourTimeline: 'Din tidslinje', focusOn: 'Kun tidslinje', focusOff: 'Vis alt', mineBtn: 'Min', theirTimeline: '{name}s tidslinje', starterGot: 'Dit startkort — {year}', list: 'Liste', cards: 'Kort', leaderboard: 'Stilling', songsTonight: 'Aftenens sange',
     djPlaces: 'DJ’en placerer kortene fra hovedskærmen. Siden her opdaterer sig selv.',
     noCardsYet: 'Ingen kort endnu — vind et, så lander det her.', fitsHere: 'Passer her', nobodyYet: 'Ingen i spillet endnu.',
     phoneOn: 'telefon forbundet', phoneOff: 'ingen telefon forbundet', streakTitle: '{n} i træk på egne ture',
@@ -1692,6 +1698,7 @@ function syncTlToggle(){
 document.querySelectorAll('[data-tlview]').forEach(b => b.addEventListener('click', () => {
   if(tlView === b.dataset.tlview) return;
   tlView = b.dataset.tlview;
+  savedTlView = null; // their own pick now, not the forced one
   try{ localStorage.setItem('vl_tl_view', tlView); }catch(e){}
   syncTlToggle();
   tlScrolledTo = null;
@@ -1700,6 +1707,59 @@ document.querySelectorAll('[data-tlview]').forEach(b => b.addEventListener('clic
 }));
 syncTlToggle();
 let tlScrolledTo = null;
+
+// Timeline only: hides the now-playing card and the leaderboard so the
+// timeline has the whole screen. A phone turned on its side starts in it, with
+// the cards view; a tap on the round button flips it either way. Turning the
+// phone again goes back to automatic.
+const landscapeQuery = window.matchMedia('(orientation:landscape) and (max-height:600px)');
+let tlFocusPref = null; // null = follow the orientation, else true/false from a tap
+let savedTlView = null; // the view to go back to when the cards were forced
+function tlFocusOn(){
+  return tlFocusPref !== null ? tlFocusPref : landscapeQuery.matches;
+}
+function applyTlFocus(){
+  const on = tlFocusOn();
+  document.body.classList.toggle('tl-focus', on);
+  const btn = document.getElementById('tlFocusBtn');
+  btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  btn.title = tr(on ? 'focusOff' : 'focusOn');
+  btn.setAttribute('aria-label', btn.title);
+  // On its side the cards have the room; the saved choice comes back after.
+  let want = tlView;
+  if(on && landscapeQuery.matches){
+    if(savedTlView === null) savedTlView = tlView;
+    want = 'cards';
+  }else if(savedTlView !== null){
+    want = savedTlView;
+    savedTlView = null;
+  }
+  if(want !== tlView){
+    tlView = want;
+    syncTlToggle();
+    tlScrolledTo = null;
+    // Before joining there is nothing to draw; the first render picks the view up.
+    if(joined){
+      renderKeys.timeline = timelineKey();
+      renderMyTimeline();
+    }
+  }
+}
+document.getElementById('tlFocusBtn').addEventListener('click', () => {
+  tlFocusPref = !tlFocusOn();
+  applyTlFocus();
+});
+// Resize as well as the query's own event: some browsers are late with the latter.
+let wasLandscape = landscapeQuery.matches;
+function onTurned(){
+  if(landscapeQuery.matches === wasLandscape) return;
+  wasLandscape = landscapeQuery.matches;
+  tlFocusPref = null;
+  applyTlFocus();
+}
+window.addEventListener('resize', onTurned);
+window.addEventListener('orientationchange', onTurned);
+applyTlFocus();
 
 // Not your turn: the timeline block follows whoever's turn it is, read-only,
 // so you can play along in your head. "Mine" flips back to your own cards.
