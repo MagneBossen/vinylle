@@ -282,10 +282,13 @@
   .pick-slide{margin-top:.4rem;}
   .pick-slide input{width:100%;accent-color:var(--gold);}
   .pick-slide .cap{text-align:center;font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--gold);margin-top:.2rem;}
-  .ghost-row{display:flex;align-items:center;gap:1rem;margin:.35rem 0 .35rem 1.2rem;padding:.55rem .8rem;border:1px dashed var(--gold-dim);border-radius:10px;color:var(--muted);animation:rise .4s both;}
-  .ghost-row .y{font-family:'IBM Plex Mono',monospace;color:var(--gold);font-size:.95rem;}
+  /* Lines up with the .ent rows on the spine, with its own dot on the line. */
+  .ghost-row{position:relative;display:flex;align-items:center;gap:.8rem;margin:.35rem 0 .35rem -.5rem;padding:.45rem .5rem;border:1px dashed var(--gold-dim);border-radius:10px;color:var(--muted);animation:rise .4s both;}
+  .ghost-row::before{content:'';position:absolute;left:calc(-.7rem);top:50%;margin-top:-4px;width:8px;height:8px;border-radius:50%;box-sizing:border-box;background:var(--bg);border:1px dashed var(--gold);}
+  .ghost-row .y{font-family:'IBM Plex Mono',monospace;color:var(--gold);font-size:.98rem;min-width:3.1rem;}
+  .ghost-row > span:last-child{flex:1;min-width:0;}
   .ghost-row b{display:block;font-family:'IBM Plex Mono',monospace;font-weight:400;font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);}
-  .ghost-row small{display:block;font-size:.8rem;color:var(--paper);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:14rem;}
+  .ghost-row small{display:block;font-size:.8rem;color:var(--paper);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .vinyl-card.ghost{border:1px dashed var(--gold-dim);background:transparent;opacity:.85;}
   .vinyl-card.ghost .fits{font-family:'IBM Plex Mono',monospace;font-size:.55rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);}
   .lock-year{font-family:'IBM Plex Mono',monospace;font-size:2.6rem;font-weight:600;color:var(--gold);line-height:1;margin:.1rem 0 .7rem;}
