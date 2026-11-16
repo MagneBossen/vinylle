@@ -8,14 +8,33 @@ const DJ_GRACE_MS = Number(process.env.DJ_GRACE_MS) || 5 * 60 * 1000;
 const MAX_PHONES = 12;
 const IDLE_LOBBY_MS = 12 * 60 * 60 * 1000;
 
+const crypto = require('crypto');
+
 const lobbies = new Map();
 
+// Codes and DJ secrets are what stand between a stranger and someone's game,
+// so they come from the OS's CSPRNG, not Math.random().
 function randomToken(len, alphabet){
   let out = '';
   for(let i = 0; i < len; i++){
-    out += alphabet[Math.floor(Math.random() * alphabet.length)];
+    out += alphabet[crypto.randomInt(alphabet.length)];
   }
   return out;
+}
+
+function sameSecret(a, b){
+  if(typeof a !== 'string' || typeof b !== 'string') return false;
+  const x = Buffer.from(a), y = Buffer.from(b);
+  return x.length === y.length && crypto.timingSafeEqual(x, y);
+}
+
+const SECRET_ALPHABET = CODE_ALPHABET + 'abcdefghijkmnpqrstuvwxyz';
+const SECRET_LENGTH = 24;
+
+function allFrom(str, alphabet, len){
+  if(typeof str !== 'string' || str.length !== len) return false;
+  for(const ch of str){ if(!alphabet.includes(ch)) return false; }
+  return true;
 }
 
 function freshCode(){
@@ -24,15 +43,18 @@ function freshCode(){
   return code;
 }
 
-function createLobby(djSocketId){
-  const code = freshCode();
+// `code` and `djSecret` are given only when a restart wiped a lobby and its DJ
+// comes back with the pair it held (see restoreLobby).
+function createLobby(djSocketId, code, djSecret){
+  code = code || freshCode();
   const lobby = {
     code,
-    djSecret: randomToken(24, CODE_ALPHABET + 'abcdefghijkmnpqrstuvwxyz'),
+    djSecret: djSecret || randomToken(SECRET_LENGTH, SECRET_ALPHABET),
     djSocketId,
     state: null,
     phones: new Map(),   // socketId -> {deviceId, name}
     peekers: new Map(),  // socketId -> deviceId, for phones still on the name screen
+    pids: new Map(),     // deviceId -> public id; phones only ever see the public one
     graceTimer: null,
     graceEndsAt: null,
     createdAt: Date.now(),
@@ -43,7 +65,7 @@ function createLobby(djSocketId){
 }
 
 function getLobby(code){
-  if(!code) return null;
+  if(typeof code !== 'string' || !code || code.length > 16) return null;
   return lobbies.get(String(code).trim().toUpperCase()) || null;
 }
 
@@ -120,11 +142,21 @@ function clearGrace(lobby){
 
 function resumeLobby(code, djSecret, djSocketId){
   const lobby = getLobby(code);
-  if(!lobby || lobby.djSecret !== djSecret) return null;
+  if(!lobby || !sameSecret(lobby.djSecret, djSecret)) return null;
   clearGrace(lobby);
   lobby.djSocketId = djSocketId;
   touch(lobby);
   return lobby;
+}
+
+// After a server restart the DJ page reconnects with the code + secret it saved.
+// If nothing holds that code, recreate the lobby under it so the phones'
+// retries find it. A code that is live (wrong secret) is never touched.
+function restoreLobby(code, djSecret, djSocketId){
+  if(!allFrom(code, CODE_ALPHABET, CODE_LENGTH)) return null;
+  if(!allFrom(djSecret, SECRET_ALPHABET, SECRET_LENGTH)) return null;
+  if(lobbies.has(code)) return null;
+  return createLobby(djSocketId, code, djSecret);
 }
 
 function endLobby(code){
@@ -135,14 +167,12 @@ function endLobby(code){
   return lobby;
 }
 
-// Sweep lobbies nobody has touched in half a day, so a long-lived server
-// doesn't accumulate abandoned games.
-setInterval(() => {
+// Lobbies nobody has touched in half a day, so a long-lived server doesn't
+// accumulate abandoned games. The caller closes them (so phones are told).
+function idleLobbies(){
   const cutoff = Date.now() - IDLE_LOBBY_MS;
-  for(const lobby of Array.from(lobbies.values())){
-    if(lobby.touchedAt < cutoff) endLobby(lobby.code);
-  }
-}, 60 * 60 * 1000).unref();
+  return Array.from(lobbies.values()).filter(l => l.touchedAt < cutoff);
+}
 
 module.exports = {
   DJ_GRACE_MS,
@@ -159,6 +189,8 @@ module.exports = {
   startGrace,
   clearGrace,
   resumeLobby,
+  restoreLobby,
+  idleLobbies,
   endLobby,
   touch,
   count: () => lobbies.size

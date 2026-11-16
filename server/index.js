@@ -1,5 +1,6 @@
 const path = require('path');
 const http = require('http');
+const crypto = require('crypto');
 const os = require('os');
 const express = require('express');
 const compression = require('compression');
@@ -14,11 +15,97 @@ const app = express();
 // Render/Railway/Cloudflare terminate TLS and forward over plain http. Without
 // this, req.protocol reports "http" and every share link and QR would point at
 // an insecure URL on a site that's actually served over https.
-app.set('trust proxy', true);
+// Trust only the proxy hops we actually sit behind (Render: one). Trusting
+// every hop lets a client forge X-Forwarded-For and dodge the per-IP limits.
+const PROXY_HOPS = Math.max(0, Number(process.env.TRUST_PROXY_HOPS) || 1);
+app.set('trust proxy', PROXY_HOPS);
 // Both pages are single large HTML files.
 app.use(compression());
+// Basic hardening headers. No CSP yet: both pages lean on inline scripts.
+app.use((req, res, next) => {
+  res.set('X-Content-Type-Options', 'nosniff');
+  res.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.set('X-Frame-Options', 'SAMEORIGIN');
+  next();
+});
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: '*' } });
+// Both pages are served from this origin, so no cross-origin access is needed.
+// An extreme state blob (12 players x 30 cards, 60 songs) measures ~90 KB;
+// 512 KB is a ceiling for junk, not something a game gets near.
+const io = new Server(server, { maxHttpBufferSize: 512 * 1024 });
+
+// One bad handler must never take every lobby on the server down with it.
+process.on('uncaughtException', err => console.error('[uncaught]', err));
+process.on('unhandledRejection', err => console.error('[unhandled rejection]', err));
+
+// --- Input checks --------------------------------------------------------------
+// Phones are untrusted: anyone with a code can open a raw socket and send
+// whatever they like, so every field is checked before it's used or relayed.
+
+const NAME_MAX = 20;
+const DEVICE_RE = /^[A-Za-z0-9_-]{8,64}$/;
+
+function cleanName(v){
+  if(typeof v !== 'string') return '';
+  return v.normalize('NFC')
+    // control chars, zero-width and bidi overrides, and angle brackets
+    .replace(/[\u0000-\u001f\u007f-\u009f​-‏‪-‮⁦-⁩<>]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, NAME_MAX);
+}
+
+function cleanDevice(v){
+  return typeof v === 'string' && DEVICE_RE.test(v) ? v : null;
+}
+
+// A relayed field: short strings, finite numbers, booleans or null — nothing else.
+function prim(v){
+  if(typeof v === 'string') return v.length <= 200 ? v : null;
+  if(typeof v === 'number') return Number.isFinite(v) ? v : null;
+  if(typeof v === 'boolean') return v;
+  return null;
+}
+
+function isObj(v){
+  return !!v && typeof v === 'object' && !Array.isArray(v);
+}
+
+// --- Public ids ----------------------------------------------------------------
+// A phone's deviceId is its key back into its seat, so it must never reach
+// other phones. Each one gets a random per-lobby public id instead, and the
+// state blob is rewritten before it's fanned out.
+
+function publicId(lobby, deviceId){
+  let pid = lobby.pids.get(deviceId);
+  if(!pid){
+    pid = 'p' + crypto.randomBytes(8).toString('hex');
+    lobby.pids.set(deviceId, pid);
+  }
+  return pid;
+}
+
+function forPhones(lobby, state){
+  if(!isObj(state)) return state;
+  if(Array.isArray(state.players)){
+    state.players.forEach(p => { if(p && typeof p.deviceId === 'string') publicId(lobby, p.deviceId); });
+  }
+  const map = lobby.pids;
+  if(!map.size) return state;
+  // deviceIds show up as values (players[].deviceId, lockin.locked[]) and as
+  // keys (bets.placed, vote.results, ...): swap both.
+  const walk = v => {
+    if(typeof v === 'string') return map.get(v) || v;
+    if(Array.isArray(v)) return v.map(walk);
+    if(v && typeof v === 'object'){
+      const out = {};
+      for(const k of Object.keys(v)) out[map.get(k) || k] = walk(v[k]);
+      return out;
+    }
+    return v;
+  };
+  return walk(state);
+}
 
 // A phone can't reach "localhost" — that's the DJ's own machine. When the DJ
 // is browsing via localhost we swap in the LAN address so shared links and QR
@@ -59,12 +146,27 @@ app.get('/player', (req, res) => res.sendFile(path.join(ROOT, 'player.html')));
 // unchanged file is a 304), so a deploy shows up straight away instead of
 // the browser running yesterday's copy from its cache.
 const fresh = { headers: { 'Cache-Control': 'no-cache' } };
+// Game rules both pages share.
+app.get('/rules.js', (req, res) => res.sendFile(path.join(ROOT, 'rules.js'), fresh));
 app.get('/recap-card.js', (req, res) => res.sendFile(path.join(ROOT, 'recap-card.js'), fresh));
 app.use('/images', express.static(path.join(ROOT, 'images'), { maxAge: '1d' }));
 // The DJ page's styles and scripts, split by topic (see dj/).
 app.use('/dj', express.static(path.join(ROOT, 'dj'), { setHeaders: res => res.set('Cache-Control', 'no-cache') }));
 
 app.get('/health', (req, res) => res.json({ ok: true, lobbies: L.count() }));
+
+// The "house app": the site owner's own Spotify client ID, set as an env var
+// on the host. With it, the DJ page connects without anyone creating a
+// Spotify developer app. A client ID isn't a secret (PKCE has no secret), but
+// only accounts on the app's allowlist in Spotify's dashboard can use it.
+const HOUSE_CLIENT_ID = /^[0-9a-f]{32}$/i.test(process.env.SPOTIFY_CLIENT_ID || '')
+  ? process.env.SPOTIFY_CLIENT_ID : null;
+if(process.env.SPOTIFY_CLIENT_ID && !HOUSE_CLIENT_ID){
+  console.warn('SPOTIFY_CLIENT_ID is set but doesn\'t look like a Spotify client ID (32 hex chars); ignoring it.');
+}
+app.get('/config', (req, res) => {
+  res.set('Cache-Control', 'no-cache').json({ houseClientId: HOUSE_CLIENT_ID });
+});
 
 // Tells the DJ page which origin to put on share links — it can't work this
 // out itself, since all it knows is the address the DJ typed.
@@ -87,14 +189,12 @@ app.get('/qr/:code.svg', async (req, res) => {
 
   try{
     const url = origin + '/player?code=' + lobby.code;
-    // The idle sweep in lobbies.js bypasses closeLobby; prune its leftovers.
-    for(const code of qrCache.keys()){
-      if(!L.getLobby(code)) qrCache.delete(code);
-    }
     let forLobby = qrCache.get(lobby.code);
     if(!forLobby){ forLobby = new Map(); qrCache.set(lobby.code, forLobby); }
     let svg = forLobby.get(url);
     if(!svg){
+      // The URL depends on the Host header, which a client controls.
+      if(forLobby.size >= 4) forLobby.clear();
       svg = await QRCode.toString(url, {
         type: 'svg',
         errorCorrectionLevel: 'M',
@@ -113,10 +213,15 @@ app.get('/qr/:code.svg', async (req, res) => {
 // --- Anti-spam ---------------------------------------------------------------
 // Limits sized well above anything a real game does, so players never notice.
 
-// Where a connection really comes from (Render puts the client first in X-Forwarded-For).
+// Where a connection really comes from. Each proxy appends the address it saw,
+// so the entry PROXY_HOPS from the right was written by our own proxy; anything
+// further left is whatever the client chose to send.
 function clientIp(socket){
-  const fwd = socket.handshake.headers['x-forwarded-for'];
-  return (fwd ? String(fwd).split(',')[0] : socket.handshake.address || '').trim();
+  const direct = socket.handshake.address || '';
+  if(!PROXY_HOPS) return direct;
+  const fwd = String(socket.handshake.headers['x-forwarded-for'] || '')
+    .split(',').map(s => s.trim()).filter(Boolean);
+  return fwd.length >= PROXY_HOPS ? fwd[fwd.length - PROXY_HOPS] : direct;
 }
 
 // New lobbies per IP: a DJ makes one a night, maybe a few with "New lobby".
@@ -147,14 +252,19 @@ setInterval(() => {
 // for a burst. Anything over is dropped quietly.
 const EVENTS_PER_SEC = 20;
 const EVENT_BURST = 60;
+// The DJ page syncs state after every change, so it gets far more room — but
+// not unlimited, since anyone can become a "DJ" by creating a lobby.
+const DJ_EVENTS_PER_SEC = 100;
+const DJ_EVENT_BURST = 400;
 
 function rateLimit(socket){
-  let tokens = EVENT_BURST, at = Date.now();
+  let tokens = DJ_EVENT_BURST, at = Date.now();
   socket.use((packet, next) => {
-    // The DJ page syncs state after every change; it only reaches its own lobby.
-    if(socket.data.role === 'dj') return next();
+    const dj = socket.data.role === 'dj';
+    const rate = dj ? DJ_EVENTS_PER_SEC : EVENTS_PER_SEC;
+    const burst = dj ? DJ_EVENT_BURST : EVENT_BURST;
     const now = Date.now();
-    tokens = Math.min(EVENT_BURST, tokens + (now - at) / 1000 * EVENTS_PER_SEC);
+    tokens = Math.min(burst, tokens + (now - at) / 1000 * rate);
     at = now;
     if(tokens < 1) return; // dropped; acks are never called, the caller's timeout handles it
     tokens -= 1;
@@ -212,14 +322,25 @@ function closeLobby(lobby, reason){
   L.endLobby(lobby.code);
 }
 
+setInterval(() => {
+  L.idleLobbies().forEach(lobby => closeLobby(lobby, 'idle'));
+}, 60 * 60 * 1000).unref();
+
 io.on('connection', (socket) => {
   rateLimit(socket);
+
+  // Every handler runs behind a try/catch: socket.io calls them with no guard
+  // of its own, so one malformed packet would otherwise crash the process.
+  const on = (event, fn) => socket.on(event, (...args) => {
+    try{ fn(...args); }
+    catch(err){ console.error('[socket ' + event + ']', err); }
+  });
 
   // --- DJ side -------------------------------------------------------------
 
   // Called on DJ page load. Passing back a previously issued code + secret
   // reclaims that lobby, so a browser refresh mid-game doesn't kill it.
-  socket.on('lobby:create', (payload, cb) => {
+  on('lobby:create', (payload, cb) => {
     const ack = typeof cb === 'function' ? cb : () => {};
     const wanted = payload && payload.code;
     const secret = payload && payload.djSecret;
@@ -241,28 +362,34 @@ io.on('connection', (socket) => {
     }
 
     if(!mayCreateLobby(clientIp(socket))) return ack({ ok: false, error: 'rate-limited' });
-    const lobby = L.createLobby(socket.id);
+    // The server restarted and lost the lobby: bring it back under the same
+    // code so the phones' retries find it. Null if the code is live or malformed.
+    const restored = wanted && secret ? L.restoreLobby(wanted, secret, socket.id) : null;
+    const lobby = restored || L.createLobby(socket.id);
     socket.data.role = 'dj';
     socket.data.code = lobby.code;
-    ack({ ok: true, code: lobby.code, djSecret: lobby.djSecret, resumed: false, phones: [] });
+    ack({ ok: true, code: lobby.code, djSecret: lobby.djSecret, resumed: false, restored: !!restored, phones: [] });
   });
 
   // The DJ is the authority: it sends the whole game state, we just fan it out.
-  socket.on('state:sync', (state) => {
+  on('state:sync', (state) => {
     const lobby = L.lobbyForDj(socket.id);
     if(!lobby) return;
+    if(!isObj(state)) return;
     lobby.state = state;
     L.touch(lobby);
-    toPhones(lobby, 'lobby:state-sync', state);
+    toPhones(lobby, 'lobby:state-sync', forPhones(lobby, state));
     pushNames(lobby);
   });
 
   // DJ's verdict on a phone that asked to join (claimed a slot, or self-registered).
-  socket.on('player:join-result', (payload) => {
+  on('player:join-result', (payload) => {
     const lobby = L.lobbyForDj(socket.id);
     if(!lobby || !payload || !payload.socketId) return;
+    // Only a phone of this lobby: a room name here would reach other lobbies.
     const phone = lobby.phones.get(payload.socketId);
-    if(phone && payload.ok && payload.name) phone.name = payload.name;
+    if(!phone) return;
+    if(payload.ok && payload.name) phone.name = payload.name;
     io.to(payload.socketId).emit('join:result', {
       ok: !!payload.ok,
       name: payload.name || null,
@@ -273,7 +400,7 @@ io.on('connection', (socket) => {
 
   // DJ boots one phone. Not a ban — they can rejoin with the same code, they
   // just come back as a fresh player with an empty timeline.
-  socket.on('lobby:kick', (payload) => {
+  on('lobby:kick', (payload) => {
     const lobby = L.lobbyForDj(socket.id);
     if(!lobby || !payload || !payload.deviceId) return;
     const socketId = L.socketForDevice(lobby, payload.deviceId);
@@ -288,7 +415,22 @@ io.on('connection', (socket) => {
     pushRoster(lobby);
   });
 
-  socket.on('lobby:end', () => {
+  // The DJ renamed a player. The server keeps the join name and replays it when
+  // the DJ page reloads, so it has to follow, and the phone shows it too.
+  on('player:rename', (payload) => {
+    const lobby = L.lobbyForDj(socket.id);
+    if(!lobby || !isObj(payload)) return;
+    const deviceId = cleanDevice(payload.deviceId);
+    const name = cleanName(payload.name);
+    if(!deviceId || !name) return;
+    const socketId = L.socketForDevice(lobby, deviceId);
+    if(!socketId) return;
+    lobby.phones.get(socketId).name = name;
+    io.to(socketId).emit('player:renamed', { name });
+    pushRoster(lobby);
+  });
+
+  on('lobby:end', () => {
     const lobby = L.lobbyForDj(socket.id);
     if(lobby) closeLobby(lobby, 'dj-ended');
   });
@@ -297,26 +439,33 @@ io.on('connection', (socket) => {
 
   // Lets a phone see which names the DJ has already created (and which are
   // still free) before it commits to claiming one.
-  socket.on('lobby:peek', (payload, cb) => {
+  on('lobby:peek', (payload, cb) => {
     const ack = typeof cb === 'function' ? cb : () => {};
-    const lobby = L.getLobby(payload && payload.code);
+    if(!isObj(payload)) return ack({ ok: false, error: 'no-lobby' });
+    const lobby = L.getLobby(payload.code);
     if(!lobby) return ack({ ok: false, error: 'no-lobby' });
-    const asker = payload && payload.deviceId;
+    const asker = cleanDevice(payload.deviceId);
+    // Peeking a different lobby: stop pushing names from the old one.
+    const before = L.getLobby(socket.data.peekCode);
+    if(before && before !== lobby) before.peekers.delete(socket.id);
     // Remember them so roster changes get pushed while they pick a name.
     lobby.peekers.set(socket.id, asker || null);
     socket.data.peekCode = lobby.code;
     ack({ ok: true, code: lobby.code, names: nameRoster(lobby, asker), full: L.isFull(lobby), djOnline: !!lobby.djSocketId });
   });
 
-  socket.on('lobby:join', (payload, cb) => {
+  on('lobby:join', (payload, cb) => {
     const ack = typeof cb === 'function' ? cb : () => {};
-    const code = payload && payload.code;
-    const name = (payload && payload.name || '').trim();
-    const deviceId = payload && payload.deviceId;
+    if(!isObj(payload)) return ack({ ok: false, error: 'no-lobby' });
+    const name = cleanName(payload.name);
+    const deviceId = cleanDevice(payload.deviceId);
 
-    const lobby = L.getLobby(code);
+    const lobby = L.getLobby(payload.code);
     if(!lobby) return ack({ ok: false, error: 'no-lobby' });
     if(!name) return ack({ ok: false, error: 'no-name' });
+    // The device id is how a phone gets its seat back; without one, two phones
+    // would knock each other out of the roster.
+    if(!deviceId) return ack({ ok: false, error: 'bad-device' });
 
     const known = Array.from(lobby.phones.values()).some(p => p.deviceId === deviceId);
     if(!known && L.isFull(lobby)) return ack({ ok: false, error: 'full' });
@@ -342,7 +491,9 @@ io.on('connection', (socket) => {
     ack({
       ok: true,
       code: lobby.code,
-      state: lobby.state,
+      // Which public id is "me" in the state blob.
+      you: publicId(lobby, deviceId),
+      state: forPhones(lobby, lobby.state),
       djOnline: !!lobby.djSocketId,
       graceEndsAt: lobby.graceEndsAt
     });
@@ -350,72 +501,72 @@ io.on('connection', (socket) => {
     // With no DJ connected there's nobody to approve the join — it gets
     // replayed from the roster the moment they come back.
     if(lobby.djSocketId){
-      toDj(lobby, 'player:join-request', { socketId: socket.id, name, deviceId, switch: !!(payload && payload.switch) });
+      toDj(lobby, 'player:join-request', { socketId: socket.id, name, deviceId, switch: payload.switch === true });
       pushRoster(lobby);
     }
   });
 
   // Over/under vote from a phone in the game. The DJ decides what it's worth.
-  socket.on('vote:cast', (payload) => {
+  on('vote:cast', (payload) => {
     const lobby = L.lobbyForPhone(socket.id);
-    if(!lobby || !payload) return;
+    if(!lobby || !isObj(payload)) return;
     toDj(lobby, 'player:vote', {
       deviceId: socket.data.deviceId,
-      voteId: payload.voteId,
-      choice: payload.choice
+      voteId: prim(payload.voteId),
+      choice: prim(payload.choice)
     });
   });
 
   // Lock-in year from a phone. The DJ checks it against the lock-in.
-  socket.on('lockin:cast', (payload) => {
+  on('lockin:cast', (payload) => {
     const lobby = L.lobbyForPhone(socket.id);
-    if(!lobby || !payload) return;
+    if(!lobby || !isObj(payload)) return;
     toDj(lobby, 'player:lockin', {
       deviceId: socket.data.deviceId,
-      lockId: payload.lockId,
-      year: payload.year
+      lockId: prim(payload.lockId),
+      year: prim(payload.year)
     });
   });
 
   // Betster bet from a phone. The DJ checks it against the player's coins.
-  socket.on('bet:place', (payload) => {
+  on('bet:place', (payload) => {
     const lobby = L.lobbyForPhone(socket.id);
-    if(!lobby || !payload) return;
+    if(!lobby || !isObj(payload)) return;
     toDj(lobby, 'player:bet', {
       deviceId: socket.data.deviceId,
-      betId: payload.betId,
-      pick: payload.pick,
-      amount: payload.amount
+      betId: prim(payload.betId),
+      pick: prim(payload.pick),
+      amount: prim(payload.amount)
     });
   });
 
   // The turn player points to where the song goes in their timeline.
-  socket.on('spot:pick', (payload) => {
+  on('spot:pick', (payload) => {
     const lobby = L.lobbyForPhone(socket.id);
-    if(!lobby || !payload) return;
+    if(!lobby || !isObj(payload)) return;
     toDj(lobby, 'player:spot', {
       deviceId: socket.data.deviceId,
-      songId: payload.songId,
-      slot: payload.slot
+      songId: prim(payload.songId),
+      slot: prim(payload.slot)
     });
   });
 
   // Coin shop purchase from a phone. The DJ checks the price and the rules.
-  socket.on('shop:buy', (payload) => {
+  on('shop:buy', (payload) => {
     const lobby = L.lobbyForPhone(socket.id);
-    if(!lobby || !payload) return;
+    if(!lobby || !isObj(payload)) return;
     toDj(lobby, 'player:buy', {
       deviceId: socket.data.deviceId,
-      item: payload.item,
-      target: payload.target,
-      cardId: payload.cardId,
-      price: payload.price
+      item: prim(payload.item),
+      target: prim(payload.target),
+      cardId: prim(payload.cardId),
+      price: prim(payload.price)
     });
   });
 
   // A phone opened its recap card. The DJ has the numbers, so ask it and pass
   // the answer straight back; no answer within 4 s means no card.
-  socket.on('recap:get', (payload, cb) => {
+  on('recap:get', (payload, cb) => {
     if(typeof cb !== 'function') return;
     const lobby = L.lobbyForPhone(socket.id);
     if(!lobby || !lobby.djSocketId) return cb(null);
@@ -425,7 +576,7 @@ io.on('connection', (socket) => {
     toDj(lobby, 'player:recap-get', { reqId, deviceId: socket.data.deviceId });
   });
 
-  socket.on('recap:reply', (payload) => {
+  on('recap:reply', (payload) => {
     const wait = payload && recapWaits.get(payload.reqId);
     if(!wait || wait.dj !== socket.id) return;
     clearTimeout(wait.timer);
@@ -435,7 +586,7 @@ io.on('connection', (socket) => {
 
   // --- Teardown ------------------------------------------------------------
 
-  socket.on('disconnect', () => {
+  on('disconnect', () => {
     const peeked = L.getLobby(socket.data.peekCode);
     if(peeked) peeked.peekers.delete(socket.id);
 
